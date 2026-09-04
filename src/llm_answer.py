@@ -5,16 +5,16 @@ load_dotenv()
 
 from src.safety import REFUSAL_MESSAGE
 
-SYSTEM_PROMPT = f"""You are MachineAssist, an expert factory troubleshooting assistant. Your task is to answer user queries using ONLY the provided manual sources.
+SYSTEM_PROMPT = f"""You are MachineAssist, an expert factory troubleshooting assistant. Your task is to answer the technician's question using ONLY the provided manual sources below.
 
-Format your answer using the following 4 sections:
-1. Error meaning: Explain the error code or symptom as specified in the sources.
-2. Probable causes: List the causes provided in the sources (or state None if not listed).
-3. Step-by-step corrective action: List the troubleshooting steps from the sources (or state None if not listed).
-4. Sources: State the manual file and section name.
+If the provided manual sources contain relevant information, provide a structured response with these 4 headings:
+1. Error meaning: Explanation of the error code or symptom.
+2. Probable causes: Causes listed in the sources.
+3. Step-by-step corrective action: Numbered action steps listed in the sources.
+4. Sources: Manual name and section.
 
-Important: If the provided sources do NOT contain any information about the query, reply with ONLY:
-"{REFUSAL_MESSAGE}"
+If the provided sources do NOT contain information to answer the question, output ONLY:
+{REFUSAL_MESSAGE}
 """
 
 def assemble_context(chunks):
@@ -53,11 +53,22 @@ def generate_answer(query, context, api_key=None):
             system_instruction=SYSTEM_PROMPT
         )
 
-        response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=user_content,
-            config=config
-        )
+        import time
+        max_retries = 3
+        response = None
+        for attempt in range(max_retries):
+            try:
+                response = client.models.generate_content(
+                    model="gemini-3.6-flash",
+                    contents=user_content,
+                    config=config
+                )
+                break
+            except Exception as err:
+                if ("429" in str(err) or "RESOURCE_EXHAUSTED" in str(err)) and attempt < max_retries - 1:
+                    time.sleep(5)
+                    continue
+                raise err
 
         # Guard: response may be blocked or empty (safety filters / empty generation)
         if not response.candidates:
@@ -90,9 +101,8 @@ def generate_answer(query, context, api_key=None):
         return text
 
     except Exception as e:
-        # Fallback if API call fails e.g. quota limit (429) or connection error
-        # Construct structured answer from context so system remains operational during rate limits
-        return f"1. Error meaning (Context Fallback):\n{context}\n2. Probable causes: See context above\n3. Step-by-step corrective action: Follow manual steps in context\n4. Sources: Manual sections cited above"
+        # Fail-closed safety posture: if API call fails (quota/network error), return refusal message
+        return REFUSAL_MESSAGE
 
 if __name__ == "__main__":
     test_chunks = [
