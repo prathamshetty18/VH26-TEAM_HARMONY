@@ -133,10 +133,11 @@ export const App: React.FC = () => {
     }
   };
 
-  // Handle ambiguity option selection (sends machine name carrying session context)
+  // Handle ambiguity option selection
   const handleSelectAmbiguityOption = (option: AmbiguityOption) => {
     handleSelectMachine(option.machine);
-    handleSendMessage(option.machine);
+    const query = option.queryHint || `Troubleshoot ${session.lastError || 'fault'} on ${option.machine}`;
+    handleSendMessage(query);
   };
 
   // Reset session

@@ -24,6 +24,10 @@ export const RefusalCard: React.FC<RefusalCardProps> = ({ message }) => {
         </div>
       </div>
 
+      {/* Reassuring note on diagnostic integrity */}
+      <div className="pl-11 text-sm md:text-base text-slate-600 leading-relaxed font-sans">
+        This query requests repair steps or procedures that are not documented in the verified technical manuals. MachineAssist adheres to strict retrieval verification and will not generate ungrounded instructions for high-voltage or heavy mechanical machinery.
+      </div>
 
       <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs md:text-sm text-slate-400 font-mono pl-11">
         <span>Verified retrieval gate: No matching manual chunks</span>
