@@ -81,7 +81,7 @@ def handle_query(req: QueryRequest):
         )
 
     # Step 5: Safety / Relevance Control Check
-    sufficient, safety_result = is_sufficient(retrieved_chunks, threshold=0.25)
+    sufficient, safety_result = is_sufficient(retrieved_chunks, query=raw_message)
     if not sufficient:
         return QueryResponse(
             answer=safety_result, # Refusal message
