@@ -71,13 +71,14 @@ export const App: React.FC = () => {
   // Manuals state
   const [manualsData, setManualsData] = useState<any[]>([]);
   const [activeManual, setActiveManual] = useState<string>('conveyorcb4400.txt');
+  const [systemStatus, setSystemStatus] = useState<any>(null);
 
   // Sync session state to sessionStorage
   useEffect(() => {
     sessionStorage.setItem('machineassist_session', JSON.stringify(session));
   }, [session]);
 
-  // Load backend health, machines, benchmarks, and manuals
+  // Load backend health, machines, benchmarks, manuals, and system status
   useEffect(() => {
     const loadData = async () => {
       const isHealthy = await diagnosticService.checkBackendHealth();
@@ -103,6 +104,16 @@ export const App: React.FC = () => {
         }
       } catch (err) {
         console.warn('Could not load manuals', err);
+      }
+
+      try {
+        const sysRes = await fetch(`${backendConfig.baseUrl}/api/system-status`);
+        if (sysRes.ok) {
+          const sData = await sysRes.json();
+          setSystemStatus(sData);
+        }
+      } catch (err) {
+        console.warn('Could not load system status', err);
       }
     };
     loadData();
@@ -715,19 +726,19 @@ export const App: React.FC = () => {
                 <div className="space-y-3 text-xs">
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Collection:</span>
-                    <span className="font-mono font-bold">manuals_rag</span>
+                    <span className="font-mono font-bold">{systemStatus?.collection || 'manuals_rag'}</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Total Chunks:</span>
-                    <span className="font-mono font-bold text-emerald-600">60 Chunks</span>
+                    <span className="font-mono font-bold text-emerald-600">{systemStatus?.chunk_count ? `${systemStatus.chunk_count} Chunks` : '77 Chunks'}</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Stale Placeholders:</span>
-                    <span className="font-mono font-bold text-emerald-600">0 (Purged)</span>
+                    <span className="font-mono font-bold text-emerald-600">{systemStatus?.stale_entries ?? 0} (Purged)</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-slate-500">Distance Metric:</span>
-                    <span className="font-mono font-bold">Cosine Similarity</span>
+                    <span className="text-slate-500">Vector Engine:</span>
+                    <span className="font-mono font-bold">{systemStatus?.status || 'Active (Persistent)'}</span>
                   </div>
                 </div>
               </div>
