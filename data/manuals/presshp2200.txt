@@ -1,0 +1,186 @@
+MACHINE: Hydraulic Press
+MODEL: HP-2200
+
+ERROR CODE: H201
+SECTION: Error Codes
+PAGE: 2
+MEANING: Main hydraulic cylinder pressure transducer PT-01 detects that ram hydraulic pressure fails to achieve the commanded 280 bar tonnage within 4.0 seconds following the seating of the main prefill overhead poppet valve, preventing proper tonnage clamp.
+CAUSES:
+- Blown or thermally deteriorated chevron packing ring seals on the primary 650 mm ram piston
+- Sticking or mechanically contaminated proportional directional pressure relief valve PRV-1
+- Foreign metal swarf or particle wedged on the main overhead prefill valve poppet seat, allowing oil to bypass back into the gravity overhead tank
+- Internal barrel wall scoring inside the main cylinder
+
+SECTION: H201 Troubleshooting
+PAGE: 2
+STEPS:
+1. Engage the mechanical platen safety latch blocks into position beneath the ram platen and depress the hydraulic system pressure de-energize pushbutton to bleed residual accumulator pressure down to 0 bar.
+2. Check the electrical resistance of the proportional relief valve PRV-1 solenoid coil using a calibrated multimeter (standard coil resistance must measure between 18.5 and 24.0 ohms). Replace coil if open circuit.
+3. Access the overhead prefill tank inspection port; remove and inspect the main poppet check valve seat for metallic debris, contamination, or scarred mating faces that prevent 100% positive sealing.
+4. Inspect the cylinder rod glands beneath the main press crown for external fluid weepage or pooling hydraulic oil on the platen top surface. If fluid leakage exceeds 15 drops per minute, replace the main multi-lip chevron seal packing assembly.
+5. Close the circuit, retract the safety latch blocks, and execute a dry pressure ramp test up to 150 bar in manual jog mode while logging transducer PT-01 voltage output on the diagnostics console.
+
+ERROR CODE: H205
+SECTION: Error Codes
+PAGE: 2
+MEANING: The resistance temperature transmitter TT-02 immersed in the main 1,500-liter oil reservoir registers a bulk hydraulic fluid temperature exceeding 65°C, triggering an automatic pump unload and cycle shutdown to prevent thermal breakdown of fluid anti-wear additives and seal failure.
+CAUSES:
+- Heavily fouled, scaled, or clogged tube bundle in the external shell-and-tube water-cooled heat exchanger
+- Plant cooling water supply shut off or water flow below 60 liters per minute
+- Internal high-pressure relief valve bypassing continuously at full pressure setting due to an electrical sequencing fault
+- Degraded ISO VG 46 hydraulic fluid undergoing severe shear thinning
+
+SECTION: H205 Troubleshooting
+PAGE: 2
+STEPS:
+1. Keep the hydraulic circulation auxiliary pump running in low-pressure idle mode to circulate fluid through the cooling circuit; do not actuate main pressing cylinders.
+2. Inspect the plant cooling tower water supply valve; verify cooling water inlet pressure is at least 3.5 bar and verify the supply water temperature is below 22°C.
+3. Inspect the cooling water duplex basket strainer; switch over to the clean basket, remove the clogged strainer basket, and wash out calcium scale, silt, and algae.
+4. Use a handheld FLIR infrared thermal camera to scan the main valve manifold block; identify any relief valves or bypass lines showing localized hot spots exceeding 75°C, indicating an internal continuous fluid bypass leak.
+5. Extract a fluid sample from reservoir sample tap ST-1 and evaluate fluid clarity and oxidation level; if fluid is darkened, smells acrid, or shows kinematic viscosity below 38 cSt at 40°C, perform a full oil change with fresh ISO VG 46 mineral hydraulic fluid.
+
+ERROR CODE: H312
+SECTION: Error Codes
+PAGE: 3
+MEANING: Pressure switch AP-03 mounted on the high-pressure bladder accumulator bank senses nitrogen pre-charge gas pressure dropping below the safe threshold of 110 bar during high-speed decompression transitions.
+CAUSES:
+- Ruptured or torn synthetic rubber accumulator internal bladder
+- Leaking Schrader gas charging valve core
+- Mechanical seal deterioration around the accumulator top gas port plug
+- Gradual nitrogen gas permeation during extended operational service
+
+SECTION: H312 Troubleshooting
+PAGE: 3
+STEPS:
+1. Lower the press platen to bottom dead center and open the manual accumulator safety shutoff block dump valve; verify the analog system pressure gauge reads zero before attempting service.
+2. Remove the protective gas valve cap from the accumulator shell and inspect for traces of hydraulic fluid inside the valve stem (the presence of liquid oil confirms a ruptured internal bladder).
+3. If oil is present, unbolt the accumulator shell from its mounting rack, replace the internal elastomeric bladder kit (Part No. HP-ACC-B50), and replace the bottom anti-extrusion fluid poppet.
+4. If no oil is present, connect a certified nitrogen charging and testing manifold with a 0-250 bar calibrated gauge to the gas valve stem.
+5. Using a commercial bottle of dry high-purity industrial nitrogen gas (99.99% purity), recharge the accumulator slowly until the pre-charge pressure reaches the specification of 130 bar at 20°C ambient.
+6. Check the gas charging valve core and top sealing plug using soapy water leak detection solution to ensure zero bubble formation.
+
+ERROR CODE: H420
+SECTION: Error Codes
+PAGE: 3
+MEANING: The dual magnetostrictive absolute linear position transducers (LT-01 Left and LT-02 Right) measure a platen tilt or angular skew exceeding 0.35 millimeters across the 2,400 mm bed width during downward pressing motion, threatening tooling dies and column guide bushings.
+CAUSES:
+- Severe off-center die placement creating an unbalanced reactive pressing torque
+- Contaminated proportional servo flow valve controlling the left or right booster cylinder
+- Galling or severe dry friction on one of the four main bronze column guide bushings
+- Loose foundation anchor bolts under one corner of the press bed
+
+SECTION: H420 Troubleshooting
+PAGE: 3
+STEPS:
+1. Immediately abort the pressing stroke and jog the main ram upward to top position in low-speed manual mode.
+2. Check the stamping die alignment on the press bed bolster plate; verify the center of tonnage of the tooling die is positioned within +/- 5 mm of the bed theoretical center mark.
+3. Clean and inspect the ground surfaces of the four hardened vertical tie-rod columns; check for dry abrasive galling, scoring, or bronze pickup.
+4. Check the automatic centralized grease lubricator supplying the column bushings; verify grease reservoir is full of NLGI Grade 2 lithium grease with extreme pressure (EP) additives and verify grease lines are pumping smoothly to all 8 column lube ports.
+5. Access the HMI controller calibration screen, select Platen Parallelism Zero Calibration, and perform a closed-loop electronic leveling trim to balance the proportional flow valve drive signals.
+
+ERROR CODE: H515
+SECTION: Error Codes
+PAGE: 4
+MEANING: The dual-stage magnetic float level switch LS-02 inside the 1,500-liter primary hydraulic tank detects that the reservoir fluid level has dropped below the first-stage alarm threshold of 600 millimeters from the tank floor.
+CAUSES:
+- High-pressure piping flange O-ring failure
+- Ruptured flexible hydraulic hose on the bottom ejector cylinder assembly
+- Leaking shaft seal on main variable displacement axial piston pump P1
+- Hydraulic fluid loss into underground foundation trenches or press sump pit
+
+SECTION: H515 Troubleshooting
+PAGE: 4
+STEPS:
+1. Perform an immediate visual walkaround of the press pit, pump basement, and cylinder overhead platform to trace active hydraulic fluid pools or dripping lines.
+2. If an active fluid spray or hose failure is discovered, press the Emergency Stop immediately. Replace damaged high-pressure 4-wire spiral braided hose assemblies immediately.
+3. Inspect SAE 4-bolt split flange connections across the main manifold blocks; tighten loose flange cap screws to 120 Nm torque or replace extruded 90 Durometer polyurethane O-rings.
+4. Connect an offline mobile filter cart equipped with 10-micron water-absorbing filter elements to the reservoir quick-connect fill port.
+5. Pump fresh, pre-filtered ISO VG 46 anti-wear hydraulic oil into the tank until the level sight gauge reaches the 85% full mark (approximately 400 liters required from first alarm point).
+6. Reset the level fault alarm on the operator HMI panel.
+
+ERROR CODE: H622
+SECTION: Error Codes
+PAGE: 4
+MEANING: The Category 4 infrared safety light curtain array installed across the front operator loading aperture detects beam optical interruptions during a high-speed downward ram movement, commanding an instantaneous safety stop.
+CAUSES:
+- Physical penetration of the optical safety plane by operator hands or tooling handling equipment
+- Heavy oil mist, smoke, or airborne grease coating the optical transmitter or receiver lenses
+- Mechanical vibration loosening the optical column alignment bracket, resulting in beam drift
+
+SECTION: H622 Troubleshooting
+PAGE: 4
+STEPS:
+1. Confirm that all operators, transport carts, and raw sheet metal blanks are completely clear of the safety zone defined by the optical transmitter and receiver pillars.
+2. Inspect the protective clear acrylic lenses of both the transmitter (TX) and receiver (RX) towers; gently wipe clean with a soft microfiber cloth dampened with mild soapy water. Do not use aggressive solvents that can craze the acrylic plastic.
+3. Loosen the optical tower swivel mounting bolts slightly and adjust the vertical and horizontal angle while observing the diagnostic display bar on the receiver; align until all green channel indicators illuminate solidly.
+4. Check the safety relay module SR-2 located inside control cabinet 1; verify both safety channel inputs K1 and K2 are energized simultaneously.
+5. Press the illuminated yellow Safety Barrier Reset pushbutton located on the front operator control pedestal.
+
+ERROR CODE: SYM-HYDRAULIC-HAMMER
+SECTION: Common Symptoms
+PAGE: 5
+MEANING: Severe hydraulic hammer, line shock, and mechanical pipe banging noise occurring during the decompression transition before ram decompression completes.
+CAUSES:
+- Premature opening of the main prefill poppet before cylinder pressure bleeds down
+- Improperly tuned decompression ramp parameter on the digital proportional valve controller
+- Sticking poppet or fatigued pilot spring in the decompression cartridge valve
+
+SECTION: Hydraulic Hammer Troubleshooting
+PAGE: 5
+STEPS:
+1. Access the hydraulic valve amplifier card setup parameters via the diagnostic laptop interface.
+2. Increase the decompression ramp time constant from 180 milliseconds to 420 milliseconds to enforce a gradual, linear pressure bleed-down before the main poppet is allowed to crack open.
+3. Inspect the pilot decompression cartridge valve poppet seat for internal scoring or a fatigued pilot spring.
+4. Check all hydraulic pipe clamps on the overhead delivery lines; tighten loose clamp bracket bolts and replace any cracked or hardened polypropylene clamp body inserts with fresh vibration-damping elastomer sleeves.
+
+ERROR CODE: SYM-RAM-JERKING
+SECTION: Common Symptoms
+PAGE: 5
+MEANING: Ram platen exhibits jerky, stuttering, or uneven downward movement during approach strokes rather than smooth proportional glide.
+CAUSES:
+- Air entrainment in the main cylinder oil columns
+- Stick-slip friction on dry tie-rod bronze guide bushings
+- Mechanical binding of the piston guide wear rings due to contaminated fluid
+
+SECTION: Ram Movement Troubleshooting
+PAGE: 5
+STEPS:
+1. Jog the ram to top dead center.
+2. Slightly crack open the manual high-point bleed petcock valves situated at the highest apex of each of the four main cylinder top covers.
+3. Jog the ram slowly down at 10 mm/s in manual mode until continuous bubble-free hydraulic oil expels from the bleed ports, then retighten the petcocks securely.
+4. Inspect the tie-rod guide column surfaces; generously spray manual lubricating oil onto the columns and run three full-stroke cycles to coat the internal bronze bushings.
+5. If jerking persists, inspect the main cylinder internal sliding guide bands for debris contamination.
+
+ERROR CODE: SYM-PUMP-CAVITATION
+SECTION: Common Symptoms
+PAGE: 6
+MEANING: Main variable-displacement axial piston hydraulic pump emits an abnormal high-pitched cavitation whining acoustic noise during operation.
+CAUSES:
+- Restriction in the pump suction line caused by a heavily silted suction strainer inside the oil tank
+- High fluid viscosity due to cold reservoir oil below minimum operating temperature
+- Atmospheric air entering through a worn pump driveshaft seal
+
+SECTION: Pump Cavitation Troubleshooting
+PAGE: 6
+STEPS:
+1. Immediately check reservoir fluid temperature gauge; if the oil is below 20°C, turn on the auxiliary electric immersion tank heaters and wait until the oil temperature reaches at least 32°C before running the main pumps under load.
+2. Check that the suction butterfly isolation valve is locked in the 100% full-open position.
+3. Drain the fluid level down to maintenance level and remove the 100-mesh wire cloth pump suction strainer from the bottom tank port; wash thoroughly in mineral spirits and blow dry with compressed air.
+4. Check the pump driveshaft lip seal for oil weeping or telltale suction air hissing sounds.
+
+ERROR CODE: SYM-TONNAGE-HOLD
+SECTION: Common Symptoms
+PAGE: 6
+MEANING: Press ram fails to maintain commanded tonnage clamp during high-pressure dwell, exhibiting rapid pressure decay exceeding permissible tolerances.
+CAUSES:
+- Internal high-pressure oil bypassing across worn piston packing seals inside one of the main cylinders
+- Leaking pilot-operated cartridge check valve in the tonnage manifold
+- Drifting proportional pressure control valve
+
+SECTION: Tonnage Hold Troubleshooting
+PAGE: 6
+STEPS:
+1. Place a solid calibrated load cell block on the press bed and command a 2,000-ton clamp for 120 seconds in diagnostic hold mode.
+2. Record the rate of tonnage loss on the digital chart recorder; if tonnage drops at a rate greater than 3.0 tons per second, isolate the cylinders individually using the manifold ball valves to determine which cylinder has internal seal leakage.
+3. Disassemble the suspect cylinder manifold and remove the pilot-operated check valve cartridge; inspect the ground carbide valve seat under magnification for micro-cracks, erosion channels, or debris indents.
+4. Replace the valve cartridge and install new 90 Durometer backup rings.
