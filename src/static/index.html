@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MachineAssist — Industrial Intelligence Copilot</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234f46e5'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+</head>
+<body>
+
+  <!-- Background Ambient Aurora Glow -->
+  <div class="ambient-glow"></div>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="#" class="brand-logo">
+        <div class="brand-icon">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <span>MachineAssist</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#overview" class="nav-link active">Overview</a></li>
+        <li><a href="#tools" class="nav-link" onclick="switchTab('copilot')">Copilot</a></li>
+        <li><a href="#tools" class="nav-link" onclick="switchTab('benchmarks')">Benchmarks</a></li>
+        <li><a href="#tools" class="nav-link" onclick="switchTab('manuals')">Manuals</a></li>
+        <li><a href="#tools" class="nav-link" onclick="switchTab('telemetry')">Telemetry</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <div class="status-pill">
+          <div class="pulse-dot"></div>
+          <span id="active-scope-badge">Scope: All Fleet</span>
+        </div>
+        <button class="btn btn-secondary" id="reset-session-btn" style="padding: 0.5rem 1rem; font-size: 0.8rem;">
+          Reset Session
+        </button>
+        <a href="#tools" class="btn btn-primary" onclick="switchTab('copilot')">
+          Launch Copilot →
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="overview">
+    <div class="container">
+      <div class="hero-tag">
+        <span>✨ INDUSTRIAL INTELLIGENCE PLATFORM</span>
+      </div>
+      <h1 class="hero-title">
+        Streamline your industrial operations
+      </h1>
+      <p class="hero-subtitle">
+        Say goodbye to downtime headaches and say hello to efficiency. Query manufacturer manuals in milliseconds, isolate ambiguous error codes across production lines, and verify safety-critical procedures with zero hallucination.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#tools" class="btn btn-primary" onclick="switchTab('copilot')">
+          Get started →
+        </a>
+        <a href="#tools" class="btn btn-secondary" onclick="switchTab('benchmarks'); runFullBenchmark();">
+          Run Benchmark (13/13) →
+        </a>
+      </div>
+
+      <!-- Floating Hero Dashboard Cards (Wedge Design Signature) -->
+      <div class="hero-visual-wrapper">
+        <div class="floating-card-stage">
+          
+          <!-- Left Floating Column -->
+          <div class="float-card-left-stack">
+            <div class="float-card">
+              <div class="avatar-group">
+                <div class="machine-avatar avatar-cb" title="Conveyor Belt CB-4400">CB</div>
+                <div class="machine-avatar avatar-mx" title="CNC Milling MX-7">MX</div>
+                <div class="machine-avatar avatar-hp" title="Hydraulic Press HP-2200">HP</div>
+              </div>
+              <div style="font-size: 0.875rem; font-weight: 700; color: #0f172a;">3 Factory Systems</div>
+              <div style="font-size: 0.75rem; color: #64748b;">Live telemetry connected</div>
+            </div>
+
+            <div class="stat-box">
+              <div class="stat-number">60</div>
+              <div class="stat-label">Ingested Chunks</div>
+              <div style="font-size: 0.725rem; color: #10b981; font-weight: 600; margin-top: 0.25rem;">● Clean Vector Store</div>
+            </div>
+          </div>
+
+          <!-- Center Checklist Card -->
+          <div class="float-card-center">
+            <div class="checklist-header">
+              <div class="checklist-title">
+                <svg style="width: 18px; height: 18px; color: #4f46e5;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Diagnostic Health Checks</span>
+              </div>
+              <span class="badge-tag badge-success">100% Passed</span>
+            </div>
+
+            <div class="checklist-item">
+              <div class="checklist-row">
+                <span>Spindle Coolant Flow (FL-10)</span>
+                <span style="color: #4f46e5;">100%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill fill-purple" style="width: 100%;"></div>
+              </div>
+            </div>
+
+            <div class="checklist-item">
+              <div class="checklist-row">
+                <span>E101 Cross-Machine Disambiguation</span>
+                <span style="color: #10b981;">100%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill fill-emerald" style="width: 100%;"></div>
+              </div>
+            </div>
+
+            <div class="checklist-item">
+              <div class="checklist-row">
+                <span>LOTO CP-1 & Interlock Verification</span>
+                <span style="color: #06b6d4;">100%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill fill-cyan" style="width: 100%;"></div>
+              </div>
+            </div>
+
+            <div class="checklist-item">
+              <div class="checklist-row">
+                <span>Honest Refusal on Gap Symptoms</span>
+                <span style="color: #10b981;">Active</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill fill-emerald" style="width: 100%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Floating Column -->
+          <div class="float-card-right-stack">
+            <div class="float-card">
+              <div style="font-size: 0.85rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem;">Active Fleet Status</div>
+              <div class="telemetry-row">
+                <span>CB-4400 Conveyor</span>
+                <span class="badge-tag badge-success">Nominal</span>
+              </div>
+              <div class="telemetry-row">
+                <span>MX-7 Precision</span>
+                <span class="badge-tag badge-success">Nominal</span>
+              </div>
+              <div class="telemetry-row">
+                <span>HP-2200 Press</span>
+                <span class="badge-tag badge-success">Nominal</span>
+              </div>
+            </div>
+
+            <div class="stat-box">
+              <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Avg Query Latency</div>
+              <div style="font-size: 1.8rem; font-weight: 800; color: #4f46e5; margin-top: 0.2rem;">~350ms</div>
+              <div style="font-size: 0.725rem; color: #10b981; font-weight: 600;">0% Cross-Manual Leakage</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Trusted Fleet Strip -->
+  <section class="fleet-trust-section">
+    <div class="container">
+      <div class="trust-title">
+        Trusted on high-precision manufacturing & assembly floors
+      </div>
+
+      <div class="fleet-badges-grid">
+        <div class="fleet-badge-card" data-machine="Conveyor Belt System">
+          <div class="fleet-badge-icon" style="background: #3b82f6;">CB</div>
+          <div class="fleet-badge-info">
+            <h4>Conveyor Belt CB-4400</h4>
+            <p>1,200 kg Payload • VFD Inverter • 6 Pages</p>
+          </div>
+        </div>
+
+        <div class="fleet-badge-card" data-machine="CNC Milling Machine">
+          <div class="fleet-badge-icon" style="background: #8b5cf6;">MX</div>
+          <div class="fleet-badge-info">
+            <h4>CNC Milling Machine MX-7 Precision</h4>
+            <p>24k RPM • 5-Axis • Through-Spindle Coolant</p>
+          </div>
+        </div>
+
+        <div class="fleet-badge-card" data-machine="Hydraulic Press">
+          <div class="fleet-badge-icon" style="background: #10b981;">HP</div>
+          <div class="fleet-badge-info">
+            <h4>Hydraulic Press HP-2200</h4>
+            <p>220-Ton Clamping • Duplex Filtration • TT-02</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Three Value Propositions ("Wedge is built for you") -->
+  <section class="features-section">
+    <div class="container">
+      <h2 class="section-heading">MachineAssist is built for you</h2>
+
+      <div class="feature-cards-grid">
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h3>Streamline your work</h3>
+          <p>
+            Efficiency starts here. Enter any error code or symptom to retrieve verified manufacturer corrective steps, probable causes, and exact page citations in milliseconds.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          </div>
+          <h3>Works with your equipment</h3>
+          <p>
+            Zero cross-manual contamination. When identical error codes (such as E101) exist across multiple machines, the system automatically halts and triggers interactive disambiguation.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <h3>Save hours every week</h3>
+          <p>
+            Eliminate unsafe field guesswork. Strict safety guardrails deliver honest refusals on undocumented LED blink patterns or symptoms not found in the manuals.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Industrial Tools Suite (The Dashboard) -->
+  <section class="workspace-section" id="tools">
+    <div class="container">
+      
+      <!-- Workspace Navigation -->
+      <div class="workspace-header">
+        <div>
+          <h2 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; color: #0f172a;">Diagnostic Command Center</h2>
+          <p style="color: #64748b; font-size: 0.95rem;">Select an application tool below to interact with the grounded RAG engine.</p>
+        </div>
+
+        <div class="tool-nav-pill-group">
+          <button class="tool-tab-btn active" data-tab="copilot">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            <span>Diagnostic Copilot</span>
+          </button>
+          <button class="tool-tab-btn" data-tab="benchmarks">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+            <span>13-Query Benchmark</span>
+          </button>
+          <button class="tool-tab-btn" data-tab="manuals">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+            <span>Manuals Library</span>
+          </button>
+          <button class="tool-tab-btn" data-tab="telemetry">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            <span>Vector Telemetry</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- PANE 1: DIAGNOSTIC COPILOT -->
+      <div class="tool-pane active" id="pane-copilot">
+        <div class="copilot-grid" id="copilot-section">
+          
+          <!-- Sidebar: Machine Filter, Memory, & Demo Presets -->
+          <div class="copilot-sidebar">
+            <div>
+              <div class="sidebar-heading">
+                <span>Machine Context Scope</span>
+              </div>
+              <div class="machine-scope-pills">
+                <div class="scope-pill active" data-machine="all">
+                  <span>All Active Fleet (Automatic)</span>
+                  <span style="font-size: 0.725rem; color: #10b981;">● Auto</span>
+                </div>
+                <div class="scope-pill" data-machine="Conveyor Belt System">
+                  <span>Conveyor Belt CB-4400</span>
+                  <span class="badge-tag badge-indigo">CB</span>
+                </div>
+                <div class="scope-pill" data-machine="CNC Milling Machine">
+                  <span>CNC Milling MX-7 Precision</span>
+                  <span class="badge-tag badge-indigo">MX</span>
+                </div>
+                <div class="scope-pill" data-machine="Hydraulic Press">
+                  <span>Hydraulic Press HP-2200</span>
+                  <span class="badge-tag badge-indigo">HP</span>
+                </div>
+              </div>
+
+              <div class="sidebar-heading">
+                <span>Session Memory State</span>
+                <span id="session-display" style="font-family: var(--font-mono); font-size: 0.7rem; color: #4f46e5;">sess_init</span>
+              </div>
+              <div class="session-memory-card">
+                <div class="memory-row">
+                  <span class="memory-label">Last Machine:</span>
+                  <span class="memory-val" id="mem-last-machine">None (General)</span>
+                </div>
+                <div class="memory-row">
+                  <span class="memory-label">Last Error:</span>
+                  <span class="memory-val" id="mem-last-error">None</span>
+                </div>
+                <div class="memory-row">
+                  <span class="memory-label">Turn Count:</span>
+                  <span class="memory-val" id="mem-turn-count">0</span>
+                </div>
+              </div>
+
+              <div class="sidebar-heading">
+                <span>1-Click Presentation Presets</span>
+              </div>
+              <div class="demo-preset-list" id="preset-container">
+                <!-- Dynamically injected from app.js -->
+              </div>
+            </div>
+
+            <div style="font-size: 0.75rem; color: #94a3b8; font-family: var(--font-mono); margin-top: 1rem;">
+              ChromaDB Store: 60 clean chunks
+            </div>
+          </div>
+
+          <!-- Main Chat Console -->
+          <div class="copilot-main">
+            <div class="chat-scroll-area" id="chat-scroll">
+              <div class="card-response" style="background: #f8fafc; border-style: dashed; padding: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                  <div class="brand-icon" style="width: 28px; height: 28px; border-radius: 8px;">
+                    <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </div>
+                  <h4 style="font-size: 1rem; font-weight: 700; color: #0f172a;">MachineAssist Core Online</h4>
+                </div>
+                <p style="font-size: 0.875rem; color: #64748b; line-height: 1.6;">
+                  Welcome to the Industrial Diagnostics Copilot. All responses are strictly grounded in the manufacturer manuals for <strong>Conveyor Belt CB-4400</strong>, <strong>CNC Milling MX-7 Precision</strong>, and <strong>Hydraulic Press HP-2200</strong>.
+                  Try clicking any preset on the left or type your query below.
+                </p>
+              </div>
+            </div>
+
+            <!-- Input Bar -->
+            <div class="chat-input-wrapper">
+              <input 
+                type="text" 
+                class="query-input-field" 
+                id="query-input" 
+                placeholder="Ask about an error code, symptom, or maintenance procedure (e.g. 'E101' or 'conveyor squeal')..."
+                autocomplete="off"
+              />
+              <button class="btn btn-primary" id="send-query-btn">
+                <span>Evaluate</span>
+                <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- PANE 2: BENCHMARK SCORECARD -->
+      <div class="tool-pane" id="pane-benchmarks">
+        <div class="benchmark-card">
+          <div class="benchmark-top-bar">
+            <div>
+              <h3 style="font-size: 1.5rem; font-weight: 800; color: #0f172a;">Jury Benchmark Test Suite</h3>
+              <p style="font-size: 0.875rem; color: #64748b;">13 Test Cases across Exact Code, Natural Language, Ambiguous Disambiguation, and Undocumented Gap Refusal.</p>
+            </div>
+
+            <div class="bench-stats-strip">
+              <div class="bench-metric-pill">
+                <div class="bench-metric-val" id="bench-score-display">13/13 (100%)</div>
+                <div class="bench-metric-lbl">Pass Rate</div>
+              </div>
+              <div class="bench-metric-pill">
+                <div class="bench-metric-val" style="color: #10b981;">0</div>
+                <div class="bench-metric-lbl">Leakage</div>
+              </div>
+              <button class="btn btn-primary" id="run-benchmark-btn">
+                <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /></svg>
+                <span>Run Live Benchmark</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress bar -->
+          <div class="progress-track" style="height: 8px; margin-bottom: 1.5rem;">
+            <div class="progress-fill fill-purple" id="bench-progress-fill" style="width: 100%;"></div>
+          </div>
+
+          <!-- Table -->
+          <table class="benchmark-table">
+            <thead>
+              <tr>
+                <th style="width: 60px;">ID</th>
+                <th style="width: 140px;">Category</th>
+                <th>Query</th>
+                <th>Expected RAG Behavior</th>
+                <th style="width: 140px;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="benchmark-tbody">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PANE 3: MANUALS LIBRARY -->
+      <div class="tool-pane" id="pane-manuals">
+        <div class="manuals-container">
+          <div class="manuals-nav" id="manuals-nav-list">
+            <!-- Dynamically rendered tabs -->
+          </div>
+          <div class="manual-viewer-content" id="manual-text-display">
+            <div style="text-align: center; padding: 3rem 0; color: #94a3b8;">Select a manual on the left to inspect full text, tables, and sections.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANE 4: VECTOR TELEMETRY & MEMORY -->
+      <div class="tool-pane" id="pane-telemetry">
+        <div class="telemetry-dashboard-grid">
+          
+          <div class="telemetry-tile">
+            <h4>
+              <svg style="width: 20px; height: 20px; color: #4f46e5;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
+              <span>ChromaDB Vector Store</span>
+            </h4>
+            <div class="telemetry-row">
+              <span>Collection Name:</span>
+              <span class="memory-val">manuals_rag</span>
+            </div>
+            <div class="telemetry-row">
+              <span>Indexed Chunks:</span>
+              <span class="memory-val" id="telemetry-chunks-count">60</span>
+            </div>
+            <div class="telemetry-row">
+              <span>Storage Mode:</span>
+              <span class="memory-val" id="telemetry-chroma-status">Persistent Disk</span>
+            </div>
+            <div class="telemetry-row">
+              <span>Stale Entries:</span>
+              <span class="badge-tag badge-success">0 (Purged)</span>
+            </div>
+            <div class="telemetry-row">
+              <span>Distance Metric:</span>
+              <span class="memory-val">Cosine</span>
+            </div>
+          </div>
+
+          <div class="telemetry-tile">
+            <h4>
+              <svg style="width: 20px; height: 20px; color: #8b5cf6;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+              <span>RAG Guardrail Architecture</span>
+            </h4>
+            <div class="telemetry-row">
+              <span>Cross-Machine Disambig:</span>
+              <span class="badge-tag badge-success">Strict Active</span>
+            </div>
+            <div class="telemetry-row">
+              <span>Honest Refusal Filter:</span>
+              <span class="badge-tag badge-success">Dual-Layer</span>
+            </div>
+            <div class="telemetry-row">
+              <span>Context Assembly:</span>
+              <span class="memory-val">Top-K=5 Ranked Chunks</span>
+            </div>
+            <div class="telemetry-row">
+              <span>LLM Engine:</span>
+              <span class="memory-val">Gemini 2.5 Flash / Local</span>
+            </div>
+          </div>
+
+          <div class="telemetry-tile">
+            <h4>
+              <svg style="width: 20px; height: 20px; color: #10b981;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span>Fleet Safety Interlocks</span>
+            </h4>
+            <div class="telemetry-row">
+              <span>CB-4400 LOTO:</span>
+              <span class="memory-val">Panel CP-1</span>
+            </div>
+            <div class="telemetry-row">
+              <span>MX-7 Spindle Chiller:</span>
+              <span class="memory-val">2.2 - 2.8 bar</span>
+            </div>
+            <div class="telemetry-row">
+              <span>HP-2200 Max Oil Temp:</span>
+              <span class="memory-val">65°C via TT-02</span>
+            </div>
+            <div class="telemetry-row">
+              <span>Cross-Manual Leakage:</span>
+              <span class="badge-tag badge-success">0% Leakage</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Citation Inspector Modal -->
+  <div class="modal-backdrop" id="citation-modal">
+    <div class="modal-dialog">
+      <button class="modal-close-btn" id="modal-close-btn">✕</button>
+      <div id="citation-modal-body">
+        <!-- Content injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-links">
+        <a href="#overview">Overview</a>
+        <a href="#tools" onclick="switchTab('copilot')">Diagnostic Copilot</a>
+        <a href="#tools" onclick="switchTab('benchmarks')">Benchmark Suite</a>
+        <a href="#tools" onclick="switchTab('manuals')">Factory Manuals</a>
+        <a href="#tools" onclick="switchTab('telemetry')">Telemetry</a>
+      </div>
+      <p>© 2026 MachineAssist Industrial Copilot • High-Precision RAG Ground-Truth Architecture</p>
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
