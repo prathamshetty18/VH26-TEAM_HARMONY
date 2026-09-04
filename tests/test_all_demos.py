@@ -41,13 +41,21 @@ def run_demo_tests():
     print("Options:", data3["options"])
     print("Answer:", data3["answer"], "\n")
 
-    # Demo 4: Insufficient Information / Refusal
+    # Demo 4: Insufficient Information / Refusal (Pre-filter Gate)
     print("--- DEMO 4: Insufficient Information ('How do I replace spindle bearing on CNC-100?') ---")
     resp4 = client.post("/query", json={"message": "How do I replace spindle bearing on CNC-100?", "session_id": "test_s4"})
     print("Status:", resp4.status_code)
     data4 = resp4.json()
     print("Ambiguous:", data4["ambiguous"])
-    print("Answer:", data4["answer"])
+    print("Answer:", data4["answer"], "\n")
+
+    # Demo 5: Second-Line LLM Safety Net (Pre-Filter Bypass Case)
+    print("--- DEMO 5: Second-Line LLM Self-Refusal ('electrical torque spec for E101') ---")
+    resp5 = client.post("/query", json={"message": "What is the exact electrical torque specification for resetting E101 motor on CNC-100?", "session_id": "test_s5"})
+    print("Status:", resp5.status_code)
+    data5 = resp5.json()
+    print("Ambiguous:", data5["ambiguous"])
+    print("Answer:", data5["answer"])
     print("==================================================")
 
 if __name__ == "__main__":
