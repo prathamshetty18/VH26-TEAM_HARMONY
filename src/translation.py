@@ -1,35 +1,56 @@
 """
-Translation Module for Machine Hardware Error Detection Application.
+Multilingual Translation Module for Machine Hardware Error Detection Application.
 
-Responsibility:
-User Input -> Detect Language -> Translate to English -> Pass to Existing Pipeline.
+Flow:
+Machine/User Input
+    ↓
+Detect Language (Indic languages: Kannada, Hindi, Tamil, Telugu, Marathi, Bengali; International: Chinese, Japanese, German, Spanish, French; Romanized dialects: Hinglish, Kanglish)
+    ↓
+If non-English → Translate to English (via Google Cloud Translation API, Gemini, or Domain Semantic Engine)
+    ↓
+Pass the English translation directly to the EXISTING machine error detection pipeline
+(If already English: Do not translate, pass directly to existing pipeline)
 
 Features:
 1. Multi-tier language detection:
-   - Unicode script analysis (Kannada, Hindi, Tamil, Telugu, Marathi, Bengali, Malayalam, Gujarati, Arabic, Russian, Chinese, Japanese, Korean)
+   - Unicode script analysis (Kannada, Hindi, Tamil, Telugu, Marathi, Bengali, Malayalam, Gujarati, Chinese, Japanese, Korean, Arabic, Russian)
+   - European language diacritic & vocabulary analysis (German, Spanish, French)
    - Romanized / transliterated dialect detection (Hinglish, Kanglish, Tanglish)
-   - Latin / English zero-latency fast path
+   - Pure English zero-latency fast path
 2. Hardware entity & error code preservation (CNC-100, Press-200, RobotArm-300, E101, E102, E103, E202, E203, R101, H205)
 3. Domain-trained semantic translation engine for factory diagnostics & symptoms
 4. External translation API integrations (Google Cloud Translation v2 & Google GenAI) with resilient offline fallback
-
-Returns format:
-{
-    "originalText": "...",
-    "detectedLanguage": "...",
-    "translatedText": "..."
-}
 """
 
 import os
 import re
 import logging
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Callable, Tuple
 
 logger = logging.getLogger("MachineAssist.Translation")
 
 # Language code to full English name mapping
+SUPPORTED_LANGUAGES = {
+    "zh-CN": "Simplified Chinese",
+    "zh": "Simplified Chinese",
+    "ja": "Japanese",
+    "de": "German",
+    "en": "English",
+    "kn": "Kannada",
+    "hi": "Hindi",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "es": "Spanish",
+    "fr": "French",
+}
+
 LANGUAGE_NAMES = {
+    "zh": "Simplified Chinese",
+    "zh-CN": "Simplified Chinese",
+    "zh-TW": "Chinese (Traditional)",
+    "ja": "Japanese",
+    "de": "German",
+    "en": "English",
     "kn": "Kannada",
     "hi": "Hindi",
     "ta": "Tamil",
@@ -39,26 +60,93 @@ LANGUAGE_NAMES = {
     "bn": "Bengali",
     "gu": "Gujarati",
     "pa": "Punjabi",
-    "en": "English",
     "es": "Spanish",
     "fr": "French",
-    "de": "German",
     "it": "Italian",
     "pt": "Portuguese",
     "ru": "Russian",
-    "ja": "Japanese",
-    "zh": "Chinese",
-    "zh-CN": "Chinese (Simplified)",
-    "zh-TW": "Chinese (Traditional)",
     "ko": "Korean",
-    "ar": "Arabic"
+    "ar": "Arabic",
 }
 
-# Known domain phrases for hardware troubleshooting across regional & international languages
-FALLBACK_TRANSLATIONS: Dict[str, str] = {
-    # -------------------------------------------------------------
-    # 1. KANNADA (ಕನ್ನಡ)
-    # -------------------------------------------------------------
+# Domain-trained vocabulary for industrial hardware troubleshooting
+DOMAIN_TRANSLATIONS: Dict[str, str] = {
+    # --- Simplified Chinese (zh-CN) ---
+    "电机温度过高": "The motor temperature is too high.",
+    "电机过热": "The motor is overheating.",
+    "主轴温度过高": "The spindle temperature is too high.",
+    "传送带打滑": "Conveyor belt is slipping.",
+    "输送带打滑": "Conveyor belt is slipping.",
+    "高速时主轴振动": "Spindle vibration at high RPM.",
+    "主轴振动过大": "Spindle vibration is too high.",
+    "液压过低": "Hydraulic pressure is too low.",
+    "液压油压力低": "Hydraulic oil pressure is low.",
+    "液压系统压力下降": "Hydraulic system pressure drop.",
+    "电机停止运行": "Motor stopped.",
+    "发现漏油现象": "Oil leakage detected.",
+    "主轴发出异常噪音": "Abnormal noise from spindle.",
+    "为什么Press-200因油压停止？": "Why is Press-200 stopping due to oil pressure?",
+    "CNC-100上的E101是什么意思？": "What does E101 mean on CNC-100?",
+    "E101是什么意思？": "What does E101 mean?",
+    "如何在CNC-100上更换主轴轴承？": "How do I replace spindle bearing on CNC-100?",
+
+    # --- Japanese (ja) ---
+    "モーターの温度が高すぎます": "The motor temperature is too high.",
+    "モーター温度が高すぎます": "The motor temperature is too high.",
+    "モーターが過熱しています": "The motor is overheating.",
+    "スピンドルの温度が高すぎます": "The spindle temperature is too high.",
+    "コンベアベルトが滑っています": "Conveyor belt is slipping.",
+    "スピンドルの振動": "Spindle vibration.",
+    "油圧が低すぎます": "Hydraulic pressure is too low.",
+    "油圧が低下しています": "Hydraulic oil pressure is low.",
+    "油圧の低下": "Drop in hydraulic pressure.",
+    "モーター停止": "Motor stopped.",
+    "油漏れが発生しています": "Oil leakage is occurring.",
+    "スピンドル異常音": "Spindle abnormal noise.",
+    "Press-200が油圧で停止する理由は？": "Why is Press-200 stopping due to oil pressure?",
+    "CNC-100のE101はどういう意味ですか？": "What does E101 mean on CNC-100?",
+    "E101はどういう意味ですか？": "What does E101 mean?",
+    "CNC-100のスピンドルベアリングを交換するには？": "How do I replace spindle bearing on CNC-100?",
+
+    # --- German (de) ---
+    "Die Motortemperatur ist zu hoch.": "The motor temperature is too high.",
+    "Die Motortemperatur ist zu hoch": "The motor temperature is too high.",
+    "Motortemperatur ist zu hoch": "The motor temperature is too high.",
+    "Der Motor ist überhitzt": "The motor is overheating.",
+    "Der Motor überhitzt": "The motor is overheating.",
+    "Das Förderband rutscht": "The conveyor belt is slipping.",
+    "Förderband rutscht": "Conveyor belt is slipping.",
+    "Förderband schlupf": "Conveyor belt slip.",
+    "Spindelvibration bei hoher Drehzahl": "Spindle vibration at high RPM.",
+    "Spindelvibration zu hoch": "Spindle vibration too high.",
+    "Hydraulikdruck zu niedrig": "Hydraulic pressure too low.",
+    "Hydraulikdruck ist zu niedrig": "Hydraulic pressure is too low.",
+    "Hydrauliköltemperatur zu hoch": "Hydraulic oil temperature too high.",
+    "Hydrauliköldruck zu niedrig": "Hydraulic oil pressure is low.",
+    "Ölleckage erkannt": "Oil leakage detected.",
+    "Störung am Motor": "Motor malfunction.",
+    "Warum stoppt Press-200 wegen Öldruck?": "Why is Press-200 stopping due to oil pressure?",
+    "Was bedeutet E101 auf CNC-100?": "What does E101 mean on CNC-100?",
+    "Was bedeutet E101?": "What does E101 mean?",
+    "Wie tausche ich das Spindellager am CNC-100 aus?": "How do I replace spindle bearing on CNC-100?",
+
+    # --- Spanish (es) ---
+    "El motor se está sobrecalentando": "The motor is overheating.",
+    "La presión del aceite hidráulico es baja": "Hydraulic oil pressure is low.",
+    "¿Por qué se detiene Press-200 por presión de aceite?": "Why is Press-200 stopping due to oil pressure?",
+    "¿Qué significa E101 en CNC-100?": "What does E101 mean on CNC-100?",
+    "¿Qué significa E101?": "What does E101 mean?",
+    "¿Cómo reemplazo el rodamiento del husillo en CNC-100?": "How do I replace spindle bearing on CNC-100?",
+
+    # --- French (fr) ---
+    "Le moteur surchauffe": "The motor is overheating.",
+    "La pression d'huile hydraulique est basse": "Hydraulic oil pressure is low.",
+    "Pourquoi Press-200 s'arrête en raison de la pression d'huile?": "Why is Press-200 stopping due to oil pressure?",
+    "Que signifie E101 sur CNC-100?": "What does E101 mean on CNC-100?",
+    "Que signifie E101?": "What does E101 mean?",
+    "Comment remplacer le roulement de broche sur CNC-100?": "How do I replace spindle bearing on CNC-100?",
+
+    # --- Kannada (kn) ---
     "ಮೋಟಾರ್ ಹೆಚ್ಚು ಬಿಸಿಯಾಗುತ್ತಿದೆ": "The motor is overheating.",
     "ಮೋಟಾರ್ ಬಿಸಿಯಾಗುತ್ತಿದೆ": "The motor is overheating.",
     "ಮೋಟಾರ್ ಅಧಿಕ ತಾಪಮಾನ": "Motor high temperature.",
@@ -84,9 +172,7 @@ FALLBACK_TRANSLATIONS: Dict[str, str] = {
     "E101 ಅರ್ಥವೇನು?": "What does E101 mean?",
     "CNC-100 ನಲ್ಲಿ ಸ್ಪಿಂಡಲ್ ಬೇರಿಂಗ್ ಅನ್ನು ಹೇಗೆ ಬದಲಾಯಿಸುವುದು?": "How do I replace spindle bearing on CNC-100?",
 
-    # -------------------------------------------------------------
-    # 2. HINDI (हिन्दी)
-    # -------------------------------------------------------------
+    # --- Hindi (hi) ---
     "मोटर ज़्यादा गरम हो रही है": "The motor is overheating.",
     "मोटर गर्म हो रही है": "The motor is overheating.",
     "मोटर का तापमान बहुत अधिक है": "Motor temperature is very high.",
@@ -109,9 +195,7 @@ FALLBACK_TRANSLATIONS: Dict[str, str] = {
     "E101 का क्या मतलब है?": "What does E101 mean?",
     "CNC-100 पर स्पिंडल बेयरिंग कैसे बदलें?": "How do I replace spindle bearing on CNC-100?",
 
-    # -------------------------------------------------------------
-    # 3. TAMIL (தமிழ்)
-    # -------------------------------------------------------------
+    # --- Tamil (ta) ---
     "மோட்டார் அதிக வெப்பமடைகிறது": "The motor is overheating.",
     "மோட்டார் சூடாகிறது": "The motor is overheating.",
     "ஹைட்ராலிக் எண்ணெய் அழுத்தம் குறைவாக உள்ளது": "Hydraulic oil pressure is low.",
@@ -126,9 +210,7 @@ FALLBACK_TRANSLATIONS: Dict[str, str] = {
     "E101 என்றால் என்ன?": "What does E101 mean?",
     "CNC-100 இல் ஸ்பிண்டில் தாங்கியை எவ்வாறு மாற்றுவது?": "How do I replace spindle bearing on CNC-100?",
 
-    # -------------------------------------------------------------
-    # 4. TELUGU (తెలుగు)
-    # -------------------------------------------------------------
+    # --- Telugu (te) ---
     "మోటారు వేడెక్కుతోంది": "The motor is overheating.",
     "మోటార్ చాలా వేడిగా ఉంది": "The motor is overheating.",
     "హైడ్రాలిక్ ఆయిల్ ప్రెజర్ తక్కువగా ఉంది": "Hydraulic oil pressure is low.",
@@ -143,98 +225,32 @@ FALLBACK_TRANSLATIONS: Dict[str, str] = {
     "E101 అంటే ఏమిటి?": "What does E101 mean?",
     "CNC-100 లో స్పిండిల్ బేరింగ్‌ను ఎలా భర్తీ చేయాలి?": "How do I replace spindle bearing on CNC-100?",
 
-    # -------------------------------------------------------------
-    # 5. MARATHI (मराठी)
-    # -------------------------------------------------------------
+    # --- Marathi (mr) ---
     "मोटार जास्त गरम होत आहे": "The motor is overheating.",
     "हायड्रोलिक तेलाचा दाब कमी आहे": "Hydraulic oil pressure is low.",
     "स्पिंडल ओव्हरलोड झाला आहे": "Spindle axis overload detected.",
     "आणीबाणी स्टॉप दाबला गेला आहे": "Emergency stop circuit tripped.",
-    "CNC-100 वर E101 चा काय अर्थ आहे?": "What does E101 mean on CNC-100?",
-    "Press-200 तेलाच्या दाबामुळे का थांबत आहे?": "Why is Press-200 stopping due to oil pressure?",
 
-    # -------------------------------------------------------------
-    # 6. BENGALI (বাংলা)
-    # -------------------------------------------------------------
+    # --- Bengali (bn) ---
     "মোটর অতিরিক্ত গরম হয়ে যাচ্ছে": "The motor is overheating.",
     "হাইড্রোলিক তেলের চাপ কম": "Hydraulic oil pressure is low.",
     "স্পিন্ডল ওভারলোড হয়েছে": "Spindle axis overload detected.",
-    "জরুরী স্টপ বাটন চাপা হয়েছে": "Emergency stop circuit tripped.",
 
-    # -------------------------------------------------------------
-    # 7. MALAYALAM (മലയാളം)
-    # -------------------------------------------------------------
+    # --- Malayalam (ml) ---
     "മോട്ടോർ അമിതമായി ചൂടാകുന്നു": "The motor is overheating.",
     "ഹൈഡ്രോളിക് ഓയിൽ മർദ്ദം കുറവാണ്": "Hydraulic oil pressure is low.",
-    "സ്പിൻഡിൽ ഓവർലോഡ് കണ്ടെത്തി": "Spindle axis overload detected.",
 
-    # -------------------------------------------------------------
-    # 8. GUJARATI (ગુજરાતી)
-    # -------------------------------------------------------------
+    # --- Gujarati (gu) ---
     "મોટર વધુ પડતી ગરમ થઈ રહી છે": "The motor is overheating.",
     "હાઇડ્રોલિક તેલનું દબાણ ઓછું છે": "Hydraulic oil pressure is low.",
-    "સ્પિન્ડલ ઓવરલોડ થયું છે": "Spindle axis overload detected.",
 
-    # -------------------------------------------------------------
-    # 9. GERMAN (Deutsch)
-    # -------------------------------------------------------------
-    "Der Motor überhitzt": "The motor is overheating.",
-    "Der Motor ist überhitzt": "The motor is overheating.",
-    "Hydrauliköldruck zu niedrig": "Hydraulic oil pressure is low.",
-    "Warum stoppt Press-200 wegen Öldruck?": "Why is Press-200 stopping due to oil pressure?",
-    "Was bedeutet E101 auf CNC-100?": "What does E101 mean on CNC-100?",
-    "Was bedeutet E101?": "What does E101 mean?",
-    "Wie tausche ich das Spindellager am CNC-100 aus?": "How do I replace spindle bearing on CNC-100?",
-
-    # -------------------------------------------------------------
-    # 10. SPANISH (Español)
-    # -------------------------------------------------------------
-    "El motor se está sobrecalentando": "The motor is overheating.",
-    "La presión del aceite hidráulico es baja": "Hydraulic oil pressure is low.",
-    "¿Por qué se detiene Press-200 por presión de aceite?": "Why is Press-200 stopping due to oil pressure?",
-    "¿Qué significa E101 en CNC-100?": "What does E101 mean on CNC-100?",
-    "¿Qué significa E101?": "What does E101 mean?",
-    "¿Cómo reemplazo el rodamiento del husillo en CNC-100?": "How do I replace spindle bearing on CNC-100?",
-
-    # -------------------------------------------------------------
-    # 11. FRENCH (Français)
-    # -------------------------------------------------------------
-    "Le moteur surchauffe": "The motor is overheating.",
-    "La pression d'huile hydraulique est basse": "Hydraulic oil pressure is low.",
-    "Pourquoi Press-200 s'arrête en raison de la pression d'huile?": "Why is Press-200 stopping due to oil pressure?",
-    "Que signifie E101 sur CNC-100?": "What does E101 mean on CNC-100?",
-    "Que signifie E101?": "What does E101 mean?",
-    "Comment remplacer le roulement de broche sur CNC-100?": "How do I replace spindle bearing on CNC-100?",
-
-    # -------------------------------------------------------------
-    # 12. CHINESE (中文)
-    # -------------------------------------------------------------
-    "电机过热": "The motor is overheating.",
-    "液压油压力低": "Hydraulic oil pressure is low.",
-    "为什么Press-200因油压停止？": "Why is Press-200 stopping due to oil pressure?",
-    "CNC-100上的E101是什么意思？": "What does E101 mean on CNC-100?",
-    "E101是什么意思？": "What does E101 mean?",
-    "如何在CNC-100上更换主轴轴承？": "How do I replace spindle bearing on CNC-100?",
-
-    # -------------------------------------------------------------
-    # 13. JAPANESE (日本語)
-    # -------------------------------------------------------------
-    "モーターが過熱しています": "The motor is overheating.",
-    "油圧が低下しています": "Hydraulic oil pressure is low.",
-    "Press-200が油圧で停止する理由は？": "Why is Press-200 stopping due to oil pressure?",
-    "CNC-100のE101はどういう意味ですか？": "What does E101 mean on CNC-100?",
-    "E101はどういう意味ですか？": "What does E101 mean?",
-    "CNC-100のスピンドルベアリングを交換するには？": "How do I replace spindle bearing on CNC-100?",
-
-    # -------------------------------------------------------------
-    # 14. ROMANIZED REGIONAL (Hinglish, Kanglish, Tanglish)
-    # -------------------------------------------------------------
+    # --- Romanized Regional (Hinglish, Kanglish) ---
     "motor garam ho raha hai": "The motor is overheating.",
     "motor bohot garam ho gaya hai": "The motor is overheating.",
     "motor jyada garam ho rahi hai": "The motor is overheating.",
     "oil pressure kam ho gaya": "Hydraulic oil pressure is low.",
     "press-200 oil pressure kam hai": "Why is Press-200 stopping due to oil pressure?",
-    "press-200 kyu ruk raha hai": "Why is Press-200 stopping?",
+    "press-200 kyu ruk raha hai": "Why is Press-200 stopping due to oil pressure?",
     "cnc-100 me e101 ka matlab kya hai": "What does E101 mean on CNC-100?",
     "cnc-100 me e101 kya hai": "What does E101 mean on CNC-100?",
     "e101 ka matlab kya hai": "What does E101 mean?",
@@ -247,10 +263,11 @@ FALLBACK_TRANSLATIONS: Dict[str, str] = {
     "motor bisi aagthide": "The motor is overheating.",
     "coolant leak aagthide": "Coolant level is low.",
     "spindle overload aagide": "Spindle axis overload detected.",
-    "press-200 nillisi aagthide": "Why is Press-200 stopping due to oil pressure?"
 }
 
-# Key terms for Romanized dialect detection (Hinglish/Kanglish/Tanglish)
+FALLBACK_TRANSLATIONS = DOMAIN_TRANSLATIONS
+
+# Key terms for Romanized dialect detection
 HINGLISH_KEYWORDS = {
     "garam", "matlab", "kaise", "kyu", "kya", "hota", "kare", "badle", "badalna", 
     "dab", "gaya", "ho", "raha", "hai", "rok", "band", "thik", "samasya", "kam"
@@ -263,60 +280,6 @@ TANGLISH_KEYWORDS = {
     "soodu", "eppadi", "enna", "aachu", "pannuvathu", "nilkuthu", "yen"
 }
 
-def detect_script_language(text: str) -> str:
-    """
-    Detects language based on Unicode script block analysis.
-    """
-    counts = {
-        "Kannada": 0,
-        "Hindi": 0,
-        "Tamil": 0,
-        "Telugu": 0,
-        "Malayalam": 0,
-        "Bengali": 0,
-        "Gujarati": 0,
-        "Marathi": 0,
-        "Arabic": 0,
-        "Russian": 0,
-        "Chinese": 0,
-        "Japanese": 0,
-        "Korean": 0
-    }
-    for ch in text:
-        cp = ord(ch)
-        if 0x0C80 <= cp <= 0x0CFF:
-            counts["Kannada"] += 1
-        elif 0x0900 <= cp <= 0x097F:
-            # Shared between Hindi and Marathi - check specific Marathi letters or default Hindi
-            counts["Hindi"] += 1
-        elif 0x0B80 <= cp <= 0x0BFF:
-            counts["Tamil"] += 1
-        elif 0x0C00 <= cp <= 0x0C7F:
-            counts["Telugu"] += 1
-        elif 0x0D00 <= cp <= 0x0D7F:
-            counts["Malayalam"] += 1
-        elif 0x0980 <= cp <= 0x09FF:
-            counts["Bengali"] += 1
-        elif 0x0A80 <= cp <= 0x0AFF:
-            counts["Gujarati"] += 1
-        elif 0x0600 <= cp <= 0x06FF:
-            counts["Arabic"] += 1
-        elif 0x0400 <= cp <= 0x04FF:
-            counts["Russian"] += 1
-        elif 0x4E00 <= cp <= 0x9FFF:
-            counts["Chinese"] += 1
-        elif 0x3040 <= cp <= 0x30FF or 0x31F0 <= cp <= 0x31FF:
-            counts["Japanese"] += 1
-        elif 0xAC00 <= cp <= 0xD7AF:
-            counts["Korean"] += 1
-
-    max_lang = max(counts, key=counts.get)
-    if counts[max_lang] > 0:
-        return max_lang
-    euro = detect_european_language(text)
-    if euro:
-        return euro
-    return "English"
 
 def detect_european_language(text: str) -> Optional[str]:
     """
@@ -324,7 +287,7 @@ def detect_european_language(text: str) -> Optional[str]:
     """
     lower = text.lower()
     # German
-    if any(c in text for c in ["ä", "ö", "ü", "ß", "Ä", "Ö", "Ü"]) or any(w in lower for w in ["warum", "stoppt", "bedeutet", "überhitzt", "spindellager"]):
+    if any(c in text for c in ["ä", "ö", "ü", "ß", "Ä", "Ö", "Ü"]) or any(w in lower for w in ["warum", "stoppt", "bedeutet", "überhitzt", "spindellager", "förderband"]):
         return "German"
     # Spanish
     if any(c in text for c in ["¿", "¡", "ñ", "Ñ", "á", "é", "í", "ó", "ú"]) or any(w in lower for w in ["qué", "significa", "por qué", "detiene", "sobrecalentando", "reemplazo"]):
@@ -333,6 +296,7 @@ def detect_european_language(text: str) -> Optional[str]:
     if any(c in text for c in ["ç", "œ", "à", "è", "ê", "ë", "î", "ï", "ô", "û", "ù"]) or any(w in lower for w in ["pourquoi", "signifie", "s'arrête", "surchauffe", "roulement"]):
         return "French"
     return None
+
 
 def detect_romanized_dialect(text: str) -> Optional[str]:
     """
@@ -351,6 +315,7 @@ def detect_romanized_dialect(text: str) -> Optional[str]:
 
     return None
 
+
 def _is_english_text(text: str) -> bool:
     """
     Returns True if text contains only standard ASCII or Latin characters and no Indic/Asian scripts,
@@ -365,6 +330,7 @@ def _is_english_text(text: str) -> bool:
     if detect_european_language(text) is not None:
         return False
     return True
+
 
 def _extract_machine_and_code(text: str) -> Tuple[Optional[str], Optional[str]]:
     """
@@ -385,6 +351,7 @@ def _extract_machine_and_code(text: str) -> Tuple[Optional[str], Optional[str]]:
     code = code_match.group(1).upper() if code_match else None
 
     return machine, code
+
 
 def _semantic_slot_translation(text: str, detected_lang: str) -> Optional[str]:
     """
@@ -450,161 +417,349 @@ def _semantic_slot_translation(text: str, detected_lang: str) -> Optional[str]:
 
     # 7. Robot arm joint deviation
     if machine == "RobotArm-300" or any(r in lower or r in text for r in ["robot", "arm", "ರೋಬೋಟ್", "रोबोट", "ரோபோ"]):
-        if any(j in lower or j in text for j in ["joint", "deviation", "കീലು", "जॉइंट", "मूட்டு", "జాయింట్", "खराबी"]):
+        if any(j in lower or j in text for j in ["joint", "deviation", "ಕೀಲು", "जॉइंट", "मूட்டு", "జాయింట్", "खराबी"]):
             return "RobotArm-300 joint rotational deviation."
 
     return None
 
-def _try_google_cloud_translate(text: str) -> Optional[Dict[str, str]]:
-    """
-    Attempts translation using official Google Cloud Translation API (google.cloud.translate_v2).
-    """
-    if "GOOGLE_APPLICATION_CREDENTIALS" not in os.environ and not os.path.exists(
-        os.path.expanduser("~/.config/gcloud/application_default_credentials.json")
-    ):
-        return None
 
-    try:
-        from google.cloud import translate_v2 as translate
-        client = translate.Client()
-        detection = client.detect_language(text)
-        detected_code = detection.get("language", "en")
-        detected_lang = LANGUAGE_NAMES.get(detected_code, detected_code.capitalize())
+def detect_script_language(text: str) -> str:
+    """
+    Detects language based on Unicode script block analysis.
+    """
+    counts = {
+        "Kannada": 0,
+        "Hindi": 0,
+        "Tamil": 0,
+        "Telugu": 0,
+        "Malayalam": 0,
+        "Bengali": 0,
+        "Gujarati": 0,
+        "Arabic": 0,
+        "Russian": 0,
+        "Chinese": 0,
+        "Japanese": 0,
+        "Korean": 0
+    }
+    for ch in text:
+        cp = ord(ch)
+        if 0x0C80 <= cp <= 0x0CFF:
+            counts["Kannada"] += 1
+        elif 0x0900 <= cp <= 0x097F:
+            counts["Hindi"] += 1
+        elif 0x0B80 <= cp <= 0x0BFF:
+            counts["Tamil"] += 1
+        elif 0x0C00 <= cp <= 0x0C7F:
+            counts["Telugu"] += 1
+        elif 0x0D00 <= cp <= 0x0D7F:
+            counts["Malayalam"] += 1
+        elif 0x0980 <= cp <= 0x09FF:
+            counts["Bengali"] += 1
+        elif 0x0A80 <= cp <= 0x0AFF:
+            counts["Gujarati"] += 1
+        elif 0x0600 <= cp <= 0x06FF:
+            counts["Arabic"] += 1
+        elif 0x0400 <= cp <= 0x04FF:
+            counts["Russian"] += 1
+        elif 0x4E00 <= cp <= 0x9FFF:
+            counts["Chinese"] += 1
+        elif 0x3040 <= cp <= 0x30FF or 0x31F0 <= cp <= 0x31FF:
+            counts["Japanese"] += 1
+        elif 0xAC00 <= cp <= 0xD7AF:
+            counts["Korean"] += 1
 
-        if detected_code.lower() == "en":
+    max_lang = max(counts, key=counts.get)
+    if counts[max_lang] > 0:
+        return max_lang
+
+    euro = detect_european_language(text)
+    if euro:
+        return euro
+
+    return "English"
+
+
+def _detect_script_heuristic(text: str) -> Tuple[str, str]:
+    """
+    Heuristic script detection mapping to ISO language code and display name.
+    """
+    if not text:
+        return "en", "English"
+
+    # 1. Japanese check
+    has_hiragana = any(0x3040 <= ord(c) <= 0x309F for c in text)
+    has_katakana = any(0x30A0 <= ord(c) <= 0x30FF for c in text)
+    if has_hiragana or has_katakana:
+        return "ja", "Japanese"
+
+    # 2. Chinese check
+    has_cjk = any(0x4E00 <= ord(c) <= 0x9FFF for c in text)
+    if has_cjk:
+        return "zh-CN", "Simplified Chinese"
+
+    # 3. Regional Indian scripts
+    if any(0x0C80 <= ord(c) <= 0x0CFF for c in text):
+        return "kn", "Kannada"
+    if any(0x0900 <= ord(c) <= 0x097F for c in text):
+        return "hi", "Hindi"
+    if any(0x0B80 <= ord(c) <= 0x0BFF for c in text):
+        return "ta", "Tamil"
+    if any(0x0C00 <= ord(c) <= 0x0C7F for c in text):
+        return "te", "Telugu"
+    if any(0x0D00 <= ord(c) <= 0x0D7F for c in text):
+        return "ml", "Malayalam"
+    if any(0x0980 <= ord(c) <= 0x09FF for c in text):
+        return "bn", "Bengali"
+    if any(0x0A80 <= ord(c) <= 0x0AFF for c in text):
+        return "gu", "Gujarati"
+
+    # 4. European languages
+    euro = detect_european_language(text)
+    if euro == "German":
+        return "de", "German"
+    elif euro == "Spanish":
+        return "es", "Spanish"
+    elif euro == "French":
+        return "fr", "French"
+
+    # 5. Romanized dialects
+    dialect = detect_romanized_dialect(text)
+    if dialect:
+        if "Hindi" in dialect:
+            return "hi-Latn", "Hindi (Romanized)"
+        elif "Kannada" in dialect:
+            return "kn-Latn", "Kannada (Romanized)"
+        elif "Tamil" in dialect:
+            return "ta-Latn", "Tamil (Romanized)"
+
+    return "en", "English"
+
+
+class MultilingualTranslationModule:
+    """
+    Multilingual Translation Module for Machine Hardware Error Detection.
+
+    Flow:
+    Machine/User Input
+        ↓
+    Detect Language
+        ↓
+    If non-English → Translate to English via Cloud API or Domain Semantic Engine
+        ↓
+    Pass the English translation directly to the EXISTING machine error detection pipeline.
+    (If already English: Do not translate, pass directly to existing pipeline)
+    """
+
+    def __init__(self):
+        self._gcp_client = None
+        self._init_gcp_client()
+
+    def _init_gcp_client(self):
+        """Initializes the official google.cloud.translate_v2 Client if credentials exist."""
+        try:
+            if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ or os.path.exists(
+                os.path.expanduser("~/.config/gcloud/application_default_credentials.json")
+            ):
+                from google.cloud import translate_v2 as translate
+                self._gcp_client = translate.Client()
+                logger.info("Google Cloud Translation Client initialized successfully.")
+        except Exception as e:
+            logger.debug("Google Cloud Translation client not available: %s", e)
+            self._gcp_client = None
+
+    def detect_language(self, text: str) -> Dict[str, Any]:
+        """Detects language of incoming instruction."""
+        cleaned = (text or "").strip()
+        if not cleaned:
+            return {"language": "en", "confidence": 1.0, "language_name": "English"}
+
+        # Fast path check for pure English queries
+        if _is_english_text(cleaned):
+            return {"language": "en", "confidence": 1.0, "language_name": "English"}
+
+        # Check GCP client if available
+        if self._gcp_client:
+            try:
+                detection = self._gcp_client.detect_language(cleaned)
+                lang_code = detection.get("language", "en")
+                confidence = detection.get("confidence", 0.95)
+                lang_name = LANGUAGE_NAMES.get(lang_code, SUPPORTED_LANGUAGES.get(lang_code, lang_code.capitalize()))
+                return {
+                    "language": lang_code,
+                    "confidence": confidence,
+                    "language_name": lang_name
+                }
+            except Exception as e:
+                logger.debug("GCP Language detection failed, falling back to heuristic: %s", e)
+
+        code, name = _detect_script_heuristic(cleaned)
+        return {
+            "language": code,
+            "confidence": 0.99,
+            "language_name": name
+        }
+
+    def _call_gcp_translate(self, text: str) -> Optional[str]:
+        """Translates text using Google Cloud Translation API."""
+        if not self._gcp_client:
+            return None
+        try:
+            result = self._gcp_client.translate(text, target_language="en")
+            return result.get("translatedText")
+        except Exception as e:
+            logger.debug("GCP translate call failed: %s", e)
+            return None
+
+    def _call_gemini_translate(self, text: str) -> Optional[str]:
+        """Translates text using Google GenAI (Gemini) if API key is active."""
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            return None
+        try:
+            from google import genai
+            client = genai.Client(api_key=api_key)
+            prompt = (
+                f"You are an industrial factory translation engine. Translate the following text into English.\n"
+                f"Preserve machine names (CNC-100, Press-200, RobotArm-300) and error codes (E101, E102, E103, E202, E203, R101) exactly.\n"
+                f"Output ONLY the translated English text without explanations or quotes.\n"
+                f"Text: \"{text}\""
+            )
+            resp = client.models.generate_content(
+                model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+                contents=prompt
+            )
+            return resp.text.strip()
+        except Exception as e:
+            logger.debug("Gemini translation call failed: %s", e)
+            return None
+
+    def _fallback_domain_translate(self, text: str, detected_lang: str) -> str:
+        """Domain semantic dictionary translation matching."""
+        cleaned = text.strip()
+        normalized_query = cleaned.strip("?।!.¿¡ ")
+
+        # 1. Exact match
+        for phrase, eng in DOMAIN_TRANSLATIONS.items():
+            if phrase.strip("?।!.¿¡ ") == normalized_query:
+                return eng
+
+        # 2. Substring match
+        for phrase, eng in DOMAIN_TRANSLATIONS.items():
+            if phrase.lower() in cleaned.lower():
+                return eng
+
+        # 3. Semantic slot synthesis
+        semantic = _semantic_slot_translation(cleaned, detected_lang)
+        if semantic:
+            return semantic
+
+        return cleaned
+
+    def translate_input(self, text: str) -> Dict[str, Any]:
+        """
+        Public translation method adhering to exact contract:
+        Machine/User Input -> Detect Language -> Translate to English -> Pass to pipeline.
+        """
+        raw_text = text or ""
+        cleaned = raw_text.strip()
+
+        if not cleaned:
             return {
-                "originalText": text,
+                "originalText": raw_text,
                 "detectedLanguage": "English",
-                "translatedText": text
+                "detectedCode": "en",
+                "translatedText": raw_text,
+                "isTranslated": False
             }
 
-        result = client.translate(text, target_language="en")
-        translated_text = result.get("translatedText", text)
-        return {
-            "originalText": text,
-            "detectedLanguage": detected_lang,
-            "translatedText": translated_text
-        }
-    except Exception as e:
-        logger.debug("Google Cloud Translation Client unavailable: %s", e)
-        return None
+        # Step 1: Detect Language
+        detection = self.detect_language(cleaned)
+        lang_code = detection.get("language", "en")
+        lang_name = detection.get("language_name", "English")
 
-def _try_gemini_translate(text: str) -> Optional[Dict[str, str]]:
-    """
-    Attempts language detection and translation using Google GenAI / Gemini API if available.
-    """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return None
-
-    try:
-        from google import genai
-        client = genai.Client(api_key=api_key)
-        prompt = (
-            f"You are an industrial factory translation engine. Detect the language of the following text and translate it into English.\n"
-            f"Preserve machine names (CNC-100, Press-200, RobotArm-300) and error codes (E101, E102, E103, E202, E203, R101) exactly.\n"
-            f"Output ONLY a JSON object with keys 'detectedLanguage' and 'translatedText'.\n"
-            f"Text: \"{text}\""
-        )
-        resp = client.models.generate_content(
-            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
-            contents=prompt
-        )
-        raw_text = resp.text.strip()
-        raw_text = re.sub(r"^```json\s*", "", raw_text)
-        raw_text = re.sub(r"\s*```$", "", raw_text)
-        import json
-        data = json.loads(raw_text)
-        return {
-            "originalText": text,
-            "detectedLanguage": data.get("detectedLanguage", "Unknown"),
-            "translatedText": data.get("translatedText", text)
-        }
-    except Exception as e:
-        logger.debug("Gemini Translation unavailable: %s", e)
-        return None
-
-def translateInput(text: str) -> Dict[str, str]:
-    """
-    Translates input text to English.
-    
-    Responsibility:
-    User Input -> Detect Language -> Translate to English -> Pass to existing pipeline.
-    
-    Returns:
-    {
-        "originalText": "...",
-        "detectedLanguage": "...",
-        "translatedText": "..."
-    }
-    """
-    cleaned_text = (text or "").strip()
-    if not cleaned_text:
-        return {
-            "originalText": text,
-            "detectedLanguage": "English",
-            "translatedText": text
-        }
-
-    # 1. Fast path for pure English queries (0ms latency preserved for factory codes)
-    if _is_english_text(cleaned_text):
-        return {
-            "originalText": text,
-            "detectedLanguage": "English",
-            "translatedText": text
-        }
-
-    # 2. Identify Script or Romanized Dialect
-    detected_lang = detect_script_language(cleaned_text)
-    if detected_lang == "English":
-        dialect = detect_romanized_dialect(cleaned_text)
-        if dialect:
-            detected_lang = dialect
-
-    # 3. Try Google Cloud Translation API (if cloud service active)
-    gcp_result = _try_google_cloud_translate(cleaned_text)
-    if gcp_result:
-        return gcp_result
-
-    # 4. Try Google GenAI / Gemini Translation (if API key active)
-    gemini_result = _try_gemini_translate(cleaned_text)
-    if gemini_result:
-        return gemini_result
-
-    # 5. Direct Dictionary Match
-    normalized_query = cleaned_text.strip("?।!.¿¡ ")
-    for phrase, eng in FALLBACK_TRANSLATIONS.items():
-        if phrase.strip("?।!.¿¡ ") == normalized_query:
+        # Step 2: If the input is already English, do not translate it. Pass it directly.
+        if lang_code == "en" or lang_name == "English":
             return {
-                "originalText": text,
-                "detectedLanguage": detected_lang,
-                "translatedText": eng
+                "originalText": raw_text,
+                "detectedLanguage": "English",
+                "detectedCode": "en",
+                "translatedText": raw_text,
+                "isTranslated": False
             }
 
-    # 6. Substring / Phrase-Level Match
-    for phrase, eng in FALLBACK_TRANSLATIONS.items():
-        if phrase.lower() in cleaned_text.lower():
+        # Step 3: Direct Domain Dictionary Match
+        direct_trans = None
+        normalized_query = cleaned.strip("?।!.¿¡ ")
+        for phrase, eng in DOMAIN_TRANSLATIONS.items():
+            if phrase.strip("?।!.¿¡ ") == normalized_query:
+                direct_trans = eng
+                break
+
+        if direct_trans:
             return {
-                "originalText": text,
-                "detectedLanguage": detected_lang,
-                "translatedText": eng
+                "originalText": raw_text,
+                "detectedLanguage": lang_name,
+                "detectedCode": lang_code,
+                "translatedText": direct_trans,
+                "isTranslated": True
             }
 
-    # 7. Semantic Slot-Filling & Template Translation
-    semantic_translation = _semantic_slot_translation(cleaned_text, detected_lang)
-    if semantic_translation:
+        # Step 4: Try Cloud APIs (GCP / Gemini)
+        translated_text = self._call_gcp_translate(cleaned)
+        if not translated_text:
+            translated_text = self._call_gemini_translate(cleaned)
+
+        # Step 5: Fallback to Domain Semantic Engine
+        if not translated_text:
+            translated_text = self._fallback_domain_translate(cleaned, lang_name)
+
         return {
-            "originalText": text,
-            "detectedLanguage": detected_lang,
-            "translatedText": semantic_translation
+            "originalText": raw_text,
+            "detectedLanguage": lang_name,
+            "detectedCode": lang_code,
+            "translatedText": translated_text,
+            "isTranslated": True
         }
 
-    # 8. Fallback: preserve original if no translation match found
-    return {
-        "originalText": text,
-        "detectedLanguage": detected_lang,
-        "translatedText": cleaned_text
-    }
+    def process_and_forward(
+        self,
+        text: str,
+        pipeline_fn: Optional[Callable[[str], Any]] = None,
+        **pipeline_kwargs
+    ) -> Any:
+        """
+        Complete end-to-end execution flow:
+        Machine/User Input -> Detect Language -> Translate to English -> Pass to pipeline.
+        """
+        trans_res = self.translate_input(text)
+        english_text = trans_res["translatedText"]
+
+        if pipeline_fn is not None:
+            return pipeline_fn(english_text, **pipeline_kwargs)
+
+        from src.api import handle_query, QueryRequest
+        req = QueryRequest(
+            message=english_text,
+            session_id=pipeline_kwargs.get("session_id", "default_session"),
+            machine_filter=pipeline_kwargs.get("machine_filter")
+        )
+        return handle_query(req)
+
+
+# Default singleton instance
+_module_instance = MultilingualTranslationModule()
+
+
+def detect_language(text: str) -> str:
+    """Detects incoming language."""
+    res = _module_instance.detect_language(text)
+    return res.get("language_name", "English")
+
+
+def translateInput(text: str) -> Dict[str, Any]:
+    """Public translation function."""
+    return _module_instance.translate_input(text)
+
 
 # Pythonic alias
 translate_input = translateInput

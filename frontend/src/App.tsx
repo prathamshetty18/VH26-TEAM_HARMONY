@@ -78,8 +78,14 @@ export const App: React.FC = () => {
 
   // Manuals state
   const [manualsData, setManualsData] = useState<any[]>([]);
+<<<<<<< HEAD
+  const [activeManual, setActiveManual] = useState<string>('multilingual');
+  const [manualLang, setManualLang] = useState<'en' | 'zh' | 'ja' | 'de'>('en');
+  const [multilingualManual, setMultilingualManual] = useState<any>(null);
+=======
   const [activeManual, setActiveManual] = useState<string>('cnc100.txt');
   const [systemStatus, setSystemStatus] = useState<any>(null);
+>>>>>>> a5e549b19d767b3cca19ac04b03b07c326ed9a05
 
   // Sync session state to sessionStorage
   useEffect(() => {
@@ -126,6 +132,22 @@ export const App: React.FC = () => {
     };
     loadData();
   }, [backendConfig]);
+
+  // Load multilingual manual on language change
+  useEffect(() => {
+    const loadMultilingualManual = async () => {
+      try {
+        const res = await fetch(`${backendConfig.baseUrl}/api/manuals/multilingual?lang=${manualLang}`);
+        if (res.ok) {
+          const json = await res.json();
+          setMultilingualManual(json.manual);
+        }
+      } catch (err) {
+        console.warn('Could not load multilingual manual', err);
+      }
+    };
+    loadMultilingualManual();
+  }, [backendConfig, manualLang]);
 
   // Handle machine filter selection
   const handleSelectMachine = (machineId: string | null) => {
@@ -699,6 +721,23 @@ export const App: React.FC = () => {
             <div className="bg-white rounded-3xl border border-slate-200 shadow-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-3">
                 <h3 className="text-base font-bold text-slate-900 mb-2">Available Factory Manuals</h3>
+                
+                {/* Multilingual Flagship Manual */}
+                <button
+                  onClick={() => setActiveManual('multilingual')}
+                  className={`w-full text-left p-4 rounded-2xl border transition-all cursor-pointer ${
+                    activeManual === 'multilingual'
+                      ? 'border-indigo-600 bg-indigo-50/50 shadow-xs ring-2 ring-indigo-500/20'
+                      : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">🌐</span>
+                    <div className="font-bold text-sm text-indigo-950">Multilingual Instruction Manual</div>
+                  </div>
+                  <div className="text-xs text-indigo-600 mt-1 font-medium">Model MX-7 • English | 中文 | 日本語 | Deutsch</div>
+                </button>
+
                 {manualsData.map((m) => (
                   <button
                     key={m.filename}
@@ -715,10 +754,308 @@ export const App: React.FC = () => {
                 ))}
               </div>
 
-              <div className="md:col-span-2 bg-slate-50/80 rounded-2xl border border-slate-200 p-5 max-h-[550px] overflow-y-auto">
-                <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap leading-relaxed">
-                  {manualsData.find((m) => m.filename === activeManual)?.raw_text || 'Select a manual to view.'}
-                </pre>
+              <div className="md:col-span-2 bg-slate-50/80 rounded-2xl border border-slate-200 p-5 max-h-[650px] overflow-y-auto">
+                {activeManual === 'multilingual' && multilingualManual?.sections ? (
+                  <div className="space-y-6">
+                    {/* Top Language Selector Bar */}
+                    <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                          <span>🌐</span>
+                          <span>{multilingualManual.machine_name}</span>
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">Interactive Instruction & Maintenance Manual</p>
+                      </div>
+                      <div className="flex items-center bg-slate-100 p-1 rounded-xl gap-1 text-xs">
+                        <button
+                          onClick={() => setManualLang('en')}
+                          className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                            manualLang === 'en' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          English
+                        </button>
+                        <button
+                          onClick={() => setManualLang('zh')}
+                          className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                            manualLang === 'zh' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          中文
+                        </button>
+                        <button
+                          onClick={() => setManualLang('ja')}
+                          className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                            manualLang === 'ja' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          日本語
+                        </button>
+                        <button
+                          onClick={() => setManualLang('de')}
+                          className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                            manualLang === 'de' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Deutsch
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Section 1: Overview */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>📘</span>
+                          <span>{multilingualManual.sections.overview.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">Section 1</span>
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed">{multilingualManual.sections.overview.machine_purpose}</p>
+                      <div>
+                        <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Main Components</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {multilingualManual.sections.overview.main_components?.map((c: string, i: number) => (
+                            <span key={i} className="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg font-medium">{c}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs text-slate-700 leading-relaxed">
+                        <strong className="text-slate-900">Operating Principle: </strong>{multilingualManual.sections.overview.basic_operating_principle}
+                      </div>
+                    </div>
+
+                    {/* Section 2: Safety Instructions */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>🛡️</span>
+                          <span>{multilingualManual.sections.safety.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full">Safety Mandates</span>
+                      </div>
+                      <div className="bg-rose-50/70 border-l-4 border-rose-500 p-3 rounded-r-xl space-y-1 text-xs text-rose-900">
+                        <div className="font-bold uppercase tracking-wider text-[10px]">Hazard Warnings</div>
+                        <ul className="list-disc list-inside space-y-0.5">
+                          {multilingualManual.sections.safety.warnings?.map((w: string, i: number) => (
+                            <li key={i}>{w}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="bg-amber-50/70 border-l-4 border-amber-500 p-3 rounded-r-xl space-y-1 text-xs text-amber-900">
+                        <div className="font-bold uppercase tracking-wider text-[10px]">Electrical Safety (400V 3-Phase)</div>
+                        <ul className="list-disc list-inside space-y-0.5">
+                          {multilingualManual.sections.safety.electrical_safety?.map((es: string, i: number) => (
+                            <li key={i}>{es}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Required PPE</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {multilingualManual.sections.safety.required_protective_equipment?.map((p: string, i: number) => (
+                            <div key={i} className="text-xs bg-slate-50 border border-slate-200 p-2 rounded-lg flex items-center space-x-1.5 text-slate-700">
+                              <span className="text-emerald-600 font-bold">✔</span>
+                              <span>{p}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 3: Machine Components */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>⚙️</span>
+                          <span>{multilingualManual.sections.components.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">Components</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {multilingualManual.sections.components.components_list?.map((c: any, i: number) => (
+                          <div key={i} className="bg-slate-50 border border-slate-200 p-3 rounded-xl space-y-1 text-xs">
+                            <div className="font-bold text-slate-900">{c.name}</div>
+                            <div className="text-slate-600"><span className="font-semibold text-slate-700">Function:</span> {c.function}</div>
+                            <div className="text-emerald-700"><span className="font-semibold text-emerald-800">Normal:</span> {c.normal_condition}</div>
+                            <div className="text-rose-700"><span className="font-semibold text-rose-800">Common Problems:</span> {c.common_problems}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Section 4: Operating Instructions */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>🕹️</span>
+                          <span>{multilingualManual.sections.operating.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">SOP Steps</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="font-bold text-xs text-slate-900">Starting the Machine</div>
+                        <div className="space-y-1 text-xs">
+                          {multilingualManual.sections.operating.steps?.starting?.map((st: string, idx: number) => (
+                            <div key={idx} className="flex items-start space-x-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                              <span className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{idx + 1}</span>
+                              <span className="text-slate-700">{st}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1">
+                          <div className="font-bold text-slate-900">Stopping the Machine</div>
+                          <ul className="list-disc list-inside text-slate-600 space-y-0.5">
+                            {multilingualManual.sections.operating.steps?.stopping?.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
+                          </ul>
+                        </div>
+                        <div className="bg-rose-50/50 p-3 rounded-xl border border-rose-200 text-xs space-y-1">
+                          <div className="font-bold text-rose-900">Emergency Shutdown</div>
+                          <ul className="list-disc list-inside text-rose-800 space-y-0.5">
+                            {multilingualManual.sections.operating.steps?.emergency_shutdown?.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 5: Error and Fault Instructions */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>⚠️</span>
+                          <span>{multilingualManual.sections.error_fault.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">Fault Guides</span>
+                      </div>
+                      <div className="space-y-2.5">
+                        {multilingualManual.sections.error_fault.items?.map((item: any, i: number) => (
+                          <div key={i} className="border border-slate-200 rounded-xl p-3.5 bg-slate-50/60 border-l-4 border-l-amber-500 space-y-1.5 text-xs">
+                            <div className="font-bold text-slate-900 text-sm">Problem: {item.problem}</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-white p-2.5 rounded-lg border border-slate-100">
+                              <div>
+                                <span className="block text-[10px] uppercase font-bold text-slate-400">Possible Cause</span>
+                                <span className="text-slate-700">{item.possible_cause}</span>
+                              </div>
+                              <div>
+                                <span className="block text-[10px] uppercase font-bold text-slate-400">What to Check</span>
+                                <span className="text-slate-700">{item.what_to_check}</span>
+                              </div>
+                              <div>
+                                <span className="block text-[10px] uppercase font-bold text-slate-400">Recommended Action</span>
+                                <span className="text-emerald-700 font-medium">{item.recommended_action}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Section 6: Maintenance Instructions */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>🔧</span>
+                          <span>{multilingualManual.sections.maintenance.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">PM Schedule</span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                          <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                            <tr>
+                              <th className="p-2.5">Interval</th>
+                              <th className="p-2.5">Task & Scope</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {multilingualManual.sections.maintenance.maintenance_intervals?.map((mi: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-slate-50/60">
+                                <td className="p-2.5 font-bold text-indigo-700">{mi.interval}</td>
+                                <td className="p-2.5 text-slate-600">{mi.task}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Section 7: Troubleshooting Table */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>🔍</span>
+                          <span>{multilingualManual.sections.troubleshooting.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">9 Hardware Faults</span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                          <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                            <tr>
+                              <th className="p-2.5 w-1/4">Hardware Fault</th>
+                              <th className="p-2.5 w-1/3">Possible Cause</th>
+                              <th className="p-2.5">Solution & Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {multilingualManual.sections.troubleshooting.table?.map((row: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-slate-50/80">
+                                <td className="p-2.5 font-bold text-slate-900">{row.error}</td>
+                                <td className="p-2.5 text-slate-600">{row.possible_cause}</td>
+                                <td className="p-2.5 text-emerald-700 font-medium">{row.solution}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Section 8: Emergency Procedures */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>🚨</span>
+                          <span>{multilingualManual.sections.emergency_procedures.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full">Emergency Protocols</span>
+                      </div>
+                      <div className="space-y-2">
+                        {multilingualManual.sections.emergency_procedures.procedures?.map((p: any, i: number) => (
+                          <div key={i} className="bg-rose-50/60 border border-rose-200 rounded-xl p-3 text-xs space-y-1">
+                            <div className="font-bold text-rose-950">{p.situation}</div>
+                            <div className="text-slate-700 leading-relaxed">{p.action}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Section 9: Technical Specifications */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>📊</span>
+                          <span>{multilingualManual.sections.specifications.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">Preserved Units</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                        {multilingualManual.sections.specifications.specs?.map((spec: any, idx: number) => (
+                          <div key={idx} className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs space-y-0.5">
+                            <div className="text-[10px] uppercase font-bold text-slate-400">{spec.parameter}</div>
+                            <div className="font-mono font-bold text-slate-900">{spec.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                ) : (
+                  <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap leading-relaxed">
+                    {manualsData.find((m) => m.filename === activeManual)?.raw_text || 'Select a manual to view.'}
+                  </pre>
+                )}
               </div>
             </div>
           )}
