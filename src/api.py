@@ -6,7 +6,7 @@ from typing import List, Optional, Dict, Any
 from src.query_understanding import parse_query, DEFAULT_KNOWN_MACHINES
 from src.retrieval import retrieve
 from src.disambiguation import check_ambiguity
-from src.safety import is_sufficient
+from src.safety import is_sufficient, REFUSAL_MESSAGE
 from src.llm_answer import assemble_context, generate_answer
 from src.memory import memory_store
 
@@ -95,18 +95,20 @@ def handle_query(req: QueryRequest):
     answer_text = generate_answer(raw_message, context_text)
 
     # Step 7: Format Source Citations
+    # If the LLM self-refused (second-line defense), clear sources — no phantom citations.
     sources = []
-    seen_sources = set()
-    for c in retrieved_chunks:
-        s_key = (c.get("manual"), c.get("section"))
-        if s_key not in seen_sources:
-            seen_sources.add(s_key)
-            sources.append(SourceMetadata(
-                manual=c.get("manual", ""),
-                section=c.get("section", ""),
-                machine=c.get("machine", ""),
-                error_code=c.get("error_code")
-            ))
+    if answer_text.strip() != REFUSAL_MESSAGE and REFUSAL_MESSAGE not in answer_text:
+        seen_sources = set()
+        for c in retrieved_chunks:
+            s_key = (c.get("manual"), c.get("section"))
+            if s_key not in seen_sources:
+                seen_sources.add(s_key)
+                sources.append(SourceMetadata(
+                    manual=c.get("manual", ""),
+                    section=c.get("section", ""),
+                    machine=c.get("machine", ""),
+                    error_code=c.get("error_code")
+                ))
 
     # Step 8: Update Session Memory
     top_machine = parsed_q.get("machine") or (retrieved_chunks[0].get("machine") if retrieved_chunks else None)

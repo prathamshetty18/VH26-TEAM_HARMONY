@@ -24,8 +24,8 @@ def run_demo_tests():
     print("Answer Preview:\n", data1["answer"][:300], "...\n")
 
     # Demo 2: Natural language symptom query
-    print("--- DEMO 2: Natural Language Symptom ('why is Press-200 stopping due to oil pressure?') ---")
-    resp2 = client.post("/query", json={"message": "Why is Press-200 stopping due to oil pressure?", "session_id": "test_s2"})
+    print("--- DEMO 2: Natural Language Symptom ('Why does Press-200 show hydraulic oil pressure low?') ---")
+    resp2 = client.post("/query", json={"message": "Why does Press-200 show hydraulic oil pressure low?", "session_id": "test_s2"})
     print("Status:", resp2.status_code)
     data2 = resp2.json()
     print("Ambiguous:", data2["ambiguous"])

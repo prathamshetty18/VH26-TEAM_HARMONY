@@ -100,6 +100,8 @@ def search(query: str, k: int = 5, filter_metadata: Optional[Dict[str, Any]] = N
 
     return formatted_results
 
+query_store = search
+
 if __name__ == "__main__":
     import sys
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
