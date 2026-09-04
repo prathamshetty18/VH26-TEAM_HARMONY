@@ -14,7 +14,10 @@ STOPWORDS = {
 MACHINE_PATTERNS = {
     "cnc-100", "press-200", "robotarm-300", 
     "cnc100", "press200", "robotarm300", 
-    "cnc", "press", "robotarm", "100", "200", "300"
+    "cnc", "press", "robotarm", "100", "200", "300",
+    "cb-4400", "cb4400", "4400", "cb", "conveyor",
+    "mx-7", "mx7", "mx", "milling", "precision",
+    "hp-2200", "hp2200", "2200", "hp", "hydraulic"
 }
 
 def _extract_content_tokens(text):
@@ -35,7 +38,7 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.35):
 
     Three-Gate Architecture:
     1. Score Gate: top chunk similarity score must be >= threshold (0.35).
-    2. Error Code Gate: if the query asks for an explicit error code (e.g. E101, E999), 
+    2. Error Code Gate: if the query asks for an explicit error code (e.g. E101, H205), 
        that code MUST exist in the retrieved manual chunks.
     3. Hybrid Semantic / Borderline Overlap Gate:
        - High similarity (>= 0.50): trusted as a valid semantic match/paraphrase even without literal word overlap.
@@ -71,8 +74,8 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.35):
             if st:
                 all_chunk_tokens.add(st)
 
-    # Gate 2: Explicit error code verification
-    error_codes_in_query = [t for t in query_tokens if re.match(r"^e\d{3}$", t)]
+    # Gate 2: Explicit error code verification (E-series, H-series, SYM-series)
+    error_codes_in_query = [t for t in query_tokens if re.match(r"^[eh]\d{3}$", t) or t.startswith("sym")]
     for ec in error_codes_in_query:
         if ec not in all_chunk_tokens:
             return False, REFUSAL_MESSAGE
@@ -81,7 +84,7 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.35):
     # High semantic similarity (>= 0.50) passes automatically (supports semantic paraphrasing).
     # Borderline similarity (< 0.50) requires at least 40% query token match to prevent keyword drift.
     if score < 0.50:
-        non_ec_query_tokens = [t for t in query_tokens if not re.match(r"^e\d{3}$", t)]
+        non_ec_query_tokens = [t for t in query_tokens if not (re.match(r"^[eh]\d{3}$", t) or t.startswith("sym"))]
         if non_ec_query_tokens:
             matching = [t for t in non_ec_query_tokens if t in all_chunk_tokens]
             match_ratio = len(matching) / len(non_ec_query_tokens)

@@ -2,7 +2,7 @@ MACHINE: CNC Milling Machine
 MODEL: MX-7 Precision
 
 ERROR CODE: E101
-SECTION: Error Codes
+SECTION: E101 Spindle Coolant Flow Failure
 PAGE: 2
 MEANING: The through-spindle coolant (TSC) inline electronic flow sensor FL-10 measures coolant delivery flow falling below the safety threshold of 3.8 liters per minute while the main milling spindle is actively energized above 1,000 RPM, stopping feed motion to prevent tool burnout and thermal damage to the spindle cartridge.
 CAUSES:
@@ -23,7 +23,7 @@ STEPS:
 6. Enter MDI mode on the CNC controller, enter command M08; to engage the coolant pump, and observe the digital flow display on the diagnostics screen to confirm flow rate exceeds 6.2 liters per minute before resuming machining.
 
 ERROR CODE: E108
-SECTION: Error Codes
+SECTION: E108 Spindle Motor Stator Overtemperature
 PAGE: 2
 MEANING: The internal platinum RTD thermistor embedded inside the synchronous motorized spindle stator winding registers an operating temperature in excess of 115°C, triggering an immediate controlled spindle deceleration and axis motion freeze.
 CAUSES:

@@ -15,23 +15,23 @@ def check_ambiguity(parsed_query, retrieved_chunks):
         return {"ambiguous": False, "options": []}
 
     # Group retrieved chunks by machine for the matching error_code
+    import re
     machine_options = {}
     for chunk in retrieved_chunks:
         c_machine = chunk.get("machine")
         c_err = chunk.get("error_code")
         
         if c_err == error_code and c_machine and c_machine != "Unknown":
-            if c_machine not in machine_options:
-                # Extract a short summary of what this error code means on this machine
-                text = chunk.get("text", "")
-                summary = "Error Code " + error_code
-                for line in text.split("\n"):
-                    if "MEANING:" in line:
-                        summary = line.replace("MEANING:", "").strip()
-                        break
-                    elif "SECTION:" in line:
-                        summary = line.replace("SECTION:", "").strip()
+            text = chunk.get("text", "")
+            meaning_match = re.search(r"^MEANING:\s*(.+)$", text, re.MULTILINE)
+            summary = meaning_match.group(1).strip() if meaning_match else None
+            
+            if not summary:
+                sec_match = re.search(r"^SECTION:\s*(.+)$", text, re.MULTILINE)
+                summary = sec_match.group(1).strip() if sec_match else f"Error Code {error_code}"
 
+            # Only overwrite if we found a genuine MEANING or don't have one yet
+            if c_machine not in machine_options or meaning_match:
                 machine_options[c_machine] = summary
 
     # If the error code spans 2+ different machines, it is ambiguous!

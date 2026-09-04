@@ -134,6 +134,69 @@
 
 Use this table during Phase 3, Phase 5, and Phase 8 validation runs. Duplicate the table for each test cycle.
 
+<<<<<<< HEAD
+### Test Run Date: 2026-09-04 (Batch 1 — Backend v1 Evaluation) | Tested By: Teammate B / QA | Environment: [x] Code Inspection & Pipeline Trace
+
+| # | Query Tested | Category | Expected Outcome | Actual Output & Citation | Pass / Fail | Notes / Discrepancies |
+|---|---|---|---|---|---|---|
+| 1 | `"How do I fix error E101 on the CB-4400 conveyor belt?"` | 1. Exact Code | CB-4400 Overcurrent, Page 2 | `parse_query` machine=None; unindexed in chroma | **FAIL** | "CB-4400" not in `DEFAULT_KNOWN_MACHINES` |
+| 2 | `"What does error E101 mean on the CNC Milling Machine MX-7 Precision?"` | 1. Exact Code | MX-7 Coolant Loss, Page 2 | `parse_query` machine=None; unindexed in chroma | **FAIL** | "MX-7 Precision" not in `DEFAULT_KNOWN_MACHINES` |
+| 3 | `"What is the corrective action for fault H205 on the HP-2200 hydraulic press?"` | 1. Exact Code | HP-2200 High Temp, Page 2 | `parse_query` error_code=None; machine=None | **FAIL** | `\b(E\d{3})\b` ignores `H205`; machine unmapped |
+| 4 | `"Why is the conveyor overheating?"` | 2. Symptom | Gearbox temp E401 / Page 4 | Chroma search misses due to lack of CB-4400 index | **FAIL** | Requires re-indexing `conveyorcb4400.txt` |
+| 5 | `"The conveyor belt is squealing and chirping during morning startup."` | 2. Symptom | Lagging / tension, Page 5 | Chroma search misses | **FAIL** | Requires re-indexing `conveyorcb4400.txt` |
+| 6 | `"Our CNC milled parts show high-pitched chatter marks along the finished vertical surfaces."` | 2. Symptom | Tool stickout / runout, Page 5 | Chroma search misses | **FAIL** | Requires re-indexing `cncmx7.txt` |
+| 7 | `"The hydraulic press main pump is making a loud cavitation whining sound."` | 2. Symptom | Suction strainer / cold oil, Page 6 | Chroma search misses | **FAIL** | Requires re-indexing `presshp2200.txt` |
+| 8 | `"E101"` | 3. Ambiguous | Disambiguate: CB-4400 vs MX-7 | Disambiguates only CNC-100 vs Press-200 | **FAIL** | Only old `cnc100.txt`/`press200.txt` are in DB |
+| 9 | `"What does error E101 mean?"` | 3. Ambiguous | Clarification prompt required | Prompts CNC-100 vs Press-200 | **FAIL** | Old manual definitions returned |
+| 10 | `"How do I fix error E101?"` | 3. Ambiguous | Refuse repair steps without machine | Prompts CNC-100 vs Press-200 | **FAIL** | Needs new machine definitions |
+| 11 | `"The status LED is flashing 3 short blinks followed by a long pause, what does this pattern mean?"` | 4. Undocumented | Honest refusal (not in manuals) | Gate 1 & Gate 3 trigger refusal | **PASS** | Refusal message triggered correctly |
+| 12 | `"What causes the intermittent flickering pattern on the CNC MX-7 status LED?"` | 4. Undocumented | Honest refusal for MX-7 LED | Gate 1 triggers refusal | **PASS** | Zero LED text in corpus guarantees refusal |
+| 13 | `"The hydraulic press HP-2200 status LED is blinking 3 times in a row. How do I clear it?"` | 4. Undocumented | Honest refusal for HP-2200 LED | Gate 1 triggers refusal | **PASS** | Refusal triggered |
+
+---
+
+## Batch 1 Bug Reports for Coder (Query / Expected / Actual)
+
+### Bug 1: Machine Name Extraction Fails on All New Models
+- **Query:** `"How do I fix error E101 on the CB-4400 conveyor belt?"` / `"What does error E101 mean on the CNC Milling Machine MX-7 Precision?"`
+- **Expected:** `parse_query()` identifies `machine: "Conveyor Belt System"` (or `"CB-4400"`) and `machine: "CNC Milling Machine"` (or `"MX-7 Precision"`).
+- **Actual:** `parse_query()` returns `machine: None` because `DEFAULT_KNOWN_MACHINES` in `src/query_understanding.py` is hardcoded to `["CNC-100", "Press-200", "RobotArm-300"]` and `MACHINE_ALIASES` lacks aliases for the new machines.
+- **Coder Fix:** Expand `DEFAULT_KNOWN_MACHINES` and `MACHINE_ALIASES` in `src/query_understanding.py` to include:
+  ```python
+  DEFAULT_KNOWN_MACHINES = [
+      "CNC-100", "Press-200", "RobotArm-300",
+      "Conveyor Belt System", "CNC Milling Machine", "Hydraulic Press",
+      "CB-4400", "MX-7 Precision", "HP-2200"
+  ]
+  ```
+
+### Bug 2: Error Code Regex Ignores 'H' and 'SYM' Series Codes
+- **Query:** `"What is the corrective action for fault H205 on the HP-2200 hydraulic press?"`
+- **Expected:** `parse_query()` extracts `error_code: "H205"`.
+- **Actual:** `parse_query()` returns `error_code: None` because regex is hardcoded to `\b(E\d{3})\b`.
+- **Coder Fix:** Update regex in `src/query_understanding.py` (line 53) and `src/safety.py` (line 75) from `r"\b(E\d{3})\b"` to:
+  ```python
+  r"\b([EH]\d{3}|SYM-[A-Z0-9-]+)\b"
+  ```
+
+### Bug 3: Ingestion Parser Drops Error Code from Meaning/Causes Chunks
+- **Query:** Semantic or exact search for error codes against `conveyorcb4400.txt`, `cncmx7.txt`, `presshp2200.txt`.
+- **Expected:** Both the Meaning/Causes chunk and the Troubleshooting Steps chunk are tagged with `error_code: "E101"`.
+- **Actual:** In `src/ingest.py`, `sections = re.split(r"(?=SECTION:)", content)` splits right at `SECTION:`. In the new manuals, `ERROR CODE: E101` precedes `SECTION: Error Codes`, so `ERROR CODE:` is lost in the first chunk, resulting in `error_code: None`.
+- **Coder Fix:** In `src/ingest.py`, split sections by `r"(?=(?:ERROR CODE:[^\n]+\n)?SECTION:)"` or carry forward the active `ERROR CODE:` across sections within the file.
+
+### Bug 4: ChromaDB Indexing Needs Refresh with New Manuals
+- **Query:** Any query against CB-4400, MX-7, or HP-2200.
+- **Expected:** ChromaDB returns chunks from `conveyorcb4400.txt`, `cncmx7.txt`, `presshp2200.txt`.
+- **Actual:** `chroma_db/` only contains chunks from the original `cnc100.txt`, `press200.txt`, and `robotarm300.txt`.
+- **Coder Fix:** Re-run `src/ingest.py` and `src/embed_store.py` indexing to ingest the new `.txt` files into `chroma_db/`.
+
+---
+
+## Batch 2 Re-Test Matrix (To be filled once coder confirms fixes)
+
+=======
+>>>>>>> 01c16fc279a072b15498729d2e1438b6e4551853
 ### Test Run Date: _________________ | Tested By: _________________ | Environment: [ ] CLI / [ ] FastAPI / [ ] React UI
 
 | # | Query Tested | Category | Expected Outcome | Actual Output & Citation | Pass / Fail | Notes / Discrepancies |
@@ -151,3 +214,7 @@ Use this table during Phase 3, Phase 5, and Phase 8 validation runs. Duplicate t
 | 11 | `"The status LED is flashing 3 short blinks followed by a long pause, what does this pattern mean?"` | 4. Undocumented | Honest refusal (not in manuals) | | [ ] Pass<br>[ ] Fail | |
 | 12 | `"What causes the intermittent flickering pattern on the CNC MX-7 status LED?"` | 4. Undocumented | Honest refusal for MX-7 LED | | [ ] Pass<br>[ ] Fail | |
 | 13 | `"The hydraulic press HP-2200 status LED is blinking 3 times in a row. How do I clear it?"` | 4. Undocumented | Honest refusal for HP-2200 LED | | [ ] Pass<br>[ ] Fail | |
+<<<<<<< HEAD
+
+=======
+>>>>>>> 01c16fc279a072b15498729d2e1438b6e4551853

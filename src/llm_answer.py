@@ -1,9 +1,17 @@
 import os
+import sys
 from dotenv import load_dotenv
+
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 load_dotenv()
 
-from src.safety import REFUSAL_MESSAGE
+try:
+    from src.safety import REFUSAL_MESSAGE
+except ImportError:
+    from safety import REFUSAL_MESSAGE
 
 SYSTEM_PROMPT = f"""You are MachineAssist, an expert factory troubleshooting assistant. Your task is to answer the technician's question using ONLY the provided manual sources below.
 
@@ -53,6 +61,7 @@ def generate_answer(query, context, api_key=None):
             system_instruction=SYSTEM_PROMPT
         )
 
+<<<<<<< HEAD
         import time
         max_retries = 3
         response = None
@@ -69,6 +78,14 @@ def generate_answer(query, context, api_key=None):
                     time.sleep(5)
                     continue
                 raise err
+=======
+        model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+        response = client.models.generate_content(
+            model=model_name,
+            contents=user_content,
+            config=config
+        )
+>>>>>>> 6fd00c82866297828997c5e19876f612ac53373f
 
         # Guard: response may be blocked or empty (safety filters / empty generation)
         if not response.candidates:

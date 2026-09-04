@@ -2,7 +2,7 @@ MACHINE: Conveyor Belt System
 MODEL: CB-4400
 
 ERROR CODE: E101
-SECTION: Error Codes
+SECTION: E101 Drive Motor Overcurrent Fault
 PAGE: 2
 MEANING: The variable frequency drive (VFD) inverter detects that motor phase current draw has exceeded 125% of the continuous full-load amp (FLA) rating for more than 3.5 consecutive seconds, initiating an emergency deceleration stop to protect motor windings from thermal burnout.
 CAUSES:
@@ -23,7 +23,7 @@ STEPS:
 6. Remove LOTO, reset the fault on the VFD interface keypad, and conduct an unloaded test run for 5 minutes while monitoring line current on the panel ammeter.
 
 ERROR CODE: E102
-SECTION: Error Codes
+SECTION: E102 Belt Tracking Misalignment Drift
 PAGE: 2
 MEANING: The lateral belt edge limit switches (LS-10A or LS-10B) have actuated, indicating that the conveyor belt has wandered more than 45 millimeters off the center axis of the slider bed toward either the drive or non-drive side.
 CAUSES:
@@ -42,7 +42,7 @@ STEPS:
 5. Start the conveyor in jog mode and observe tracking over three complete belt revolutions, making fine adjustments of 1/4 turn until the belt edge maintains a minimum 25 mm clearance from the frame side channels.
 
 ERROR CODE: E204
-SECTION: Error Codes
+SECTION: E204 Emergency Stop Circuit Loop Open
 PAGE: 3
 MEANING: The dual-channel safety monitoring relay detects an open circuit or contact resistance imbalance across the emergency stop pushbuttons or the perimeter emergency pull-cord cable switches.
 CAUSES:
@@ -61,7 +61,7 @@ STEPS:
 5. Press the illuminated blue "Safety Circuit Reset" button on the main operator station.
 
 ERROR CODE: E305
-SECTION: Error Codes
+SECTION: E305 Tachometer Speed Discrepancy Error
 PAGE: 3
 MEANING: The optical pulse tachometer mounted on the tail pulley shaft measures a rotational velocity that is more than 15% lower than the commanded synchronous drive speed from the VFD for more than 2 seconds, indicating catastrophic belt slippage or drive train disconnection.
 CAUSES:
@@ -80,16 +80,16 @@ STEPS:
 5. Re-tension the take-up carriage until belt sag between carrying rollers does not exceed 1% of the roller center-to-center distance.
 
 ERROR CODE: E401
-SECTION: Error Codes
+SECTION: E401 High Drive Gearbox Oil Temperature Overheating
 PAGE: 4
-MEANING: The PT100 RTD temperature probe installed in the helical-bevel gearbox oil sump measures a continuous lubricant temperature exceeding 92°C, risking viscosity loss and gear tooth spalling.
+MEANING: The PT100 RTD temperature probe installed in the helical-bevel gearbox oil sump measures a continuous lubricant temperature exceeding 92°C, risking viscosity loss and gear tooth spalling due to drive gearbox overheating.
 CAUSES:
-- Insufficient oil level due to damaged output shaft oil seal
+- Insufficient oil level due to damaged output shaft oil seal causing gearbox overheating
 - Contaminated or degraded synthetic gear lubricant
-- Sustained mechanical overload from operating conveyor above maximum rated tonnage
+- Sustained mechanical overload from operating conveyor above maximum rated tonnage causing excessive heating
 - Ambient temperature in the facility exceeding 45°C without auxiliary cooling
 
-SECTION: E401 Troubleshooting
+SECTION: E401 Troubleshooting Overheating
 PAGE: 4
 STEPS:
 1. Stop the conveyor immediately and allow the gearbox to cool down to 40°C before touching or servicing.
@@ -99,7 +99,7 @@ STEPS:
 5. Refill the gearbox with 4.5 liters of fresh synthetic industrial gear oil meeting ISO VG 320 specifications (e.g., Mobilgear SHC 320).
 
 ERROR CODE: E502
-SECTION: Error Codes
+SECTION: E502 Photoelectric Infeed Jam Sensor Timeout
 PAGE: 4
 MEANING: Infeed retro-reflective optical photo-eye sensor PE-01 has remained continuously blocked for longer than 8.0 seconds while the belt drive motor is actively running, indicating a product bottleneck or stuck package at the transition zone.
 CAUSES:
