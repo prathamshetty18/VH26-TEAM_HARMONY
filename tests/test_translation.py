@@ -139,7 +139,7 @@ class TestDomainTranslations(unittest.TestCase):
 
     def test_chinese_query(self):
         res = translate_input("CNC-100上的E101是什么意思？")
-        self.assertEqual(res["detectedLanguage"], "Chinese")
+        self.assertIn("Chinese", res["detectedLanguage"])
         self.assertEqual(res["translatedText"], "What does E101 mean on CNC-100?")
 
     def test_japanese_query(self):

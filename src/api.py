@@ -145,17 +145,14 @@ def get_manuals_library():
         {"filename": "conveyorcb4400.txt", "title": "Conveyor Belt System — Model CB-4400 Troubleshooting Manual", "machine": "Conveyor Belt System", "pages": 6, "chunkCount": 20},
         {"filename": "cncmx7.txt", "title": "CNC Milling Machine — Model MX-7 Precision Troubleshooting Manual", "machine": "CNC Milling Machine", "pages": 6, "chunkCount": 20},
         {"filename": "presshp2200.txt", "title": "Hydraulic Press — Model HP-2200 Troubleshooting Manual", "machine": "Hydraulic Press", "pages": 6, "chunkCount": 20},
-<<<<<<< HEAD
+        {"filename": "cnc100.txt", "title": "CNC Machining Center — Model CNC-100 Service Manual", "machine": "CNC-100", "pages": 4, "chunkCount": 10},
+        {"filename": "press200.txt", "title": "Hydraulic Press — Model Press-200 Maintenance Guide", "machine": "Press-200", "pages": 4, "chunkCount": 10},
+        {"filename": "robotarm300.txt", "title": "Articulated Robot — Model RobotArm-300 Diagnostic Manual", "machine": "RobotArm-300", "pages": 2, "chunkCount": 5},
         {"filename": "multilingual_manual.txt", "title": "Multilingual Machine Instruction Manual (All 4 Languages)", "machine": "CNC Milling Machine", "pages": 12, "chunkCount": 36},
         {"filename": "multilingual_manual_zh.txt", "title": "数控铣床 MX-7 说明书 — 中文 (Simplified Chinese Manual)", "machine": "CNC Milling Machine", "pages": 8, "chunkCount": 24},
         {"filename": "multilingual_manual_ja.txt", "title": "CNCフライス盤 MX-7 取扱説明書 — 日本語 (Japanese Manual)", "machine": "CNC Milling Machine", "pages": 8, "chunkCount": 24},
         {"filename": "multilingual_manual_de.txt", "title": "CNC-Fräsmaschine MX-7 Handbuch — Deutsch (German Manual)", "machine": "CNC Milling Machine", "pages": 8, "chunkCount": 24},
         {"filename": "multilingual_manual_en.txt", "title": "CNC Milling Machine MX-7 Manual — English", "machine": "CNC Milling Machine", "pages": 8, "chunkCount": 24}
-=======
-        {"filename": "cnc100.txt", "title": "CNC Machining Center — Model CNC-100 Service Manual", "machine": "CNC-100", "pages": 4, "chunkCount": 10},
-        {"filename": "press200.txt", "title": "Hydraulic Press — Model Press-200 Maintenance Guide", "machine": "Press-200", "pages": 4, "chunkCount": 10},
-        {"filename": "robotarm300.txt", "title": "Articulated Robot — Model RobotArm-300 Diagnostic Manual", "machine": "RobotArm-300", "pages": 2, "chunkCount": 5}
->>>>>>> a5e549b19d767b3cca19ac04b03b07c326ed9a05
     ]
     results = []
     for mc in manual_configs:

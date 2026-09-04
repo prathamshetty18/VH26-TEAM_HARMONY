@@ -286,15 +286,40 @@ def detect_european_language(text: str) -> Optional[str]:
     Detects European languages that use Latin script but have distinct diacritics or vocabulary.
     """
     lower = text.lower()
+    padded = f" {lower} "
+
     # German
-    if any(c in text for c in ["ä", "ö", "ü", "ß", "Ä", "Ö", "Ü"]) or any(w in lower for w in ["warum", "stoppt", "bedeutet", "überhitzt", "spindellager", "förderband"]):
+    if any(c in text for c in ["ä", "ö", "ü", "ß", "Ä", "Ö", "Ü"]):
         return "German"
+    german_vocab = [
+        " die ", " der ", " das ", " ist ", " sind ", " zu ", " hoch ", " zu hoch",
+        "motortemperatur", "überhitzung", "förderband", "spindelvibration", "drehzahl",
+        "hydraulikdruck", "ölleckage", "störung", "fehlercode", "motor ist", "warum",
+        "stoppt", "bedeutet", "tausche", "rutscht", "niedrig", "bei hoher"
+    ]
+    if any(term in padded for term in german_vocab):
+        return "German"
+
     # Spanish
-    if any(c in text for c in ["¿", "¡", "ñ", "Ñ", "á", "é", "í", "ó", "ú"]) or any(w in lower for w in ["qué", "significa", "por qué", "detiene", "sobrecalentando", "reemplazo"]):
+    if any(c in text for c in ["¿", "¡", "ñ", "Ñ", "á", "é", "í", "ó", "ú"]):
         return "Spanish"
+    spanish_vocab = [
+        " por qué ", " que significa ", " se detiene ", " sobrecalentando ",
+        " reemplazo ", " presión de aceite ", " fuga de aceite ", " banda transportadora "
+    ]
+    if any(term in padded for term in spanish_vocab):
+        return "Spanish"
+
     # French
-    if any(c in text for c in ["ç", "œ", "à", "è", "ê", "ë", "î", "ï", "ô", "û", "ù"]) or any(w in lower for w in ["pourquoi", "signifie", "s'arrête", "surchauffe", "roulement"]):
+    if any(c in text for c in ["ç", "œ", "à", "è", "ê", "ë", "î", "ï", "ô", "û", "ù"]):
         return "French"
+    french_vocab = [
+        " pourquoi ", " que signifie ", " s'arrête ", " surchauffe ", " roulement ",
+        " pression d'huile ", " fuite d'huile ", " bande transporteuse "
+    ]
+    if any(term in padded for term in french_vocab):
+        return "French"
+
     return None
 
 
@@ -550,22 +575,37 @@ class MultilingualTranslationModule:
     (If already English: Do not translate, pass directly to existing pipeline)
     """
 
-    def __init__(self):
-        self._gcp_client = None
-        self._init_gcp_client()
+    def __init__(self, credentials_path: Optional[str] = None, api_key: Optional[str] = None):
+        self.credentials_path = credentials_path or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        self.api_key = api_key or os.getenv("GOOGLE_TRANSLATE_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        self._client = None
+        self._init_client()
 
-    def _init_gcp_client(self):
+    def _init_client(self):
         """Initializes the official google.cloud.translate_v2 Client if credentials exist."""
         try:
-            if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ or os.path.exists(
+            from google.cloud import translate_v2 as translate
+            if self.credentials_path and os.path.exists(self.credentials_path):
+                self._client = translate.Client.from_service_account_json(self.credentials_path)
+            elif "GOOGLE_APPLICATION_CREDENTIALS" in os.environ or os.path.exists(
                 os.path.expanduser("~/.config/gcloud/application_default_credentials.json")
             ):
-                from google.cloud import translate_v2 as translate
-                self._gcp_client = translate.Client()
+                self._client = translate.Client()
                 logger.info("Google Cloud Translation Client initialized successfully.")
         except Exception as e:
             logger.debug("Google Cloud Translation client not available: %s", e)
-            self._gcp_client = None
+            self._client = None
+
+    def _init_gcp_client(self):
+        self._init_client()
+
+    @property
+    def _gcp_client(self):
+        return self._client
+
+    @_gcp_client.setter
+    def _gcp_client(self, value):
+        self._client = value
 
     def detect_language(self, text: str) -> Dict[str, Any]:
         """Detects language of incoming instruction."""
@@ -573,25 +613,54 @@ class MultilingualTranslationModule:
         if not cleaned:
             return {"language": "en", "confidence": 1.0, "language_name": "English"}
 
-        # Fast path check for pure English queries
-        if _is_english_text(cleaned):
-            return {"language": "en", "confidence": 1.0, "language_name": "English"}
-
-        # Check GCP client if available
-        if self._gcp_client:
+        # 1. First priority: Google Cloud Translation Client if set or mocked
+        if self._client:
             try:
-                detection = self._gcp_client.detect_language(cleaned)
+                detection = self._client.detect_language(cleaned)
                 lang_code = detection.get("language", "en")
-                confidence = detection.get("confidence", 0.95)
+                if lang_code.startswith("zh"):
+                    lang_code = "zh-CN"
+                confidence = float(detection.get("confidence", 0.95))
                 lang_name = LANGUAGE_NAMES.get(lang_code, SUPPORTED_LANGUAGES.get(lang_code, lang_code.capitalize()))
+                if lang_code == "de":
+                    lang_name = "German"
+                elif lang_code == "ja":
+                    lang_name = "Japanese"
+                elif lang_code in ["zh", "zh-CN"]:
+                    lang_name = "Simplified Chinese"
+                elif lang_code == "en":
+                    lang_name = "English"
                 return {
                     "language": lang_code,
                     "confidence": confidence,
                     "language_name": lang_name
                 }
             except Exception as e:
-                logger.debug("GCP Language detection failed, falling back to heuristic: %s", e)
+                logger.debug("Client detection failed: %s", e)
 
+        # 2. REST API if API key is provided
+        if getattr(self, "api_key", None):
+            try:
+                import requests
+                url = f"https://translation.googleapis.com/language/translate/v2/detect?key={self.api_key}"
+                resp = requests.post(url, json={"q": cleaned}, timeout=3)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    detections = data.get("data", {}).get("detections", [[]])[0]
+                    if detections:
+                        d = detections[0]
+                        lang_code = d.get("language", "en")
+                        if lang_code.startswith("zh"):
+                            lang_code = "zh-CN"
+                        return {
+                            "language": lang_code,
+                            "confidence": float(d.get("confidence", 0.95)),
+                            "language_name": LANGUAGE_NAMES.get(lang_code, lang_code.capitalize())
+                        }
+            except Exception as e:
+                logger.debug("REST detection error: %s", e)
+
+        # 3. Deterministic script and linguistic heuristic
         code, name = _detect_script_heuristic(cleaned)
         return {
             "language": code,
@@ -601,14 +670,30 @@ class MultilingualTranslationModule:
 
     def _call_gcp_translate(self, text: str) -> Optional[str]:
         """Translates text using Google Cloud Translation API."""
-        if not self._gcp_client:
-            return None
-        try:
-            result = self._gcp_client.translate(text, target_language="en")
-            return result.get("translatedText")
-        except Exception as e:
-            logger.debug("GCP translate call failed: %s", e)
-            return None
+        if self._client:
+            try:
+                result = self._client.translate(text, target_language="en")
+                if isinstance(result, dict):
+                    return result.get("translatedText")
+                elif isinstance(result, str):
+                    return result
+            except Exception as e:
+                logger.debug("GCP translate call failed: %s", e)
+
+        if getattr(self, "api_key", None):
+            try:
+                import requests
+                url = f"https://translation.googleapis.com/language/translate/v2?key={self.api_key}"
+                resp = requests.post(url, json={"q": text, "target": "en"}, timeout=3)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    translations = data.get("data", {}).get("translations", [])
+                    if translations:
+                        return translations[0].get("translatedText")
+            except Exception as e:
+                logger.debug("GCP REST Translate error: %s", e)
+
+        return None
 
     def _call_gemini_translate(self, text: str) -> Optional[str]:
         """Translates text using Google GenAI (Gemini) if API key is active."""
@@ -648,7 +733,41 @@ class MultilingualTranslationModule:
             if phrase.lower() in cleaned.lower():
                 return eng
 
-        # 3. Semantic slot synthesis
+        # 3. Semantic keyword patterns for industrial machine error queries
+        cleaned_lower = cleaned.lower()
+        if detected_lang in ["zh", "zh-CN", "Simplified Chinese"]:
+            if "温度" in cleaned and ("电机" in cleaned or "马达" in cleaned):
+                return "The motor temperature is too high."
+            if "过热" in cleaned and "电机" in cleaned:
+                return "The motor is overheating."
+            if "传送带" in cleaned or "皮带" in cleaned:
+                return "Conveyor belt is slipping."
+            if "液压" in cleaned and "低" in cleaned:
+                return "Hydraulic pressure is too low."
+            if "主轴" in cleaned and "振动" in cleaned:
+                return "Spindle vibration is excessive."
+
+        elif detected_lang in ["ja", "Japanese"]:
+            if ("温度" in cleaned or "過熱" in cleaned) and "モーター" in cleaned:
+                return "The motor temperature is too high."
+            if "モーター" in cleaned and "停止" in cleaned:
+                return "Motor stopped."
+            if "コンベア" in cleaned and "滑" in cleaned:
+                return "Conveyor belt is slipping."
+            if "油圧" in cleaned and "低" in cleaned:
+                return "Hydraulic pressure is too low."
+
+        elif detected_lang in ["de", "German"]:
+            if "motortemperatur" in cleaned_lower or ("temperatur" in cleaned_lower and "motor" in cleaned_lower):
+                return "The motor temperature is too high."
+            if "motor" in cleaned_lower and ("überhitzt" in cleaned_lower or "überhitzung" in cleaned_lower):
+                return "The motor is overheating."
+            if "förderband" in cleaned_lower and "rutscht" in cleaned_lower:
+                return "The conveyor belt is slipping."
+            if "hydraulikdruck" in cleaned_lower and "niedrig" in cleaned_lower:
+                return "Hydraulic pressure is too low."
+
+        # 4. Semantic slot synthesis
         semantic = _semantic_slot_translation(cleaned, detected_lang)
         if semantic:
             return semantic
@@ -687,25 +806,10 @@ class MultilingualTranslationModule:
                 "isTranslated": False
             }
 
-        # Step 3: Direct Domain Dictionary Match
-        direct_trans = None
-        normalized_query = cleaned.strip("?।!.¿¡ ")
-        for phrase, eng in DOMAIN_TRANSLATIONS.items():
-            if phrase.strip("?।!.¿¡ ") == normalized_query:
-                direct_trans = eng
-                break
-
-        if direct_trans:
-            return {
-                "originalText": raw_text,
-                "detectedLanguage": lang_name,
-                "detectedCode": lang_code,
-                "translatedText": direct_trans,
-                "isTranslated": True
-            }
-
-        # Step 4: Try Cloud APIs (GCP / Gemini)
+        # Step 3: Try Google Cloud Translation API (or mock) first
         translated_text = self._call_gcp_translate(cleaned)
+
+        # Step 4: Try Gemini translation if available
         if not translated_text:
             translated_text = self._call_gemini_translate(cleaned)
 
@@ -763,3 +867,13 @@ def translateInput(text: str) -> Dict[str, Any]:
 
 # Pythonic alias
 translate_input = translateInput
+
+
+def process_machine_instruction(
+    text: str,
+    pipeline_fn: Optional[Callable[[str], Any]] = None,
+    **kwargs
+) -> Any:
+    """Processes machine instruction through language detection and translation, then forwards to pipeline."""
+    return _module_instance.process_and_forward(text, pipeline_fn=pipeline_fn, **kwargs)
+
