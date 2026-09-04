@@ -100,12 +100,24 @@ def search(query: str, k: int = 5, filter_metadata: Optional[Dict[str, Any]] = N
             # For cosine distance in Chroma: lower distance = higher similarity.
             # Convert cosine distance to cosine similarity score: score = 1 - distance
             sim_score = max(0.0, 1.0 - dist)
+            page_val = None
+            page_raw = meta.get("page")
+            if page_raw is not None and str(page_raw).strip():
+                try:
+                    page_val = int(str(page_raw).strip())
+                except ValueError:
+                    import re
+                    m = re.search(r"\d+", str(page_raw))
+                    if m:
+                        page_val = int(m.group(0))
+
             formatted_results.append({
                 "text": doc,
                 "machine": meta.get("machine"),
                 "model": meta.get("model"),
                 "manual": meta.get("manual"),
                 "section": meta.get("section"),
+                "page": page_val,
                 "error_code": meta.get("error_code") if meta.get("error_code") != "" else None,
                 "score": sim_score,
                 "distance": dist,

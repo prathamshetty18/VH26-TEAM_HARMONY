@@ -28,6 +28,7 @@ export const NormalAnswerCard: React.FC<NormalAnswerCardProps> = ({
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs space-y-5 max-w-3xl">
+<<<<<<< HEAD
       
       {/* FAULT DETECTED BANNER */}
       {message.fault && (
@@ -169,6 +170,13 @@ export const NormalAnswerCard: React.FC<NormalAnswerCardProps> = ({
           </div>
         </div>
       )}
+=======
+      <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+        <span className="text-[10px] md:text-xs font-mono px-2.5 py-0.5 rounded border uppercase font-bold bg-emerald-50 text-emerald-800 border-emerald-200">
+          Manual-Sourced Diagnostic
+        </span>
+      </div>
+>>>>>>> a5e549b19d767b3cca19ac04b03b07c326ed9a05
 
       {/* 01. MEANING */}
       {message.meaning && (

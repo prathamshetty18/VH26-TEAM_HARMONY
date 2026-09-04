@@ -72,7 +72,9 @@ def evaluate_response(item: Dict[str, Any], status_code: int, data: Optional[Dic
             "unsupported answer",
             "do not document",
             "no documentation",
-            "insufficient information"
+            "insufficient information",
+            "don't cover this",
+            "won't guess"
         ]
         is_refusal = any(p in answer_lower for p in refusal_phrases)
         if is_refusal and not sources:

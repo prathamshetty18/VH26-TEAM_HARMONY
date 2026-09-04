@@ -3,14 +3,10 @@ import {
   Activity, 
   CheckCircle2, 
   Layers, 
-  Cpu, 
   BookOpen, 
   ShieldCheck, 
   Settings, 
-  RefreshCw, 
-  ChevronRight, 
   Play, 
-  Search, 
   Zap, 
   Server
 } from 'lucide-react';
@@ -58,7 +54,15 @@ export const App: React.FC = () => {
 
   const [machines, setMachines] = useState<Machine[]>(INITIAL_MACHINES);
   const [scopedMachine, setScopedMachine] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 'welcome_msg',
+      role: 'assistant',
+      cardType: 'normal',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      meaning: 'Manuals indexed. Ask about an error code or symptom.',
+    },
+  ]);
   const [events, setEvents] = useState<EventTrailItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
@@ -74,16 +78,21 @@ export const App: React.FC = () => {
 
   // Manuals state
   const [manualsData, setManualsData] = useState<any[]>([]);
+<<<<<<< HEAD
   const [activeManual, setActiveManual] = useState<string>('multilingual');
   const [manualLang, setManualLang] = useState<'en' | 'zh' | 'ja' | 'de'>('en');
   const [multilingualManual, setMultilingualManual] = useState<any>(null);
+=======
+  const [activeManual, setActiveManual] = useState<string>('cnc100.txt');
+  const [systemStatus, setSystemStatus] = useState<any>(null);
+>>>>>>> a5e549b19d767b3cca19ac04b03b07c326ed9a05
 
   // Sync session state to sessionStorage
   useEffect(() => {
     sessionStorage.setItem('machineassist_session', JSON.stringify(session));
   }, [session]);
 
-  // Load backend health, machines, benchmarks, and manuals
+  // Load backend health, machines, benchmarks, manuals, and system status
   useEffect(() => {
     const loadData = async () => {
       const isHealthy = await diagnosticService.checkBackendHealth();
@@ -109,6 +118,16 @@ export const App: React.FC = () => {
         }
       } catch (err) {
         console.warn('Could not load manuals', err);
+      }
+
+      try {
+        const sysRes = await fetch(`${backendConfig.baseUrl}/api/system-status`);
+        if (sysRes.ok) {
+          const sData = await sysRes.json();
+          setSystemStatus(sData);
+        }
+      } catch (err) {
+        console.warn('Could not load system status', err);
       }
     };
     loadData();
@@ -195,10 +214,10 @@ export const App: React.FC = () => {
     }
   };
 
-  // Handle ambiguity option selection
+  // Handle ambiguity option selection (sends machine name carrying session context)
   const handleSelectAmbiguityOption = (option: AmbiguityOption) => {
     handleSelectMachine(option.machine);
-    const query = option.queryHint || option.machine;
+    const query = option.machine || option.queryHint || '';
     handleSendMessage(query);
   };
 
@@ -284,8 +303,8 @@ export const App: React.FC = () => {
 
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-50/80 border border-indigo-200/60 text-indigo-700 text-xs font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{scopedMachine ? `Scope: ${scopedMachine}` : 'Scope: All Fleet'}</span>
+            <span className={`w-2 h-2 rounded-full ${isLiveActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+            <span>{isLiveActive ? 'Live API' : 'Simulated'} • {scopedMachine ? `Scope: ${scopedMachine}` : 'All Fleet'}</span>
           </div>
 
           <button 
@@ -397,7 +416,7 @@ export const App: React.FC = () => {
 
                 <div>
                   <div className="flex justify-between text-xs font-semibold text-slate-800 mb-1">
-                    <span>LOTO CP-1 & Interlocks</span>
+                    <span>Safety Scope & Interlocks</span>
                     <span className="text-cyan-600">100%</span>
                   </div>
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -422,15 +441,15 @@ export const App: React.FC = () => {
               <div className="bg-white/95 backdrop-blur-md border border-white/80 rounded-2xl p-4 shadow-xl shadow-indigo-500/5 hover:-translate-y-1 transition-transform text-xs">
                 <div className="font-bold text-slate-900 mb-2">Active Fleet Status</div>
                 <div className="flex justify-between py-1 border-b border-slate-50">
-                  <span className="text-slate-600">CB-4400 Conveyor</span>
+                  <span className="text-slate-600">CNC-100 Machining</span>
                   <span className="text-emerald-600 font-semibold">Nominal</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-50">
-                  <span className="text-slate-600">MX-7 Precision</span>
+                  <span className="text-slate-600">Press-200 Hydraulic</span>
                   <span className="text-emerald-600 font-semibold">Nominal</span>
                 </div>
                 <div className="flex justify-between py-1">
-                  <span className="text-slate-600">HP-2200 Press</span>
+                  <span className="text-slate-600">RobotArm-300 Articulated</span>
                   <span className="text-emerald-600 font-semibold">Nominal</span>
                 </div>
               </div>
@@ -490,7 +509,7 @@ export const App: React.FC = () => {
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">Streamline your work</h3>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Efficiency starts here. Enter any error code or symptom to retrieve verified manufacturer corrective steps and exact page citations.
+                Efficiency starts here. Enter any error code or symptom to retrieve manual-sourced corrective steps and exact page citations.
               </p>
             </div>
 
@@ -1052,19 +1071,19 @@ export const App: React.FC = () => {
                 <div className="space-y-3 text-xs">
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Collection:</span>
-                    <span className="font-mono font-bold">manuals_rag</span>
+                    <span className="font-mono font-bold">{systemStatus?.collection || 'manuals_rag'}</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Total Chunks:</span>
-                    <span className="font-mono font-bold text-emerald-600">60 Chunks</span>
+                    <span className="font-mono font-bold text-emerald-600">{systemStatus?.chunk_count ? `${systemStatus.chunk_count} Chunks` : '77 Chunks'}</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Stale Placeholders:</span>
-                    <span className="font-mono font-bold text-emerald-600">0 (Purged)</span>
+                    <span className="font-mono font-bold text-emerald-600">{systemStatus?.stale_entries ?? 0} (Purged)</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-slate-500">Distance Metric:</span>
-                    <span className="font-mono font-bold">Cosine Similarity</span>
+                    <span className="text-slate-500">Vector Engine:</span>
+                    <span className="font-mono font-bold">{systemStatus?.status || 'Active (Persistent)'}</span>
                   </div>
                 </div>
               </div>
@@ -1084,6 +1103,10 @@ export const App: React.FC = () => {
                     <span className="font-bold text-emerald-600">Dual-Layer</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
+                    <span className="text-slate-500">Distance Metric:</span>
+                    <span className="font-mono font-bold">Cosine Similarity</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Top-K Chunks:</span>
                     <span className="font-mono font-bold">K=5</span>
                   </div>
@@ -1101,16 +1124,16 @@ export const App: React.FC = () => {
                 </h4>
                 <div className="space-y-3 text-xs">
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-slate-500">CB-4400 LOTO:</span>
-                    <span className="font-bold">Panel CP-1</span>
+                    <span className="text-slate-500">CNC-100 Motor Thermal:</span>
+                    <span className="font-bold">Monitored (E101)</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-slate-500">MX-7 Chiller:</span>
-                    <span className="font-bold">2.2 - 2.8 bar</span>
+                    <span className="text-slate-500">Press-200 E-Stop:</span>
+                    <span className="font-bold">Interlock (E202)</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-slate-500">HP-2200 Max Temp:</span>
-                    <span className="font-bold">65°C via TT-02</span>
+                    <span className="text-slate-500">RobotArm-300 Joint Brake:</span>
+                    <span className="font-bold">Monitored (R101)</span>
                   </div>
                 </div>
               </div>

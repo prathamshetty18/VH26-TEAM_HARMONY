@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { Message, Citation, AmbiguityOption } from '../../types';
 import { NormalAnswerCard } from './NormalAnswerCard';
 import { AmbiguityCard } from './AmbiguityCard';
@@ -35,7 +35,7 @@ export const MessageList: React.FC<MessageListProps> = ({
             MachineAssist Diagnostic HMI
           </h3>
           <p className="text-sm text-slate-500 max-w-lg mt-1.5 leading-relaxed">
-            Enter an equipment error code (e.g. <span className="font-mono font-bold text-slate-900">E101</span>) or describe a mechanical/hydraulic symptom. All answers cite verified manufacturer manuals.
+            Manuals indexed. Ask about an error code or symptom.
           </p>
         </div>
       ) : (
