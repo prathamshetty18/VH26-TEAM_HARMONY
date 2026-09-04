@@ -1,4 +1,5 @@
 import os
+from typing import List, Dict, Any, Optional
 import chromadb
 from chromadb.utils import embedding_functions
 
@@ -9,7 +10,7 @@ embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(
 
 DB_DIR = "./chroma_db"
 
-def get_chroma_collection(collection_name="machine_manuals"):
+def get_chroma_collection(collection_name: str = "machine_manuals") -> chromadb.Collection:
     client = chromadb.PersistentClient(path=DB_DIR)
     collection = client.get_or_create_collection(
         name=collection_name,
@@ -18,7 +19,7 @@ def get_chroma_collection(collection_name="machine_manuals"):
     )
     return collection
 
-def index_chunks(chunks, collection_name="machine_manuals"):
+def index_chunks(chunks: List[Dict[str, Any]], collection_name: str = "machine_manuals") -> int:
     """
     Stores chunks with metadata into Chroma collection.
     """
@@ -49,7 +50,7 @@ def index_chunks(chunks, collection_name="machine_manuals"):
 
     return len(ids)
 
-def search(query, k=5, filter_metadata=None):
+def search(query: str, k: int = 5, filter_metadata: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """
     Performs similarity search in Chroma collection.
     Returns top k chunks with similarity scores.
