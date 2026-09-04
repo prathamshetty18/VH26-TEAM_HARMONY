@@ -79,6 +79,13 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.35):
         if ec not in all_chunk_tokens:
             return False, REFUSAL_MESSAGE
 
+    # Critical Action Gate: Queries requesting safety bypasses or unauthorized modifications
+    # (e.g. bypass, override, rewire, rebuild, firmware) MUST be documented in the manuals.
+    critical_actions = {"bypass", "override", "rewire", "hack", "firmware"}
+    for ca in critical_actions:
+        if ca in query_tokens and ca not in all_chunk_tokens:
+            return False, REFUSAL_MESSAGE
+
     # Gate 3: Borderline score keyword overlap check
     # High semantic similarity (>= 0.50) passes automatically (supports semantic paraphrasing).
     # Borderline similarity (< 0.50) requires at least 40% query token match to prevent keyword drift.
