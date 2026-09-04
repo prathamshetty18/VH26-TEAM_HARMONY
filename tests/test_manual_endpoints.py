@@ -342,7 +342,7 @@ STEPS:
             for expected_num in ["65°C", "3.8 L/min", "45-70 bar", "125% FLA", "3.5 seconds", "0.015 mm", "1,000 RPM"]:
                 assert expected_num in structured, f"Critical numeric value '{expected_num}' was altered or omitted by LLM!"
         except Exception as e:
-            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                pytest.skip(f"Gemini API rate limit: {e}")
+            if any(err in str(e) for err in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
+                pytest.skip(f"Gemini API transient rate/capacity limit: {e}")
             raise e
 

@@ -4,23 +4,23 @@
 These 5 core test cases correspond directly to `tests/test_all_demos.py` for rapid end-to-end smoke testing.
 
 ### Demo 1: Exact Error Code (Machine-Specified)
-- **Query:** `"What does E101 mean on CNC-100?"`
-- **Expected Result:** Machine-specific troubleshooting answer for CNC-100's E101 (Motor overheating) with manual citations.
+- **Query:** `"What does error E101 mean on the CNC Milling Machine MX-7 Precision?"`
+- **Expected Result:** Machine-specific troubleshooting answer for MX-7 Precision's E101 (Spindle coolant flow failure) with manual citations.
 
 ### Demo 2: Natural Language Symptom
-- **Query:** `"Why is my Press-200 machine stopping due to oil pressure?"`
-- **Expected Result:** Semantic retrieval identifies Press-200 hydraulic pressure issue and returns troubleshooting steps.
+- **Query:** `"Why is the Hydraulic Press HP-2200 main pump making a loud cavitation whining sound?"`
+- **Expected Result:** Semantic retrieval identifies HP-2200 hydraulic pump cavitation symptom and returns troubleshooting steps.
 
 ### Demo 3: Cross-Manual Ambiguity
-- **Query:** `"What does error code E101 mean?"`
-- **Expected Result:** System detects E101 in multiple manuals and asks for clarification (`ambiguous: true`), returning options.
+- **Query:** `"What does error E101 mean?"`
+- **Expected Result:** System detects E101 in multiple manuals and asks for clarification (`ambiguous: true`), returning options for MX-7 Precision and CB-4400.
 
 ### Demo 4: Insufficient Information (Pre-Filter Gate)
-- **Query:** `"How do I replace the spindle bearing on CNC-100?"`
+- **Query:** `"How do I replace the spindle bearing on the CNC Milling Machine MX-7 Precision?"`
 - **Expected Result:** System recognizes that this procedure is not covered in the manuals and refuses to answer without hallucinating.
 
 ### Demo 5: Second-Line LLM Self-Refusal (Pre-Filter Bypass Case)
-- **Query:** `"What is the exact electrical torque specification for resetting E101 motor on CNC-100?"`
+- **Query:** `"What is the exact electrical torque specification for resetting the spindle motor on the CNC Milling Machine MX-7 Precision?"`
 - **Expected Result:** System refuses to answer rather than hallucinating torque numbers.
 
 ---
@@ -154,24 +154,6 @@ These 5 core test cases correspond directly to `tests/test_all_demos.py` for rap
 - **Expected System Response:**
   - States that while hydraulic error codes H201–H622 are documented, status LED blink codes are not present in the HP-2200 manual.
   - Directs operator to check transducer readouts and HMI screen alarms instead.
-=======
-## Core Benchmark Suite (CNC-100 & Press-200)
-
-### Demo 1: Exact Error Code
-- **Query:** "What does E101 mean on CNC-100?"
-- **Expected Result:** Machine-specific troubleshooting answer for CNC-100's E101 (Motor overheating).
-
-### Demo 2: Natural Language Symptom
-- **Query:** "Why is my Press-200 machine stopping due to oil pressure?"
-- **Expected Result:** Semantic retrieval identifies Press-200 E101 (Low hydraulic pressure) and returns troubleshooting steps.
-
-### Demo 3: Cross-Manual Ambiguity
-- **Query:** "What does error code E101 mean?"
-- **Expected Result:** System identifies E101 in multiple manuals (CNC-100 and Press-200) and asks for clarification (`ambiguous: true`).
-
-### Demo 4: Insufficient Information
-- **Query:** "How do I replace the spindle bearing on CNC-100?"
-- **Expected Result:** System recognizes that this topic is not covered in the manuals and refuses to answer without hallucinating.
 
 ---
 
