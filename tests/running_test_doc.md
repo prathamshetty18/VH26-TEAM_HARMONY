@@ -211,4 +211,7 @@ Use this table during Phase 3, Phase 5, and Phase 8 validation runs. Duplicate t
 | 11 | `"The status LED is flashing 3 short blinks followed by a long pause, what does this pattern mean?"` | 4. Undocumented | Honest refusal (not in manuals) | | [ ] Pass<br>[ ] Fail | |
 | 12 | `"What causes the intermittent flickering pattern on the CNC MX-7 status LED?"` | 4. Undocumented | Honest refusal for MX-7 LED | | [ ] Pass<br>[ ] Fail | |
 | 13 | `"The hydraulic press HP-2200 status LED is blinking 3 times in a row. How do I clear it?"` | 4. Undocumented | Honest refusal for HP-2200 LED | | [ ] Pass<br>[ ] Fail | |
+<<<<<<< HEAD
 
+=======
+>>>>>>> 01c16fc279a072b15498729d2e1438b6e4551853
