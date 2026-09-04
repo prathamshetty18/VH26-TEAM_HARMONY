@@ -1,7 +1,15 @@
+import sys
+import os
+
+# Ensure repository root is in sys.path
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
+from typing import List, Optional, Dict, Any
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
 
 from src.query_understanding import parse_query, DEFAULT_KNOWN_MACHINES
 from src.retrieval import retrieve
@@ -73,11 +81,14 @@ def handle_query(req: QueryRequest):
     # Step 4: Disambiguation Check
     ambiguity_result = check_ambiguity(parsed_q, retrieved_chunks)
     if ambiguity_result.get("ambiguous"):
+        options = ambiguity_result.get("options", [])
+        opt_lines = "\n".join([f"- **{o['machine']}**: {o['summary']}" for o in options])
+        answer_text = f"Multiple machines match this error code. Please select which machine you are operating:\n{opt_lines}"
         return QueryResponse(
-            answer="Multiple machines match this error code. Please select which machine you are operating:",
+            answer=answer_text,
             sources=[],
             ambiguous=True,
-            options=ambiguity_result.get("options", [])
+            options=options
         )
 
     # Step 5: Safety / Relevance Control Check
@@ -121,3 +132,8 @@ def handle_query(req: QueryRequest):
         ambiguous=False,
         options=[]
     )
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("src.api:app", host="127.0.0.1", port=8000, reload=True)
+

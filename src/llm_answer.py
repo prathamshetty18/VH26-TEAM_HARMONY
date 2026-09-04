@@ -1,9 +1,17 @@
 import os
+import sys
 from dotenv import load_dotenv
+
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 load_dotenv()
 
-from src.safety import REFUSAL_MESSAGE
+try:
+    from src.safety import REFUSAL_MESSAGE
+except ImportError:
+    from safety import REFUSAL_MESSAGE
 
 SYSTEM_PROMPT = f"""You are MachineAssist, an expert factory troubleshooting assistant. Your task is to answer user queries using ONLY the provided manual sources.
 
@@ -53,8 +61,9 @@ def generate_answer(query, context, api_key=None):
             system_instruction=SYSTEM_PROMPT
         )
 
+        model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
         response = client.models.generate_content(
-            model="gemini-3.6-flash",
+            model=model_name,
             contents=user_content,
             config=config
         )

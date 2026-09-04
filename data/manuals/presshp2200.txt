@@ -2,7 +2,7 @@ MACHINE: Hydraulic Press
 MODEL: HP-2200
 
 ERROR CODE: H201
-SECTION: Error Codes
+SECTION: H201 Main Ram Proportional Pressure Loss
 PAGE: 2
 MEANING: Main hydraulic cylinder pressure transducer PT-01 detects that ram hydraulic pressure fails to achieve the commanded 280 bar tonnage within 4.0 seconds following the seating of the main prefill overhead poppet valve, preventing proper tonnage clamp.
 CAUSES:
@@ -21,7 +21,7 @@ STEPS:
 5. Close the circuit, retract the safety latch blocks, and execute a dry pressure ramp test up to 150 bar in manual jog mode while logging transducer PT-01 voltage output on the diagnostics console.
 
 ERROR CODE: H205
-SECTION: Error Codes
+SECTION: H205 Hydraulic Oil High Temperature Shutdown
 PAGE: 2
 MEANING: The resistance temperature transmitter TT-02 immersed in the main 1,500-liter oil reservoir registers a bulk hydraulic fluid temperature exceeding 65°C, triggering an automatic pump unload and cycle shutdown to prevent thermal breakdown of fluid anti-wear additives and seal failure.
 CAUSES:
