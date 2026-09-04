@@ -111,11 +111,12 @@ def run_tests():
 
     passed = 0
     total = len(test_cases)
+    run_id = int(time.time())
 
     for i, tc in enumerate(test_cases, 1):
         t0 = time.time()
         try:
-            res = requests.post(f"{BASE_URL}/query", json={"message": tc["message"], "session_id": f"ext_test_{i}"})
+            res = requests.post(f"{BASE_URL}/query", json={"message": tc["message"], "session_id": f"ext_test_{run_id}_{i}"})
             elapsed_ms = (time.time() - t0) * 1000
             ok = tc["check"](res)
             status_str = "PASS" if ok else "FAIL"
@@ -132,8 +133,8 @@ def run_tests():
 
     # Multi-turn Isolation Test
     print("\n--- Testing Session Isolation & Multi-Turn Persistence ---")
-    s1 = "session_iso_1"
-    s2 = "session_iso_2"
+    s1 = f"session_iso_1_{run_id}"
+    s2 = f"session_iso_2_{run_id}"
     
     r1 = requests.post(f"{BASE_URL}/query", json={"message": "What is error E101 on CNC-100?", "session_id": s1}).json()
     r2 = requests.post(f"{BASE_URL}/query", json={"message": "What is error H205 on HP-2200?", "session_id": s2}).json()
