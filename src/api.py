@@ -35,6 +35,7 @@ app.add_middleware(
 class QueryRequest(BaseModel):
     message: str
     session_id: str = "default_session"
+    machine_filter: Optional[str] = None
 
 class SourceMetadata(BaseModel):
     manual: str
@@ -62,9 +63,13 @@ def get_machines():
     return {"machines": DEFAULT_KNOWN_MACHINES}
 
 @app.post("/query", response_model=QueryResponse)
+@app.post("/chat", response_model=QueryResponse)
 def handle_query(req: QueryRequest):
     session_id = req.session_id
     raw_message = req.message
+    if req.machine_filter and req.machine_filter.lower() not in raw_message.lower():
+        raw_message = f"{raw_message} (on machine {req.machine_filter})"
+
 
     if not raw_message.strip():
         raise HTTPException(status_code=400, detail="Query message cannot be empty")
