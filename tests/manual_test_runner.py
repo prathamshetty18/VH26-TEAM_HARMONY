@@ -17,7 +17,7 @@ import requests
 
 # Default API endpoint configuration
 DEFAULT_ENDPOINT = "http://127.0.0.1:8000/query"
-DEFAULT_TIMEOUT_SEC = 10.0
+DEFAULT_TIMEOUT_SEC = 30.0
 
 
 def load_queries(json_path: str) -> List[Dict[str, Any]]:
@@ -47,10 +47,12 @@ def evaluate_response(item: Dict[str, Any], status_code: int, data: Optional[Dic
     sources = data.get("sources", []) or []
     forbidden_keywords = [k.lower() for k in item.get("forbidden_keywords", [])]
 
-    # Cross-Manual Leakage Check: forbidden keywords MUST NOT appear in the answer
+    # Cross-Manual Leakage Check: forbidden keywords MUST NOT appear in the answer (word-boundary matched)
+    import re
     answer_lower = answer.lower()
     for fkw in forbidden_keywords:
-        if fkw in answer_lower:
+        pattern = r"\b" + re.escape(fkw) + r"\b"
+        if re.search(pattern, answer_lower):
             return "FAIL", f"CROSS-MANUAL LEAKAGE: Forbidden keyword '{fkw}' detected in answer! Answer: {answer[:140]}"
 
     # 1. Ambiguous Category

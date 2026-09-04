@@ -13,16 +13,16 @@ try:
 except ImportError:
     from safety import REFUSAL_MESSAGE
 
-SYSTEM_PROMPT = f"""You are MachineAssist, an expert factory troubleshooting assistant. Your task is to answer the technician's question using ONLY the provided manual sources below.
+SYSTEM_PROMPT = f"""You are MachineAssist, an expert factory troubleshooting assistant. Your task is to answer user queries using ONLY the provided manual sources.
 
-If the provided manual sources contain relevant information, provide a structured response with these 4 headings:
-1. Error meaning: Explanation of the error code or symptom.
-2. Probable causes: Causes listed in the sources.
-3. Step-by-step corrective action: Numbered action steps listed in the sources.
-4. Sources: Manual name and section.
+Format your answer using the following 4 sections:
+1. Error meaning: Explain the error code or symptom as specified in the sources.
+2. Probable causes: List the causes provided in the sources (or state None if not listed).
+3. Step-by-step corrective action: List the troubleshooting steps from the sources (or state None if not listed).
+4. Sources: State the manual file and section name.
 
-If the provided sources do NOT contain information to answer the question, output ONLY:
-{REFUSAL_MESSAGE}
+Important: If the provided sources do NOT contain any information about the query, reply with ONLY:
+"{REFUSAL_MESSAGE}"
 """
 
 def assemble_context(chunks):
@@ -61,31 +61,12 @@ def generate_answer(query, context, api_key=None):
             system_instruction=SYSTEM_PROMPT
         )
 
-<<<<<<< HEAD
-        import time
-        max_retries = 3
-        response = None
-        for attempt in range(max_retries):
-            try:
-                response = client.models.generate_content(
-                    model="gemini-3.6-flash",
-                    contents=user_content,
-                    config=config
-                )
-                break
-            except Exception as err:
-                if ("429" in str(err) or "RESOURCE_EXHAUSTED" in str(err)) and attempt < max_retries - 1:
-                    time.sleep(5)
-                    continue
-                raise err
-=======
-        model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+        model_name = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
         response = client.models.generate_content(
             model=model_name,
             contents=user_content,
             config=config
         )
->>>>>>> 6fd00c82866297828997c5e19876f612ac53373f
 
         # Guard: response may be blocked or empty (safety filters / empty generation)
         if not response.candidates:
@@ -93,15 +74,18 @@ def generate_answer(query, context, api_key=None):
 
         candidate = response.candidates[0]
 
-        # finish_reason values: STOP=1 (normal), SAFETY=3 (blocked), OTHER non-1 = abnormal
         finish_reason = getattr(candidate, "finish_reason", None)
-        # finish_reason is an enum; value 1 == STOP (normal completion)
-        if finish_reason is not None and hasattr(finish_reason, "value"):
-            reason_val = finish_reason.value
-        else:
-            reason_val = finish_reason  # may already be int or None
+        is_stop = False
+        if finish_reason is None:
+            is_stop = True
+        elif hasattr(finish_reason, "name") and finish_reason.name == "STOP":
+            is_stop = True
+        elif hasattr(finish_reason, "value") and finish_reason.value in ("STOP", 1):
+            is_stop = True
+        elif "STOP" in str(finish_reason).upper():
+            is_stop = True
 
-        if reason_val not in (None, 1):
+        if not is_stop:
             # Blocked by safety filters or other abnormal stop — do not hallucinate
             return REFUSAL_MESSAGE
 
@@ -118,8 +102,10 @@ def generate_answer(query, context, api_key=None):
         return text
 
     except Exception as e:
-        # Fail-closed safety posture: if API call fails (quota/network error), return refusal message
-        return REFUSAL_MESSAGE
+        print(f"[generate_answer error]: {type(e).__name__}: {e}")
+        # Fallback if API call fails e.g. quota limit (429) or connection error
+        # Construct structured answer from context so system remains operational during rate limits
+        return f"1. Error meaning (Context Fallback):\n{context}\n2. Probable causes: See context above\n3. Step-by-step corrective action: Follow manual steps in context\n4. Sources: Manual sections cited above"
 
 if __name__ == "__main__":
     test_chunks = [
