@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Sparkles, 
   Activity, 
   CheckCircle2, 
   Layers, 
@@ -298,8 +297,7 @@ export const App: React.FC = () => {
       {/* Hero Section (Wedge) */}
       <section className="pt-16 pb-12 text-center px-4 relative z-10" id="overview">
         <div className="max-w-4xl mx-auto">
-          <div className="inline-flex items-center space-x-1.5 px-3.5 py-1 rounded-full bg-indigo-100/70 border border-indigo-200 text-indigo-800 text-xs font-bold uppercase tracking-wider mb-6">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+          <div className="inline-flex items-center px-3.5 py-1 rounded-full bg-indigo-100/70 border border-indigo-200 text-indigo-800 text-xs font-bold uppercase tracking-wider mb-6">
             <span>Industrial Intelligence Platform</span>
           </div>
 
