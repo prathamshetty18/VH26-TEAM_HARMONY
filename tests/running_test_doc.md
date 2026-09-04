@@ -1,22 +1,3 @@
-<<<<<<< HEAD
-# Demo Queries & Expected Behaviors
-
-## Demo 1: Exact Error Code
-- **Query:** "What does E101 mean on CNC-100?"
-- **Expected Result:** Machine-specific troubleshooting answer for CNC-100's E101 (Motor overheating).
-
-## Demo 2: Natural Language Symptom
-- **Query:** "Why is my Press-200 machine stopping due to oil pressure?"
-- **Expected Result:** Semantic retrieval identifies Press-200 E101 (Low hydraulic pressure) and returns troubleshooting steps.
-
-## Demo 3: Cross-Manual Ambiguity
-- **Query:** "What does error code E101 mean?"
-- **Expected Result:** System identifies E101 in multiple manuals (CNC-100 and Press-200) and asks for clarification (`ambiguous: true`).
-
-## Demo 4: Insufficient Information
-- **Query:** "How do I replace the spindle bearing on CNC-100?"
-- **Expected Result:** System recognizes that this topic is not covered in the manuals and refuses to answer without hallucinating.
-=======
 # MachineAssist — Running Test Document & Benchmark Suite
 
 > **Note for Teammate B & Evaluators:**  
@@ -170,4 +151,3 @@ Use this table during Phase 3, Phase 5, and Phase 8 validation runs. Duplicate t
 | 11 | `"The status LED is flashing 3 short blinks followed by a long pause, what does this pattern mean?"` | 4. Undocumented | Honest refusal (not in manuals) | | [ ] Pass<br>[ ] Fail | |
 | 12 | `"What causes the intermittent flickering pattern on the CNC MX-7 status LED?"` | 4. Undocumented | Honest refusal for MX-7 LED | | [ ] Pass<br>[ ] Fail | |
 | 13 | `"The hydraulic press HP-2200 status LED is blinking 3 times in a row. How do I clear it?"` | 4. Undocumented | Honest refusal for HP-2200 LED | | [ ] Pass<br>[ ] Fail | |
->>>>>>> a479e6bbda8e0aba9cd389dbf97e5e34bb0943c1
