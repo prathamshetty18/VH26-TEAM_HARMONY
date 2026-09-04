@@ -3,10 +3,7 @@ import re
 DEFAULT_KNOWN_MACHINES = [
     "Conveyor Belt System",
     "CNC Milling Machine",
-    "Hydraulic Press",
-    "CNC-100",
-    "Press-200",
-    "RobotArm-300"
+    "Hydraulic Press"
 ]
 
 MACHINE_ALIASES = {
@@ -36,20 +33,6 @@ MACHINE_ALIASES = {
     "hp 2200": "Hydraulic Press",
     "hp2200": "Hydraulic Press",
     "hydraulic press": "Hydraulic Press",
-
-    # Legacy Test Machines
-    "cnc-100": "CNC-100",
-    "cnc 100": "CNC-100",
-    "cnc100": "CNC-100",
-    "machine a": "CNC-100",
-    "press-200": "Press-200",
-    "press 200": "Press-200",
-    "press200": "Press-200",
-    "machine b": "Press-200",
-    "robotarm-300": "RobotArm-300",
-    "robot arm 300": "RobotArm-300",
-    "robotarm300": "RobotArm-300",
-    "machine c": "RobotArm-300",
 }
 
 def parse_query(query: str, known_machines=None, known_error_codes=None):

@@ -12,12 +12,9 @@ STOPWORDS = {
 }
 
 MACHINE_PATTERNS = {
-    "cnc-100", "press-200", "robotarm-300", 
-    "cnc100", "press200", "robotarm300", 
-    "cnc", "press", "robotarm", "100", "200", "300",
     "cb-4400", "cb4400", "4400", "cb", "conveyor",
-    "mx-7", "mx7", "mx", "milling", "precision",
-    "hp-2200", "hp2200", "2200", "hp", "hydraulic"
+    "mx-7", "mx7", "mx", "milling", "precision", "cnc",
+    "hp-2200", "hp2200", "2200", "hp", "hydraulic", "press"
 }
 
 def _extract_content_tokens(text):

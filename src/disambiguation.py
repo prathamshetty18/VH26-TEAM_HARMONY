@@ -19,9 +19,11 @@ def check_ambiguity(parsed_query, retrieved_chunks):
     machine_options = {}
     for chunk in retrieved_chunks:
         c_machine = chunk.get("machine")
+        c_model = chunk.get("model")
         c_err = chunk.get("error_code")
         
         if c_err == error_code and c_machine and c_machine != "Unknown":
+            display_machine = f"{c_machine} ({c_model})" if c_model and c_model != "Unknown" and f"({c_model})" not in c_machine else c_machine
             text = chunk.get("text", "")
             meaning_match = re.search(r"^MEANING:\s*(.+)$", text, re.MULTILINE)
             summary = meaning_match.group(1).strip() if meaning_match else None
@@ -31,8 +33,8 @@ def check_ambiguity(parsed_query, retrieved_chunks):
                 summary = sec_match.group(1).strip() if sec_match else f"Error Code {error_code}"
 
             # Only overwrite if we found a genuine MEANING or don't have one yet
-            if c_machine not in machine_options or meaning_match:
-                machine_options[c_machine] = summary
+            if display_machine not in machine_options or meaning_match:
+                machine_options[display_machine] = summary
 
     # If the error code spans 2+ different machines, it is ambiguous!
     if len(machine_options) >= 2:
