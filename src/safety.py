@@ -13,22 +13,27 @@ STOPWORDS = {
 }
 
 MACHINE_PATTERNS = {
-    "cb-4400", "cb4400", "4400", "cb", "conveyor",
+    "cb-4400", "cb4400", "4400", "cb", "conveyor", "belt",
     "mx-7", "mx7", "mx", "milling", "precision", "cnc",
     "hp-2200", "hp2200", "2200", "hp", "hydraulic", "press",
-    "cnc-100", "cnc100", "100", "press-200", "press200", "200", "robotarm-300", "robotarm300", "300"
+    "cnc-100", "cnc100", "100", "x200", "x-200",
+    "press-200", "press200", "200", "p400", "p-400",
+    "robotarm-300", "robotarm300", "300", "robot", "arm", "r300", "r-300"
 }
 
 def _extract_content_tokens(text):
     """Extract non-stopword, non-machine tokens from text."""
     raw_tokens = re.findall(r"\b[a-zA-Z0-9_-]+\b", text.lower())
-    tokens = []
+    tokens = set()
     for t in raw_tokens:
         if t in STOPWORDS or t in MACHINE_PATTERNS:
             continue
-        sub_tokens = [s for s in t.split("-") if s and s not in STOPWORDS and s not in MACHINE_PATTERNS]
-        tokens.extend(sub_tokens)
-    return set(tokens)
+        tokens.add(t)
+        if "-" in t:
+            tokens.add(t.replace("-", ""))
+            sub_tokens = [s for s in t.split("-") if s and len(s) > 1 and not s.isdigit() and s not in STOPWORDS and s not in MACHINE_PATTERNS]
+            tokens.update(sub_tokens)
+    return tokens
 
 
 def is_sufficient(retrieved_chunks, query="", threshold=0.35):
@@ -73,10 +78,13 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.35):
             if st:
                 all_chunk_tokens.add(st)
 
-    # Gate 2: Explicit error code verification (E-series, H-series, SYM-series)
-    error_codes_in_query = [t for t in query_tokens if re.match(r"^[eh]\d{3}$", t) or t.startswith("sym")]
+    # Gate 2: Explicit error code verification (All alphanumeric series e.g. E101, H205, R101, SYM-series)
+    error_codes_in_query = [
+        t.replace("-", "") for t in query_tokens 
+        if re.match(r"^[a-z]-?\d{3,4}$", t) or t.startswith("sym")
+    ]
     for ec in error_codes_in_query:
-        if ec not in all_chunk_tokens:
+        if ec not in all_chunk_tokens and ec.lower() not in combined_chunk_text:
             return False, REFUSAL_MESSAGE
 
     # Critical Action Gate: Queries requesting safety bypasses or unauthorized modifications
@@ -90,7 +98,12 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.35):
     # High semantic similarity (>= 0.50) passes automatically (supports semantic paraphrasing).
     # Borderline similarity (< 0.50) requires at least 40% query token match to prevent keyword drift.
     if score < 0.50:
-        non_ec_query_tokens = [t for t in query_tokens if not (re.match(r"^[eh]\d{3}$", t) or t.startswith("sym"))]
+        non_ec_query_tokens = [
+            t for t in query_tokens 
+            if not (re.match(r"^[a-z]-?\d{3,4}$", t) or t.startswith("sym"))
+            and not (t.isdigit() and len(t) <= 4)
+            and len(t) > 1
+        ]
         if non_ec_query_tokens:
             matching = [t for t in non_ec_query_tokens if t in all_chunk_tokens]
             match_ratio = len(matching) / len(non_ec_query_tokens)
