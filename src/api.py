@@ -21,6 +21,7 @@ from src.safety import is_sufficient, REFUSAL_MESSAGE
 from src.llm_answer import assemble_context, generate_answer
 from src.memory import memory_store
 from src.embed_store import get_chroma_collection
+from src.translation import translate_input, translateInput
 
 app = FastAPI(
     title="MachineAssist API",
@@ -62,6 +63,15 @@ class QueryResponse(BaseModel):
     sources: List[SourceMetadata]
     ambiguous: bool
     options: List[AmbiguityOption]
+
+class TranslateRequest(BaseModel):
+    text: Optional[str] = None
+    message: Optional[str] = None
+
+class TranslateResponse(BaseModel):
+    originalText: str
+    detectedLanguage: str
+    translatedText: str
 
 @app.get("/")
 def read_root(request: Request):
@@ -136,6 +146,16 @@ def get_system_status():
         "stale_entries": 0
     }
 
+@app.post("/translate", response_model=TranslateResponse)
+@app.post("/api/translate", response_model=TranslateResponse)
+def api_translate(req: TranslateRequest):
+    """
+    Dedicated translation endpoint.
+    User Input -> Detect Language -> Translate to English
+    """
+    input_text = req.text if req.text is not None else (req.message or "")
+    return translate_input(input_text)
+
 @app.post("/query", response_model=QueryResponse)
 @app.post("/chat", response_model=QueryResponse)
 def handle_query(req: QueryRequest):
@@ -144,12 +164,15 @@ def handle_query(req: QueryRequest):
     if req.machine_filter and req.machine_filter.lower() not in raw_message.lower():
         raw_message = f"{raw_message} (on machine {req.machine_filter})"
 
-
     if not raw_message.strip():
         raise HTTPException(status_code=400, detail="Query message cannot be empty")
 
-    # Step 1: Augment query using session memory if vague
-    augmented_message = memory_store.resolve_query_with_memory(session_id, raw_message)
+    # Translation Module: User Input -> Detect Language -> Translate to English -> Pass to Existing Pipeline
+    trans_info = translate_input(raw_message)
+    english_query = trans_info.get("translatedText", raw_message)
+
+    # Step 1: Augment query using session memory if vague (pass translated English directly)
+    augmented_message = memory_store.resolve_query_with_memory(session_id, english_query)
 
     # Step 2: Query Understanding (Extract machine & error_code)
     parsed_q = parse_query(augmented_message)
