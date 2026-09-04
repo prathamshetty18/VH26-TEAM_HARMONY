@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import type { Message } from '../../types';
 import { Info } from 'lucide-react';
 

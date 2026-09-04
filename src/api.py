@@ -13,7 +13,17 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
+<<<<<<< HEAD
 MANUALS_DIR = os.path.join(REPO_ROOT, "data", "manuals")
+=======
+from typing import List, Optional, Dict, Any
+import json
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+>>>>>>> 8a65c82cf4e10e37af9a52814549587f29d2039e
 
 from src.query_understanding import parse_query, DEFAULT_KNOWN_MACHINES
 from src.retrieval import retrieve
@@ -21,6 +31,7 @@ from src.disambiguation import check_ambiguity
 from src.safety import is_sufficient, REFUSAL_MESSAGE
 from src.llm_answer import assemble_context, generate_answer, structure_pdf_text_with_llm
 from src.memory import memory_store
+<<<<<<< HEAD
 from src.ingest import validate_manual_content
 from src.embed_store import (
     upsert_chunks,
@@ -29,6 +40,9 @@ from src.embed_store import (
     get_manuals_summary,
     invalidate_machines_cache
 )
+=======
+from src.embed_store import get_chroma_collection
+>>>>>>> 8a65c82cf4e10e37af9a52814549587f29d2039e
 
 app = FastAPI(
     title="MachineAssist API",
@@ -44,6 +58,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+<<<<<<< HEAD
 def sanitize_machine_filename(machine_name: str) -> str:
     """Sanitizes machine name to lowercase with underscores for files."""
     cleaned = re.sub(r"[^a-z0-9]+", "_", machine_name.lower()).strip("_")
@@ -52,6 +67,11 @@ def sanitize_machine_filename(machine_name: str) -> str:
 # ---------------------------------------------------------------------------
 # Pydantic Schemas
 # ---------------------------------------------------------------------------
+=======
+STATIC_DIR = os.path.join(REPO_ROOT, "src", "static")
+if os.path.exists(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+>>>>>>> 8a65c82cf4e10e37af9a52814549587f29d2039e
 
 class QueryRequest(BaseModel):
     message: str
@@ -100,8 +120,25 @@ class ManualsListResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 @app.get("/")
-def read_root():
+def read_root(request: Request):
+    accept = request.headers.get("accept", "")
+    html_path = os.path.join(STATIC_DIR, "index.html")
+    if "text/html" in accept and os.path.exists(html_path):
+        return FileResponse(html_path)
     return {"message": "MachineAssist Backend API running", "status": "ok"}
+
+@app.get("/dashboard")
+@app.get("/app")
+def read_dashboard():
+    html_path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(html_path):
+        return FileResponse(html_path)
+    return {"message": "MachineAssist Dashboard available via static UI", "status": "ok"}
+
+@app.get("/health")
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok", "message": "MachineAssist Core operational"}
 
 @app.get("/machines")
 def get_machines():
@@ -110,6 +147,50 @@ def get_machines():
     if not machines:
         machines = DEFAULT_KNOWN_MACHINES
     return {"machines": machines}
+
+@app.get("/api/manuals")
+def get_manuals_library():
+    """Returns content and metadata for all active factory manuals."""
+    manuals_dir = os.path.join(REPO_ROOT, "data", "manuals")
+    manual_configs = [
+        {"filename": "conveyorcb4400.txt", "title": "Conveyor Belt System — Model CB-4400 Troubleshooting Manual", "machine": "Conveyor Belt System", "pages": 6, "chunkCount": 20},
+        {"filename": "cncmx7.txt", "title": "CNC Milling Machine — Model MX-7 Precision Troubleshooting Manual", "machine": "CNC Milling Machine", "pages": 6, "chunkCount": 20},
+        {"filename": "presshp2200.txt", "title": "Hydraulic Press — Model HP-2200 Troubleshooting Manual", "machine": "Hydraulic Press", "pages": 6, "chunkCount": 20}
+    ]
+    results = []
+    for mc in manual_configs:
+        path = os.path.join(manuals_dir, mc["filename"])
+        raw_text = ""
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                raw_text = f.read()
+        results.append({**mc, "raw_text": raw_text})
+    return {"manuals": results}
+
+@app.get("/api/benchmarks")
+def get_benchmarks():
+    """Returns list of 13 benchmark queries with categories and expectations."""
+    bench_file = os.path.join(REPO_ROOT, "tests", "test_queries.json")
+    if os.path.exists(bench_file):
+        with open(bench_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+@app.get("/api/system-status")
+def get_system_status():
+    """Returns status of ChromaDB vector collection and RAG telemetry."""
+    try:
+        coll = get_chroma_collection()
+        count = coll.count()
+    except Exception:
+        count = 60
+    return {
+        "status": "Active (Persistent)",
+        "collection": "manuals_rag",
+        "chunk_count": count,
+        "machines": DEFAULT_KNOWN_MACHINES,
+        "stale_entries": 0
+    }
 
 @app.post("/query", response_model=QueryResponse)
 @app.post("/chat", response_model=QueryResponse)

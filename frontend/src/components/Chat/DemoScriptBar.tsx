@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { PlayCircle, CheckCircle2, Split, ShieldAlert } from 'lucide-react';
 
 interface DemoScriptBarProps {
@@ -10,18 +10,18 @@ export const DemoScriptBar: React.FC<DemoScriptBarProps> = ({ onRunQuery, disabl
   const demoQueries = [
     {
       id: '1',
-      title: '1. Exact Code',
+      title: '1. Exact Code (CB-4400)',
       badge: 'NORMAL + CITATION',
-      query: 'What does E101 mean on CNC-100?',
+      query: 'How do I fix error E101 on the CB-4400 conveyor belt?',
       icon: CheckCircle2,
       color: 'hover:border-emerald-400 hover:bg-emerald-50/40 hover:shadow-xs',
       badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     },
     {
       id: '2',
-      title: '2. Symptom Search',
+      title: '2. Symptom Search (Startup Squeal)',
       badge: 'SEMANTIC RAG',
-      query: 'Why is Press-200 stopping due to oil pressure?',
+      query: 'The conveyor belt is squealing and chirping during morning startup.',
       icon: PlayCircle,
       color: 'hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-xs',
       badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -29,8 +29,8 @@ export const DemoScriptBar: React.FC<DemoScriptBarProps> = ({ onRunQuery, disabl
     {
       id: '3',
       title: '3. Ambiguity Check',
-      badge: 'CLARIFICATION CARD',
-      query: 'What does E101 mean?',
+      badge: '2-OPTION CARD',
+      query: 'E101',
       icon: Split,
       color: 'hover:border-amber-400 hover:bg-amber-50/40 hover:shadow-xs',
       badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
@@ -38,8 +38,8 @@ export const DemoScriptBar: React.FC<DemoScriptBarProps> = ({ onRunQuery, disabl
     {
       id: '4',
       title: '4. Insufficient Info',
-      badge: 'CALM REFUSAL',
-      query: 'How do I replace spindle bearing on CNC-100?',
+      badge: 'HONEST REFUSAL',
+      query: 'The status LED is flashing 3 short blinks followed by a long pause, what does this pattern mean?',
       icon: ShieldAlert,
       color: 'hover:border-slate-400 hover:bg-slate-100 hover:shadow-xs',
       badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
@@ -51,7 +51,7 @@ export const DemoScriptBar: React.FC<DemoScriptBarProps> = ({ onRunQuery, disabl
       <div className="flex items-center justify-between mb-2.5">
         <span className="text-xs md:text-sm font-mono uppercase tracking-wider text-slate-700 font-bold flex items-center space-x-2">
           <PlayCircle className="w-4 h-4 text-slate-600" />
-          <span>Demo Script Sequence (Verified Section 7 Queries)</span>
+          <span>Demo Script Sequence (Verified Section 6 Queries)</span>
         </span>
         <span className="text-xs text-slate-400 font-mono hidden sm:inline">
           One-click test triggers for presentation

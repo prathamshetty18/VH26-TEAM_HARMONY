@@ -1,46 +1,46 @@
-﻿import type { Message, SessionMemoryState, Machine } from '../types';
+import type { Message, SessionMemoryState, Machine } from '../types';
 
 export const INITIAL_MACHINES: Machine[] = [
   {
-    id: 'CNC-100',
-    name: 'CNC-100 Milling Center',
-    category: '5-Axis CNC Mill',
-    manualFile: 'cnc100.txt',
+    id: 'Conveyor Belt System',
+    name: 'Conveyor Belt System (CB-4400)',
+    category: 'Material Handling Conveyor',
+    manualFile: 'conveyorcb4400.txt',
     indexed: true,
-    pageCount: 148,
+    pageCount: 6,
   },
   {
-    id: 'Press-200',
-    name: 'Press-200 Hydraulic Stamper',
+    id: 'CNC Milling Machine',
+    name: 'CNC Milling Machine (MX-7 Precision)',
+    category: '5-Axis Vertical Machining',
+    manualFile: 'cncmx7.txt',
+    indexed: true,
+    pageCount: 6,
+  },
+  {
+    id: 'Hydraulic Press',
+    name: 'Hydraulic Press (HP-2200)',
     category: 'Hydraulic Forming Press',
-    manualFile: 'press200.txt',
+    manualFile: 'presshp2200.txt',
     indexed: true,
-    pageCount: 92,
-  },
-  {
-    id: 'RobotArm-300',
-    name: 'RobotArm-300 Articulated Arm',
-    category: '6-Axis Material Handler',
-    manualFile: 'robotarm300.txt',
-    indexed: true,
-    pageCount: 116,
+    pageCount: 6,
   },
 ];
 
 export function extractMachineAndError(query: string, currentSession: SessionMemoryState): { machine: string | null; error: string | null } {
-  const q = query.toUpperCase();
+  const q = query.toLowerCase();
 
   let machine = currentSession.lastMachine;
-  if (q.includes('CNC-100') || q.includes('CNC100') || q.includes('CNC')) {
-    machine = 'CNC-100';
-  } else if (q.includes('PRESS-200') || q.includes('PRESS200') || q.includes('PRESS')) {
-    machine = 'Press-200';
-  } else if (q.includes('ROBOTARM-300') || q.includes('ROBOTARM') || q.includes('ROBOT') || q.includes('ARM-300')) {
-    machine = 'RobotArm-300';
+  if (q.includes('cb-4400') || q.includes('cb4400') || q.includes('conveyor')) {
+    machine = 'Conveyor Belt System';
+  } else if (q.includes('mx-7') || q.includes('mx7') || q.includes('cnc') || q.includes('milling')) {
+    machine = 'CNC Milling Machine';
+  } else if (q.includes('hp-2200') || q.includes('hp2200') || q.includes('hydraulic') || q.includes('press')) {
+    machine = 'Hydraulic Press';
   }
 
   let error = currentSession.lastError;
-  const match = query.match(/\b([EAP]\d{3,4}|ERR[-_]?\d+)\b/i);
+  const match = query.match(/\b([EH]\d{3}|SYM-[A-Z0-9-]+)\b/i);
   if (match) {
     error = match[1].toUpperCase();
   }
@@ -53,8 +53,8 @@ export async function processMockQuery(
   sessionState: SessionMemoryState,
   scopedMachine: string | null
 ): Promise<{ message: Message; newSession: SessionMemoryState }> {
-  // Simulate industrial fast RAG processing latency (350-600ms)
-  await new Promise((resolve) => setTimeout(resolve, 450));
+  // Simulate industrial fast RAG processing latency (350-500ms)
+  await new Promise((resolve) => setTimeout(resolve, 400));
 
   const trimmed = userQuery.trim();
   const lower = trimmed.toLowerCase();
@@ -63,24 +63,26 @@ export async function processMockQuery(
 
   let detectedMachine = scopedMachine || null;
   if (!detectedMachine) {
-    if (lower.includes('cnc-100') || lower.includes('cnc100') || lower.includes('cnc')) {
-      detectedMachine = 'CNC-100';
-    } else if (lower.includes('press-200') || lower.includes('press200') || lower.includes('press')) {
-      detectedMachine = 'Press-200';
-    } else if (lower.includes('robotarm-300') || lower.includes('robotarm') || lower.includes('robot')) {
-      detectedMachine = 'RobotArm-300';
+    if (lower.includes('cb-4400') || lower.includes('cb4400') || lower.includes('conveyor')) {
+      detectedMachine = 'Conveyor Belt System';
+    } else if (lower.includes('mx-7') || lower.includes('mx7') || lower.includes('cnc') || lower.includes('milling')) {
+      detectedMachine = 'CNC Milling Machine';
+    } else if (lower.includes('hp-2200') || lower.includes('hp2200') || lower.includes('hydraulic') || lower.includes('press')) {
+      detectedMachine = 'Hydraulic Press';
     }
   }
 
-  const errorMatch = trimmed.match(/\b([EAP]\d{3,4}|ERR[-_]?\d+)\b/i);
+  const errorMatch = trimmed.match(/\b([EH]\d{3}|SYM-[A-Z0-9-]+)\b/i);
   const detectedError = errorMatch ? errorMatch[1].toUpperCase() : sessionState.lastError;
 
-  // SCENARIO 4: Insufficient Information / Refusal Check
+  // SCENARIO 4: Insufficient Information / Honest Refusal Check
   if (
-    lower.includes('replace spindle bearing') ||
-    lower.includes('rebuild gearbox') ||
-    lower.includes('rewrite plc firmware') ||
-    lower.includes('bypass safety light curtain')
+    lower.includes('status led') ||
+    lower.includes('flashing 3 short blinks') ||
+    lower.includes('flickering pattern') ||
+    lower.includes('led is blinking') ||
+    lower.includes('led pattern') ||
+    lower.includes('blink pattern')
   ) {
     return {
       message: {
@@ -88,7 +90,7 @@ export async function processMockQuery(
         role: 'assistant',
         cardType: 'refusal',
         timestamp,
-        refusalMessage: "The manuals don't cover this. I won't guess at a fix.",
+        refusalMessage: "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer.",
       },
       newSession: {
         ...sessionState,
@@ -98,10 +100,14 @@ export async function processMockQuery(
     };
   }
 
-  // SCENARIO 3: Cross-Manual Ambiguity Check
+  // SCENARIO 3: Cross-Manual Ambiguity Check (E101 exists on Conveyor CB-4400 and CNC MX-7)
   const isAmbiguousQuery =
     (lower.includes('e101') && !detectedMachine) ||
-    (lower === 'what does e101 mean?' || lower === 'e101' || lower === 'what does e101 mean');
+    lower === 'what does e101 mean?' ||
+    lower === 'what does error e101 mean?' ||
+    lower === 'e101' ||
+    lower === 'how do i fix error e101?' ||
+    lower === 'how do i fix e101?';
 
   if (isAmbiguousQuery) {
     return {
@@ -110,25 +116,19 @@ export async function processMockQuery(
         role: 'assistant',
         cardType: 'ambiguity',
         timestamp,
-        ambiguityPrompt: 'E101 means something different on each machine — which one are you asking about?',
+        ambiguityPrompt: 'Multiple machines match this error code. Please select which machine you are operating:',
         ambiguityOptions: [
           {
-            machine: 'CNC-100',
-            label: 'CNC-100 — Spindle motor overheating',
-            description: 'Thermal overload trip on main 15kW spindle drive motor',
-            queryHint: 'What does E101 mean on CNC-100?',
+            machine: 'Conveyor Belt System (CB-4400)',
+            label: 'Conveyor Belt System (CB-4400) — VFD drive motor phase overcurrent fault',
+            description: 'VFD inverter detects motor phase current draw exceeding 125% FLA for >3.5s',
+            queryHint: 'How do I fix error E101 on the CB-4400 conveyor belt?',
           },
           {
-            machine: 'Press-200',
-            label: 'Press-200 — Hydraulic manifold pressure fault',
-            description: 'Proportional relief valve differential pressure cutoff',
-            queryHint: 'What does E101 mean on Press-200?',
-          },
-          {
-            machine: 'RobotArm-300',
-            label: 'RobotArm-300 — Joint 1 axis communication fault',
-            description: 'CANbus packet collision on primary waist rotation servo',
-            queryHint: 'What does E101 mean on RobotArm-300?',
+            machine: 'CNC Milling Machine (MX-7 Precision)',
+            label: 'CNC Milling Machine (MX-7 Precision) — Spindle coolant flow failure (<3.8 L/min via FL-10)',
+            description: 'Through-spindle coolant flow falling below 3.8 L/min threshold during active spindle rotation',
+            queryHint: 'What does error E101 mean on the CNC Milling Machine MX-7 Precision?',
           },
         ],
       },
@@ -140,171 +140,185 @@ export async function processMockQuery(
     };
   }
 
-  // SCENARIO 1: Exact error code (e.g. "What does E101 mean on CNC-100?")
-  if ((detectedMachine === 'CNC-100' && (lower.includes('e101') || sessionState.lastError === 'E101')) || (lower.includes('e101') && lower.includes('cnc-100'))) {
+  // SCENARIO 1A: Exact code on Conveyor Belt (E101)
+  if ((detectedMachine === 'Conveyor Belt System' || lower.includes('conveyor') || lower.includes('cb-4400')) && (lower.includes('e101') || sessionState.lastError === 'E101')) {
     return {
       message: {
         id: msgId,
         role: 'assistant',
         cardType: 'normal',
         timestamp,
-        meaning: 'E101 indicates spindle drive motor thermal overload cutoff during high-torque cutting cycles.',
+        meaning: 'E101 on the Conveyor Belt System (CB-4400) indicates a Drive Motor Overcurrent Fault. The VFD inverter detects motor phase current exceeding 125% of FLA for >3.5s.',
         causes: [
-          'Coolant flow restricted or blocked to the spindle jacket heat exchanger.',
-          'Thermal RTD sensor probe fouled with metal fines or disconnected at terminal TB3.',
-          'Continuous duty cycle exceeded 85% rated load for over 45 minutes.',
+          'Excessive conveyor belt tension creating abnormal mechanical resistance on the head drive drum.',
+          'Mechanical seizure or bearing galling in carrying or return idler rollers.',
+          'Foreign debris or broken packaging wedged between slider bed and belt underside.',
         ],
         steps: [
-          'Verify fluid manifold sight glass and accumulator pressure gauge.',
-          'Cycle valve test sequence 4B from manual service override pendant.',
-          'Perform filter cart flush cycle and log differential delta pressure.',
+          'Lock out and tag out (LOTO) the main electrical disconnect switch at control panel CP-1.',
+          'Inspect carrying deck and return run for jammed pallets, packaging, or foreign debris.',
+          'Loosen dual take-up jack screws on tail pulley and verify belt deflection tension (25 mm under 15 kg test point).',
+          'Rotate drive drum and snub rollers by hand to verify free rotation; replace stiff idler rollers.',
+          'Verify VFD parameter P-042 matches motor nameplate amperage.',
+          'Remove LOTO, reset VFD fault keypad, and perform 5-minute unloaded test run monitoring line current.',
         ],
         citations: [
           {
-            manual: 'cnc100.txt',
-            page: 4,
-            section: 'E101 Troubleshooting - Spindle Thermal Overload',
-            snippet: 'Section 4.2 Spindle Thermal Cutoff (E101): Thermal sensor triggers safety shutoff when stator temperature exceeds 105°C. Check coolant lines and reset breaker after 15-minute cooldown.',
+            manual: 'conveyorcb4400.txt',
+            page: 2,
+            section: 'E101 — Drive Motor Overcurrent Fault',
+            snippet: 'Conveyor Belt System Model CB-4400 Section 2: E101 Drive Motor Overcurrent Fault. LOTO main disconnect switch at control panel CP-1. Deflection tension spec: 25 mm under 15 kg test point.',
           },
         ],
       },
       newSession: {
         ...sessionState,
-        lastMachine: 'CNC-100',
+        lastMachine: 'Conveyor Belt System',
         lastError: 'E101',
         updatedAt: timestamp,
       },
     };
   }
 
-  // SCENARIO 2: Natural language symptom
-  if (
-    (detectedMachine === 'Press-200' && (lower.includes('oil pressure') || lower.includes('hydraulic') || lower.includes('stopping') || lower.includes('pressure'))) ||
-    lower.includes('oil pressure') ||
-    lower.includes('stopping due to oil pressure')
-  ) {
+  // SCENARIO 1B: Exact code on CNC MX-7 (E101)
+  if ((detectedMachine === 'CNC Milling Machine' || lower.includes('cnc') || lower.includes('mx-7') || lower.includes('milling')) && (lower.includes('e101') || sessionState.lastError === 'E101')) {
     return {
       message: {
         id: msgId,
         role: 'assistant',
         cardType: 'normal',
         timestamp,
-        meaning: 'Press-200 emergency stop triggered by hydraulic low-pressure interlock before ram stroke completion.',
+        meaning: 'E101 on the CNC Milling Machine Model MX-7 Precision indicates a Spindle Coolant Flow Failure. Inline flow sensor FL-10 measures coolant delivery below 3.8 L/min while spindle exceeds 1,000 RPM.',
         causes: [
-          'Hydraulic return line filter element clogged (differential bypass threshold exceeded).',
-          'Main variable-displacement pump cavitation caused by low ISO VG 46 reservoir level.',
-          'Proportional pressure relief valve PRV-1 spool sticking in open bypass position.',
+          'Clogged 25-micron inline high-pressure coolant filter cartridge (MX-FLT-025).',
+          'Coolant supply pump cavitation or low fluid level in the 300-liter reservoir.',
+          'Severed, crushed, or twisted high-pressure braided coolant delivery hose in the Z-axis drag chain.',
         ],
         steps: [
-          'Inspect reservoir sight level gauge at rear service access hatch.',
-          'Check differential pressure indicator on main high-pressure filter bowl (red flag visible = bypass active).',
-          'Verify proportional relief valve coil resistance across pins A and B (spec: 18.5 - 22.0 Ω).',
+          'Abort active program and ensure cutting zone coolant spray has settled.',
+          'Check rear filtration tank level sight gauge and top up with 8% water-soluble synthetic emulsion.',
+          'Inspect differential pressure indicator; replace 25-micron pleated cartridge (Part No. MX-FLT-025).',
+          'Inspect braided delivery lines running through Z-axis energy chain for crushing or kinks.',
+          'Verify high-pressure coolant pump gauge reads 45-70 bar during M08 activation.',
+          'In MDI mode, command M08; and confirm digital flow rate display exceeds 6.2 L/min.',
         ],
         citations: [
           {
-            manual: 'press200.txt',
-            page: 12,
-            section: 'Hydraulic Interlock & Pressure Loss',
-            snippet: 'Section 6.1 Low Hydraulic Head: If pressure drops below 160 bar during ram advance, safety interlock dumps pilot pressure. Inspect primary filter element P/N HY-2201 and oil reservoir level.',
+            manual: 'cncmx7.txt',
+            page: 2,
+            section: 'E101 — Spindle Coolant Flow Failure',
+            snippet: 'CNC Milling Machine Model MX-7 Precision Section 2: E101 Spindle Coolant Flow Failure. Flow sensor FL-10 threshold: 3.8 L/min. Replace 25-micron filter cartridge Part No. MX-FLT-025.',
           },
         ],
       },
       newSession: {
         ...sessionState,
-        lastMachine: 'Press-200',
-        lastError: 'OIL_PRESS_FAULT',
+        lastMachine: 'CNC Milling Machine',
+        lastError: 'E101',
         updatedAt: timestamp,
       },
     };
   }
 
-  // Fallback for RobotArm-300
-  if (detectedMachine === 'RobotArm-300' || lower.includes('robotarm') || lower.includes('a032')) {
+  // SCENARIO 1C: Exact code on Hydraulic Press (H205)
+  if ((detectedMachine === 'Hydraulic Press' || lower.includes('press') || lower.includes('hp-2200')) && (lower.includes('h205') || sessionState.lastError === 'H205')) {
     return {
       message: {
         id: msgId,
         role: 'assistant',
         cardType: 'normal',
         timestamp,
-        meaning: 'A032 indicates absolute optical encoder communication timeout on Joint 3 (Elbow pitch).',
+        meaning: 'H205 on the HP-2200 Hydraulic Press indicates Hydraulic Oil High Temperature. Sump thermistor TT-02 detects oil temperature exceeding 65°C.',
         causes: [
-          'Internal flex cable harness wear at articulation point J2/J3.',
-          'Transient 24V DC logic supply dip below 20.4V during rapid arm deceleration.',
-          'Optical disk contaminated by vaporized grease seal leak.',
+          'Clogged duplex heat exchanger basket strainer restricting cooling water flow.',
+          'Cooling water supply pressure below required 3.5 bar threshold.',
+          'Main relief valve internal bypass leaking pressurized fluid directly to tank.',
         ],
         steps: [
-          'Power down arm controller and inspect harness conduit bracket J2-B for cable pinching.',
-          'Measure regulated 24V supply rail on rack terminal block X2 during brake release cycle.',
-          'Perform manual zero-calibration offset check using calibration pin P-300.',
+          'Allow main pump to idle unloaded for 10 minutes to circulate fluid through heat exchanger.',
+          'Clean duplex basket strainer elements in mineral spirits and flush housing.',
+          'Verify incoming factory cooling water supply pressure reads at least 3.5 bar.',
+          'Inspect thermostatic water regulating valve TCV-12 for proper stroke travel.',
         ],
         citations: [
           {
-            manual: 'robotarm300.txt',
-            page: 38,
-            section: 'A032 Encoder Data Bus Timeout',
-            snippet: 'Section 9.4 Joint Encoder Bus: When serial frame drops exceed 3 consecutive cycles, axis driver halts motion immediately to prevent runaway kinematic divergence.',
+            manual: 'presshp2200.txt',
+            page: 2,
+            section: 'H205 Troubleshooting',
+            snippet: 'Hydraulic Press Model HP-2200 Section 2: H205 Hydraulic Oil High Temperature. Sensor TT-02 alarm threshold: 65°C. Verify cooling water pressure >= 3.5 bar.',
           },
         ],
       },
       newSession: {
         ...sessionState,
-        lastMachine: 'RobotArm-300',
-        lastError: 'A032',
+        lastMachine: 'Hydraulic Press',
+        lastError: 'H205',
         updatedAt: timestamp,
       },
     };
   }
 
-  if (lower.length < 5) {
+  // SCENARIO 2A: Symptom - Conveyor Squealing
+  if (lower.includes('squeal') || lower.includes('chirp') || lower.includes('startup')) {
     return {
       message: {
         id: msgId,
         role: 'assistant',
-        cardType: 'refusal',
+        cardType: 'normal',
         timestamp,
-        refusalMessage: "The manuals don't cover this. I won't guess at a fix.",
+        meaning: 'Squealing and chirping during morning startup on the CB-4400 indicates Drive Drum Lagging Glazing or initial belt slippage under acceleration inertia.',
+        causes: [
+          'Glazed or worn rubber lagging on primary drive drum.',
+          'Insufficient belt tension allowing drum to slip during motor startup torque ramp.',
+          'Stiff, dry pillow block bearings in the adjacent snub roller.',
+        ],
+        steps: [
+          'Tighten left and right tail pulley take-up bolts equally by 2 full turns to eliminate startup slippage.',
+          'Inspect drive drum rubber lagging; scuff glazed surface with 40-grit emery cloth to restore traction.',
+          'Apply conveyor belt grip conditioning spray if ambient humidity is elevated.',
+          'Lubricate snub roller pillow block bearings with 2 pumps of NLGI Grade 2 lithium grease.',
+        ],
+        citations: [
+          {
+            manual: 'conveyorcb4400.txt',
+            page: 5,
+            section: 'Startup Squeal Troubleshooting',
+            snippet: 'Conveyor Belt System CB-4400 Section 3: Squealing or Chirping Sound During Startup. Tighten tail pulley take-up screws 2 full turns; scuff lagging with 40-grit emery cloth.',
+          },
+        ],
       },
       newSession: {
         ...sessionState,
-        lastMachine: detectedMachine || sessionState.lastMachine,
+        lastMachine: 'Conveyor Belt System',
+        lastError: 'SYM-SQUEAL-STARTUP',
         updatedAt: timestamp,
       },
     };
   }
 
-  const activeMach = detectedMachine || 'CNC-100';
-  const manualName = activeMach === 'CNC-100' ? 'cnc100.txt' : activeMach === 'Press-200' ? 'press200.txt' : 'robotarm300.txt';
-  const pageNum = activeMach === 'CNC-100' ? 8 : activeMach === 'Press-200' ? 19 : 24;
-
+  // Default fallback answer
   return {
     message: {
       id: msgId,
       role: 'assistant',
       cardType: 'normal',
       timestamp,
-      meaning: `Diagnostic response for ${activeMach} based on technical manual specifications.`,
-      causes: [
-        'Intermittent sensor drift during steady-state production run.',
-        'Mechanical tolerance deviation outside ±0.05mm calibrated envelope.',
-      ],
-      steps: [
-        'Isolate machine main power switch and tag out according to shop procedure.',
-        `Inspect wiring harness connectors as referenced in ${manualName} Section 3.`,
-        'Execute diagnostic self-test from control cabinet diagnostic screen.',
-      ],
+      meaning: `Diagnostic procedure evaluated for ${detectedMachine || 'plant equipment'}.`,
+      causes: ['Operating condition outside standard parameters.'],
+      steps: ['Consult equipment service manual and verify safety disconnect.'],
       citations: [
         {
-          manual: manualName,
-          page: pageNum,
-          section: `${activeMach} Diagnostic Specifications`,
-          snippet: `Section 3.1 Maintenance protocols for ${activeMach}. Perform daily inspections and verify zero calibration prior to production shifts.`,
+          manual: detectedMachine === 'CNC Milling Machine' ? 'cncmx7.txt' : (detectedMachine === 'Hydraulic Press' ? 'presshp2200.txt' : 'conveyorcb4400.txt'),
+          page: 1,
+          section: 'Equipment Overview',
+          snippet: 'Manufacturer standard operating guidelines.',
         },
       ],
     },
     newSession: {
       ...sessionState,
-      lastMachine: activeMach,
-      lastError: detectedError || 'DIAG_CHECK',
+      lastMachine: detectedMachine || sessionState.lastMachine,
+      lastError: detectedError || sessionState.lastError,
       updatedAt: timestamp,
     },
   };
