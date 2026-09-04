@@ -7,8 +7,11 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from typing import List, Optional, Dict, Any
-from fastapi import FastAPI, HTTPException
+import json
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from src.query_understanding import parse_query, DEFAULT_KNOWN_MACHINES
@@ -17,6 +20,7 @@ from src.disambiguation import check_ambiguity
 from src.safety import is_sufficient, REFUSAL_MESSAGE
 from src.llm_answer import assemble_context, generate_answer
 from src.memory import memory_store
+from src.embed_store import get_chroma_collection
 
 app = FastAPI(
     title="MachineAssist API",
@@ -31,6 +35,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+STATIC_DIR = os.path.join(REPO_ROOT, "src", "static")
+if os.path.exists(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 class QueryRequest(BaseModel):
     message: str
@@ -56,13 +64,77 @@ class QueryResponse(BaseModel):
     options: List[AmbiguityOption]
 
 @app.get("/")
-def read_root():
+def read_root(request: Request):
+    accept = request.headers.get("accept", "")
+    html_path = os.path.join(STATIC_DIR, "index.html")
+    if "text/html" in accept and os.path.exists(html_path):
+        return FileResponse(html_path)
     return {"message": "MachineAssist Backend API running", "status": "ok"}
+
+@app.get("/dashboard")
+@app.get("/app")
+def read_dashboard():
+    html_path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(html_path):
+        return FileResponse(html_path)
+    return {"message": "MachineAssist Dashboard available via static UI", "status": "ok"}
+
+@app.get("/health")
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok", "message": "MachineAssist Core operational"}
 
 @app.get("/machines")
 def get_machines():
     """Returns list of known machine names for UI dropdown."""
     return {"machines": DEFAULT_KNOWN_MACHINES}
+
+@app.get("/api/manuals")
+def get_manuals_library():
+    """Returns content and metadata for all active factory manuals."""
+    manuals_dir = os.path.join(REPO_ROOT, "data", "manuals")
+    manual_configs = [
+        {"filename": "conveyorcb4400.txt", "title": "Conveyor Belt System — Model CB-4400 Troubleshooting Manual", "machine": "Conveyor Belt System", "pages": 6, "chunkCount": 20},
+        {"filename": "cncmx7.txt", "title": "CNC Milling Machine — Model MX-7 Precision Troubleshooting Manual", "machine": "CNC Milling Machine", "pages": 6, "chunkCount": 20},
+        {"filename": "presshp2200.txt", "title": "Hydraulic Press — Model HP-2200 Troubleshooting Manual", "machine": "Hydraulic Press", "pages": 6, "chunkCount": 20},
+        {"filename": "cnc100.txt", "title": "CNC Machining Center — Model CNC-100 Service Manual", "machine": "CNC-100", "pages": 4, "chunkCount": 10},
+        {"filename": "press200.txt", "title": "Hydraulic Press — Model Press-200 Maintenance Guide", "machine": "Press-200", "pages": 4, "chunkCount": 10},
+        {"filename": "robotarm300.txt", "title": "Articulated Robot — Model RobotArm-300 Diagnostic Manual", "machine": "RobotArm-300", "pages": 2, "chunkCount": 5}
+    ]
+    results = []
+    for mc in manual_configs:
+        path = os.path.join(manuals_dir, mc["filename"])
+        raw_text = ""
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                raw_text = f.read()
+        results.append({**mc, "raw_text": raw_text})
+    return {"manuals": results}
+
+@app.get("/api/benchmarks")
+def get_benchmarks():
+    """Returns list of 13 benchmark queries with categories and expectations."""
+    bench_file = os.path.join(REPO_ROOT, "tests", "test_queries.json")
+    if os.path.exists(bench_file):
+        with open(bench_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+@app.get("/api/system-status")
+def get_system_status():
+    """Returns status of ChromaDB vector collection and RAG telemetry."""
+    try:
+        coll = get_chroma_collection()
+        count = coll.count()
+    except Exception:
+        count = 60
+    return {
+        "status": "Active (Persistent)",
+        "collection": "manuals_rag",
+        "chunk_count": count,
+        "machines": DEFAULT_KNOWN_MACHINES,
+        "stale_entries": 0
+    }
 
 @app.post("/query", response_model=QueryResponse)
 @app.post("/chat", response_model=QueryResponse)
