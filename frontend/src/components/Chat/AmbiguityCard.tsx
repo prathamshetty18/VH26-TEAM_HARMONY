@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import type { Message, AmbiguityOption } from '../../types';
 import { HelpCircle, ChevronRight } from 'lucide-react';
 
@@ -44,11 +44,8 @@ export const AmbiguityCard: React.FC<AmbiguityCardProps> = ({
                   {option.machine}
                 </span>
                 <span className="font-sans font-medium text-slate-800 text-sm md:text-base">
-                  {option.label.split('—')[1]?.trim() || option.label}
+                  {option.label.includes('—') ? option.label.split('—')[1]?.trim() : (option.description || option.label)}
                 </span>
-              </div>
-              <div className="text-xs md:text-sm text-slate-600 mt-1 font-sans leading-normal">
-                {option.description}
               </div>
             </div>
             <div className="shrink-0 flex items-center justify-center w-7 h-7 rounded bg-white border border-slate-200 group-hover:border-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors">

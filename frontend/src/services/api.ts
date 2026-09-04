@@ -1,4 +1,4 @@
-﻿import type { Message, SessionMemoryState, Machine, BackendConfig, Citation, AmbiguityOption } from '../types';
+import type { Message, SessionMemoryState, Machine, BackendConfig, Citation, AmbiguityOption } from '../types';
 import { INITIAL_MACHINES, processMockQuery, extractMachineAndError } from './mockEngine';
 
 const DEFAULT_CONFIG: BackendConfig = {
@@ -166,8 +166,35 @@ export class DiagnosticService {
           let causes: string[] = [];
           let steps: string[] = [];
 
-          // Parse bulleted or numbered actions if formatted
-          if (answerText.includes('\n')) {
+          // Parse standard 4-section structured answer
+          const meaningMatch = answerText.match(/(?:1\.\s*Error meaning:?|MEANING:?)\s*([\s\S]*?)(?=(?:2\.\s*Probable causes:?|CAUSES:?|$))/i);
+          const causesMatch = answerText.match(/(?:2\.\s*Probable causes:?|CAUSES:?)\s*([\s\S]*?)(?=(?:3\.\s*Step-by-step corrective action:?|STEPS:?|$))/i);
+          const stepsMatch = answerText.match(/(?:3\.\s*Step-by-step corrective action:?|STEPS:?)\s*([\s\S]*?)(?=(?:4\.\s*Sources:?|SOURCES:?|$))/i);
+
+          if (meaningMatch && meaningMatch[1].trim()) {
+            meaning = meaningMatch[1].trim();
+          }
+
+          if (causesMatch && causesMatch[1].trim()) {
+            causes = causesMatch[1]
+              .split('\n')
+              .map((l) => l.trim())
+              .filter((l) => l.startsWith('-') || l.startsWith('*') || /^\d+[\.\)]/.test(l))
+              .map((l) => l.replace(/^[-*]\s*/, '').replace(/^\d+[\.\)]\s*/, '').trim())
+              .filter(Boolean);
+          }
+
+          if (stepsMatch && stepsMatch[1].trim()) {
+            steps = stepsMatch[1]
+              .split('\n')
+              .map((l) => l.trim())
+              .filter((l) => /^\d+[\.\)]/.test(l) || l.startsWith('-') || l.toLowerCase().startsWith('step'))
+              .map((l) => l.replace(/^\d+[\.\)]\s*/, '').replace(/^-\s*Step\s*\d*:?\s*/i, '').replace(/^-\s*/, '').trim())
+              .filter(Boolean);
+          }
+
+          // Fallback if no section headers matched
+          if (steps.length === 0 && answerText.includes('\n')) {
             const lines = answerText.split('\n').map((l) => l.trim()).filter(Boolean);
             const stepLines = lines.filter((l) => /^\d+[\.\)]/.test(l) || l.toLowerCase().startsWith('- step'));
             if (stepLines.length > 0) {

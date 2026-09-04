@@ -8,7 +8,8 @@ STOPWORDS = {
     "what", "does", "mean", "on", "why", "is", "stopping", "due", "to", "how", "do", "i", 
     "can", "you", "tell", "me", "about", "for", "the", "a", "an", "in", "of", "and", "or", 
     "with", "this", "that", "it", "from", "are", "was", "were", "be", "been", "being", 
-    "have", "has", "had", "should", "would", "could", "machine", "manual", "section"
+    "have", "has", "had", "should", "would", "could", "machine", "manual", "section",
+    "error", "code", "codes", "regarding", "fault", "troubleshoot", "fix"
 }
 
 MACHINE_PATTERNS = {

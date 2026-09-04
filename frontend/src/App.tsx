@@ -133,11 +133,10 @@ export const App: React.FC = () => {
     }
   };
 
-  // Handle ambiguity option selection
+  // Handle ambiguity option selection (sends machine name carrying session context)
   const handleSelectAmbiguityOption = (option: AmbiguityOption) => {
     handleSelectMachine(option.machine);
-    const query = option.queryHint || `Troubleshoot ${session.lastError || 'fault'} on ${option.machine}`;
-    handleSendMessage(query);
+    handleSendMessage(option.machine);
   };
 
   // Reset session
@@ -187,6 +186,9 @@ export const App: React.FC = () => {
         config={backendConfig}
         onOpenSettings={() => setIsSettingsOpen(true)}
         isLiveActive={isLiveActive}
+        machines={machines}
+        selectedMachine={scopedMachine}
+        onSelectMachine={handleSelectMachine}
       />
 
       {/* Main 3-column / 2-panel industrial interface */}

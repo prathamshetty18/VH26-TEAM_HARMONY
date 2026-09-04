@@ -1,6 +1,6 @@
-﻿import React from 'react';
-import { Cpu, RefreshCw, Settings } from 'lucide-react';
-import type { BackendConfig } from '../types';
+import React from 'react';
+import { Cpu, RefreshCw, Settings, ChevronDown } from 'lucide-react';
+import type { BackendConfig, Machine } from '../types';
 
 interface TopBarProps {
   sessionId: string;
@@ -8,6 +8,9 @@ interface TopBarProps {
   config: BackendConfig;
   onOpenSettings: () => void;
   isLiveActive: boolean;
+  machines?: Machine[];
+  selectedMachine?: string | null;
+  onSelectMachine?: (machineId: string | null) => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -16,6 +19,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   config,
   onOpenSettings,
   isLiveActive,
+  machines,
+  selectedMachine,
+  onSelectMachine,
 }) => {
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-5 flex items-center justify-between shadow-xs select-none sticky top-0 z-30">
@@ -43,8 +49,27 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       {/* Right controls */}
-      <div className="flex items-center space-x-3.5">
-        <div className="flex items-center space-x-2 text-xs md:text-sm text-slate-700 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded font-mono">
+      <div className="flex items-center space-x-3">
+        {/* Machine/Model Dropdown (DESIGN.md Section 3) */}
+        {machines && onSelectMachine && (
+          <div className="relative">
+            <select
+              value={selectedMachine || ''}
+              onChange={(e) => onSelectMachine(e.target.value ? e.target.value : null)}
+              className="bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded px-3 py-1.5 text-xs md:text-sm text-slate-800 font-mono focus:outline-none focus:ring-1 focus:ring-slate-800 appearance-none pr-8 cursor-pointer font-medium shadow-2xs transition-colors"
+            >
+              <option value="">All Machines (Auto-detect)</option>
+              {machines.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.id} — {m.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
+          </div>
+        )}
+
+        <div className="hidden sm:flex items-center space-x-2 text-xs md:text-sm text-slate-700 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded font-mono">
           <span className="text-slate-400 font-sans text-xs">SESSION:</span>
           <span className="font-bold text-slate-900 tracking-wider">{sessionId}</span>
         </div>

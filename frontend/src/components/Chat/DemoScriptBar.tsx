@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { PlayCircle, CheckCircle2, Split, ShieldAlert } from 'lucide-react';
 
 interface DemoScriptBarProps {
@@ -51,7 +51,7 @@ export const DemoScriptBar: React.FC<DemoScriptBarProps> = ({ onRunQuery, disabl
       <div className="flex items-center justify-between mb-2.5">
         <span className="text-xs md:text-sm font-mono uppercase tracking-wider text-slate-700 font-bold flex items-center space-x-2">
           <PlayCircle className="w-4 h-4 text-slate-600" />
-          <span>Demo Script Sequence (Verified Section 7 Queries)</span>
+          <span>Demo Script Sequence (Verified Section 6 Queries)</span>
         </span>
         <span className="text-xs text-slate-400 font-mono hidden sm:inline">
           One-click test triggers for presentation

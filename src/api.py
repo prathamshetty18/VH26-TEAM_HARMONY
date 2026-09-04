@@ -43,6 +43,7 @@ class SourceMetadata(BaseModel):
     machine: str
     error_code: Optional[str] = None
     page: Optional[int] = None
+    snippet: Optional[str] = None
 
 class AmbiguityOption(BaseModel):
     machine: str
@@ -91,6 +92,9 @@ def handle_query(req: QueryRequest):
         opt_lines = "\n".join([f"- **{o['machine']}**: {o['summary']}" for o in options])
         err_code_name = parsed_q.get("error_code") or "That error code"
         answer_text = f"{err_code_name} means something different on each machine — which one are you asking about?"
+        # Save error context so follow-up selection can resolve cleanly
+        top_error = parsed_q.get("error_code")
+        memory_store.update_session(session_id, machine=None, error_code=top_error, last_answer=answer_text)
         return QueryResponse(
             answer=answer_text,
             sources=[],
@@ -99,7 +103,7 @@ def handle_query(req: QueryRequest):
         )
 
     # Step 5: Safety / Relevance Control Check
-    sufficient, safety_result = is_sufficient(retrieved_chunks, query=raw_message)
+    sufficient, safety_result = is_sufficient(retrieved_chunks, query=augmented_message)
     if not sufficient:
         return QueryResponse(
             answer=safety_result, # Refusal message
@@ -110,7 +114,7 @@ def handle_query(req: QueryRequest):
 
     # Step 6: Context Assembly & Answer Generation
     context_text = assemble_context(retrieved_chunks)
-    answer_text = generate_answer(raw_message, context_text)
+    answer_text = generate_answer(augmented_message, context_text)
 
     # Step 7: Format Source Citations
     # If the LLM self-refused (second-line defense), clear sources — no phantom citations.
@@ -133,7 +137,8 @@ def handle_query(req: QueryRequest):
                     section=c.get("section", ""),
                     machine=c.get("machine", ""),
                     error_code=c.get("error_code"),
-                    page=page_int
+                    page=page_int,
+                    snippet=c.get("text", "")
                 ))
 
     # Step 8: Update Session Memory
