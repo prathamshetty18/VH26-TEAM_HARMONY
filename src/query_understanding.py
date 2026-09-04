@@ -1,12 +1,30 @@
 import re
 
 DEFAULT_KNOWN_MACHINES = [
+    "CNC-100",
+    "Press-200",
+    "RobotArm-300",
     "Conveyor Belt System",
     "CNC Milling Machine",
     "Hydraulic Press"
 ]
 
 MACHINE_ALIASES = {
+    # CNC-100
+    "cnc-100": "CNC-100",
+    "cnc 100": "CNC-100",
+    "cnc100": "CNC-100",
+
+    # Press-200
+    "press-200": "Press-200",
+    "press 200": "Press-200",
+    "press200": "Press-200",
+
+    # RobotArm-300
+    "robotarm-300": "RobotArm-300",
+    "robotarm 300": "RobotArm-300",
+    "robotarm300": "RobotArm-300",
+
     # Conveyor Belt System (CB-4400)
     "cb-4400": "Conveyor Belt System",
     "cb 4400": "Conveyor Belt System",

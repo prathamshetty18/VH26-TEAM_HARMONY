@@ -42,6 +42,7 @@ class SourceMetadata(BaseModel):
     section: str
     machine: str
     error_code: Optional[str] = None
+    page: Optional[int] = None
 
 class AmbiguityOption(BaseModel):
     machine: str
@@ -88,7 +89,8 @@ def handle_query(req: QueryRequest):
     if ambiguity_result.get("ambiguous"):
         options = ambiguity_result.get("options", [])
         opt_lines = "\n".join([f"- **{o['machine']}**: {o['summary']}" for o in options])
-        answer_text = f"Multiple machines match this error code. Please select which machine you are operating:\n{opt_lines}"
+        err_code_name = parsed_q.get("error_code") or "That error code"
+        answer_text = f"{err_code_name} means something different on each machine — which one are you asking about?"
         return QueryResponse(
             answer=answer_text,
             sources=[],
@@ -119,11 +121,19 @@ def handle_query(req: QueryRequest):
             s_key = (c.get("manual"), c.get("section"))
             if s_key not in seen_sources:
                 seen_sources.add(s_key)
+                page_val = c.get("page")
+                page_int = None
+                if page_val is not None:
+                    try:
+                        page_int = int(page_val)
+                    except (ValueError, TypeError):
+                        pass
                 sources.append(SourceMetadata(
                     manual=c.get("manual", ""),
                     section=c.get("section", ""),
                     machine=c.get("machine", ""),
-                    error_code=c.get("error_code")
+                    error_code=c.get("error_code"),
+                    page=page_int
                 ))
 
     # Step 8: Update Session Memory

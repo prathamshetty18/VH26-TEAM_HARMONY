@@ -2,7 +2,7 @@
 
 import re
 
-REFUSAL_MESSAGE = "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+REFUSAL_MESSAGE = "The manuals don't cover this. I won't guess at a fix."
 
 STOPWORDS = {
     "what", "does", "mean", "on", "why", "is", "stopping", "due", "to", "how", "do", "i", 
@@ -14,7 +14,8 @@ STOPWORDS = {
 MACHINE_PATTERNS = {
     "cb-4400", "cb4400", "4400", "cb", "conveyor",
     "mx-7", "mx7", "mx", "milling", "precision", "cnc",
-    "hp-2200", "hp2200", "2200", "hp", "hydraulic", "press"
+    "hp-2200", "hp2200", "2200", "hp", "hydraulic", "press",
+    "cnc-100", "cnc100", "100", "press-200", "press200", "200", "robotarm-300", "robotarm300", "300"
 }
 
 def _extract_content_tokens(text):

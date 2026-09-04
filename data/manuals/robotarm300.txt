@@ -1,0 +1,28 @@
+MACHINE: RobotArm-300
+MODEL: R300
+
+SECTION: Error Codes Summary
+PAGE: 1
+MACHINE: RobotArm-300
+MODEL: R300
+Overview of error codes for RobotArm-300 articulation system.
+
+SECTION: R101 Overview
+PAGE: 2
+MACHINE: RobotArm-300
+MODEL: R300
+ERROR CODE: R101
+MEANING: Joint rotational deviation.
+CAUSES:
+- Harmonic drive wear
+- Encoder pulse mismatch
+
+SECTION: R101 Troubleshooting
+PAGE: 2
+MACHINE: RobotArm-300
+MODEL: R300
+ERROR CODE: R101
+STEPS:
+1. Brake the robotic arm joints.
+2. Inspect encoder connection cable.
+3. Perform home calibration cycle.

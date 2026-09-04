@@ -1,0 +1,70 @@
+MACHINE: CNC-100
+MODEL: X200
+
+SECTION: Error Codes Summary
+PAGE: 1
+MACHINE: CNC-100
+MODEL: X200
+Overview of error codes for CNC-100 machining center.
+
+SECTION: E101 Overview
+PAGE: 2
+MACHINE: CNC-100
+MODEL: X200
+ERROR CODE: E101
+MEANING: Excessive motor temperature.
+CAUSES:
+- Cooling fan failure
+- Blocked ventilation
+- Excessive spindle load
+
+SECTION: E101 Troubleshooting
+PAGE: 2
+MACHINE: CNC-100
+MODEL: X200
+ERROR CODE: E101
+STEPS:
+1. Switch off the CNC-100 machine immediately.
+2. Inspect the rear cooling fan for debris.
+3. Clean all ventilation openings.
+4. Allow spindle motor to cool down for 20 minutes before restarting.
+
+SECTION: E102 Overview
+PAGE: 3
+MACHINE: CNC-100
+MODEL: X200
+ERROR CODE: E102
+MEANING: Spindle axis overload detected.
+CAUSES:
+- Feed rate too high
+- Dull or broken cutting tool
+
+SECTION: E102 Troubleshooting
+PAGE: 3
+MACHINE: CNC-100
+MODEL: X200
+ERROR CODE: E102
+STEPS:
+1. Stop the current program execution.
+2. Inspect the tool for wear or damage.
+3. Reduce feed rate by 15% and retry.
+
+SECTION: E103 Overview
+PAGE: 4
+MACHINE: CNC-100
+MODEL: X200
+ERROR CODE: E103
+MEANING: Coolant pressure below threshold.
+CAUSES:
+- Low coolant fluid level
+- Clogged coolant pump filter
+
+SECTION: E103 Troubleshooting
+PAGE: 4
+MACHINE: CNC-100
+MODEL: X200
+ERROR CODE: E103
+STEPS:
+1. Check coolant reservoir tank level.
+2. Refill coolant fluid if below MIN line.
+3. Clean pump intake filter screen.
