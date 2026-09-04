@@ -16,7 +16,7 @@ except ImportError:
     from safety import REFUSAL_MESSAGE
 
 # Single unified source of truth for model name
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
 
 SYSTEM_PROMPT = f"""You are MachineAssist, an expert factory troubleshooting assistant. Your task is to answer user queries using ONLY the provided manual sources.
 
@@ -30,10 +30,14 @@ Important: If the provided sources do NOT contain any information about the quer
 "{REFUSAL_MESSAGE}"
 """
 
-PDF_STRUCTURING_SYSTEM_PROMPT = """You are a technical document parser. Your job is to convert unstructured industrial machine manual text into a standardized structure conforming to the specification below.
+PDF_STRUCTURING_SYSTEM_PROMPT = """You are a technical document parser. Your job is to convert unstructured industrial machine manual text into a standardized structure conforming strictly to the specification below.
 
-Do NOT invent any information, causes, error codes, or steps that are not present in the source text.
-Preserve exact error codes, numbers, parameters, and descriptions.
+CRITICAL PRESERVATION RULES:
+1. NUMERIC VALUES, THRESHOLDS, UNITS, AND ERROR CODES MUST BE COPIED CHARACTER-FOR-CHARACTER from the source text.
+2. NEVER round, reword, approximate, convert, or reformat any numbers, tolerances, pressures, temperatures, electrical ratings, or flow rates (e.g. "65°C", "3.8 L/min", "45-70 bar", "125% FLA", "3.5 seconds", "0.015 mm").
+3. If a number or unit's exact format is ambiguous, preserve it exactly as written in the source text.
+4. Do NOT invent or extrapolate any information, causes, error codes, part numbers, or corrective steps that are not present in the source text.
+5. Every single error code and diagnostic symptom mentioned in the text must be represented.
 
 The structure MUST follow this exact format:
 MACHINE: <Machine Name>
@@ -79,65 +83,66 @@ def generate_answer(query, context, api_key=None):
     api_key = api_key or os.getenv("GEMINI_API_KEY")
     
     if not api_key:
-        # Fallback placeholder if no API key is provided yet
         return f"System Prompt Context:\n{context}\n\n[Placeholder Response - Please set GEMINI_API_KEY in .env to generate live responses via Gemini Flash API]\n1. Error meaning: Extracted from manuals\n2. Probable causes: Listed in manual sections\n3. Corrective action: Follow step-by-step manual instructions"
 
-    try:
-        from google import genai
-        from google.genai import types
-        client = genai.Client(api_key=api_key)
-
-        user_content = f"--- SOURCES ---\n{context}\n\n--- USER QUERY ---\n{query}"
-
-        config = types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT
-        )
-
-        model_name = os.getenv("GEMINI_MODEL", GEMINI_MODEL)
-        response = client.models.generate_content(
-            model=model_name,
-            contents=user_content,
-            config=config
-        )
-
-        # Guard: response may be blocked or empty (safety filters / empty generation)
-        if not response.candidates:
-            return REFUSAL_MESSAGE
-
-        candidate = response.candidates[0]
-
-        finish_reason = getattr(candidate, "finish_reason", None)
-        is_stop = False
-        if finish_reason is None:
-            is_stop = True
-        elif hasattr(finish_reason, "name") and finish_reason.name == "STOP":
-            is_stop = True
-        elif hasattr(finish_reason, "value") and finish_reason.value in ("STOP", 1):
-            is_stop = True
-        elif "STOP" in str(finish_reason).upper():
-            is_stop = True
-
-        if not is_stop:
-            # Blocked by safety filters or other abnormal stop — do not hallucinate
-            return REFUSAL_MESSAGE
-
-        # Safely extract text — .text raises if parts are empty
-        text = None
+    import time
+    max_retries = 3
+    for attempt in range(max_retries):
         try:
-            text = response.text
-        except Exception:
-            pass
+            from google import genai
+            from google.genai import types
+            client = genai.Client(api_key=api_key)
 
-        if not text or not text.strip():
-            return REFUSAL_MESSAGE
+            user_content = f"--- SOURCES ---\n{context}\n\n--- USER QUERY ---\n{query}"
 
-        return text
+            config = types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT
+            )
 
-    except Exception as e:
-        print(f"[generate_answer error]: {type(e).__name__}: {e}")
-        # Fallback if API call fails e.g. quota limit (429) or connection error
-        # Construct structured answer from context so system remains operational during rate limits
-        return f"1. Error meaning (Context Fallback):\n{context}\n2. Probable causes: See context above\n3. Step-by-step corrective action: Follow manual steps in context\n4. Sources: Manual sections cited above"
+            model_name = os.getenv("GEMINI_MODEL", GEMINI_MODEL)
+            response = client.models.generate_content(
+                model=model_name,
+                contents=user_content,
+                config=config
+            )
+
+            if not response.candidates:
+                return REFUSAL_MESSAGE
+
+            candidate = response.candidates[0]
+
+            finish_reason = getattr(candidate, "finish_reason", None)
+            is_stop = False
+            if finish_reason is None:
+                is_stop = True
+            elif hasattr(finish_reason, "name") and finish_reason.name == "STOP":
+                is_stop = True
+            elif hasattr(finish_reason, "value") and finish_reason.value in ("STOP", 1):
+                is_stop = True
+            elif "STOP" in str(finish_reason).upper():
+                is_stop = True
+
+            if not is_stop:
+                return REFUSAL_MESSAGE
+
+            text = None
+            try:
+                text = response.text
+            except Exception:
+                pass
+
+            if not text or not text.strip():
+                return REFUSAL_MESSAGE
+
+            return text
+
+        except Exception as e:
+            err_str = str(e)
+            if ("503" in err_str or "429" in err_str or "UNAVAILABLE" in err_str) and attempt < max_retries - 1:
+                time.sleep(2 * (attempt + 1))
+                continue
+            print(f"[generate_answer error]: {type(e).__name__}: {e}")
+            return f"1. Error meaning (Context Fallback):\n{context}\n2. Probable causes: See context above\n3. Step-by-step corrective action: Follow manual steps in context\n4. Sources: Manual sections cited above"
 
 def structure_pdf_text_with_llm(raw_text: str, api_key: Optional[str] = None) -> str:
     """
@@ -154,7 +159,7 @@ def structure_pdf_text_with_llm(raw_text: str, api_key: Optional[str] = None) ->
 
     config = types.GenerateContentConfig(
         system_instruction=PDF_STRUCTURING_SYSTEM_PROMPT,
-        temperature=0.1
+        temperature=0.0
     )
 
     model_name = os.getenv("GEMINI_MODEL", GEMINI_MODEL)

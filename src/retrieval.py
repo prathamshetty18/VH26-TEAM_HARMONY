@@ -1,13 +1,31 @@
-from src.embed_store import search
+from src.embed_store import search, get_distinct_machines
+
+LEGACY_MACHINE_MAP = {
+    "CNC-100": "CNC Milling Machine",
+    "Press-200": "Hydraulic Press",
+    "RobotArm-300": "RobotArm-300"
+}
 
 def retrieve(parsed_query, k=5):
     """
     Retrieves top-k relevant chunks based on parsed query parameters.
     If machine is known, filters vector search to that specific machine.
+    Automatically maps legacy aliases (CNC-100 -> CNC Milling Machine) if
+    the collection contains the production manuals.
     """
     machine = parsed_query.get("machine")
     raw_query = parsed_query.get("raw_query") or ""
     error_code = parsed_query.get("error_code")
+
+    # Map legacy names if collection uses production manuals
+    target_machine = machine
+    if machine in LEGACY_MACHINE_MAP:
+        try:
+            distinct = get_distinct_machines()
+            if machine not in distinct and LEGACY_MACHINE_MAP[machine] in distinct:
+                target_machine = LEGACY_MACHINE_MAP[machine]
+        except Exception:
+            pass
 
     # Build search query string
     search_text = raw_query
@@ -15,8 +33,8 @@ def retrieve(parsed_query, k=5):
         search_text = f"{error_code} {raw_query}"
 
     filter_metadata = None
-    if machine:
-        filter_metadata = {"machine": machine}
+    if target_machine:
+        filter_metadata = {"machine": target_machine}
         fetch_k = max(k, 15) if error_code else k
     elif error_code:
         filter_metadata = {"error_code": error_code}

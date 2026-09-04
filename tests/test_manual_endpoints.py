@@ -240,3 +240,109 @@ class TestManualEndpoints:
         del_resp = client.delete("/manuals/Laser Cutter")
         assert del_resp.status_code == 200
         assert not os.path.exists(target_path)
+
+    def test_chroma_contains_only_expected_demo_machines(self):
+        """Regression for Issue 1: Assert ChromaDB only contains the exact 3 demo machines."""
+        machines = get_distinct_machines()
+        expected = {"CNC Milling Machine", "Conveyor Belt System", "Hydraulic Press"}
+        assert set(machines) == expected, f"Contaminated machines detected in Chroma: {set(machines) - expected}"
+
+    def test_cache_invalidation_immediate_back_to_back(self):
+        """Regression for Issue 3A: No cache lag on back-to-back upload and delete operations."""
+        initial_machines = set(client.get("/machines").json()["machines"])
+        assert "Laser Cutter" not in initial_machines
+
+        # Immediate back-to-back upload -> assert present with 0 sleep
+        files = {"file": ("laser.txt", io.BytesIO(SAMPLE_VALID_TXT.encode("utf-8")), "text/plain")}
+        up_resp = client.post("/manuals/upload", files=files)
+        assert up_resp.status_code == 200
+        post_up_machines = client.get("/machines").json()["machines"]
+        assert "Laser Cutter" in post_up_machines
+
+        # Immediate back-to-back delete -> assert removed with 0 sleep
+        del_resp = client.delete("/manuals/Laser Cutter")
+        assert del_resp.status_code == 200
+        post_del_machines = client.get("/machines").json()["machines"]
+        assert "Laser Cutter" not in post_del_machines
+
+    def test_pdf_upload_does_not_index_until_confirmed(self, monkeypatch):
+        """Regression for Issue 2.4: PDF upload returns draft and does NOT touch Chroma until /confirm."""
+        from src import api
+        mock_draft = """MACHINE: Robotic Welder
+MODEL: RW-500
+
+ERROR CODE: W301
+SECTION: W301 Shielding Gas Flow Error
+PAGE: 10
+MEANING: Shielding gas flow below 15 L/min.
+CAUSES:
+- Regulator freeze
+- Depleted argon cylinder
+
+SECTION: W301 Troubleshooting
+PAGE: 10
+STEPS:
+1. Check argon cylinder pressure gauge.
+2. Replace cylinder if below 20 bar.
+"""
+        monkeypatch.setattr(api, "structure_pdf_text_with_llm", lambda raw: mock_draft)
+
+        class MockPage:
+            def extract_text(self):
+                return "Robotic Welder Maintenance Manual. Model RW-500. Error Code W301 indicates shielding gas flow rate is critically low. Inspect argon bottle regulator." * 3
+        class MockReader:
+            pages = [MockPage()]
+
+        monkeypatch.setattr(pypdf, "PdfReader", lambda stream: MockReader())
+
+        files = {"file": ("manual.pdf", io.BytesIO(b"%PDF-1.4 dummy bytes"), "application/pdf")}
+        resp = client.post("/manuals/upload", files=files)
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "needs_review"
+        assert resp.json()["draft_text"] == mock_draft
+
+        # Assert Robotic Welder is NOT in Chroma yet
+        assert "Robotic Welder" not in client.get("/machines").json()["machines"]
+        manuals = [m["machine"] for m in client.get("/manuals").json()["manuals"]]
+        assert "Robotic Welder" not in manuals
+
+        # Now call confirm -> now it must be indexed
+        conf_resp = client.post("/manuals/confirm", json={
+            "machine": "Robotic Welder",
+            "content": mock_draft
+        })
+        assert conf_resp.status_code == 200
+        assert "Robotic Welder" in client.get("/machines").json()["machines"]
+
+        # Cleanup
+        client.delete("/manuals/Robotic Welder")
+
+    def test_structure_pdf_text_preserves_exact_numeric_values(self):
+        """Regression for Issue 2.3: Verifies exact character-for-character numeric preservation."""
+        from src.llm_answer import structure_pdf_text_with_llm
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            pytest.skip("GEMINI_API_KEY not set")
+
+        raw_sample = """
+        INDUSTRIAL SYSTEM MANUAL
+        MACHINE: Plasma System
+        MODEL: PS-300
+        Fault E101: Hydraulic temperature exceeds 65°C on sensor TT-02.
+        Coolant flow must be at least 3.8 L/min under 45-70 bar pump pressure.
+        Motor trip occurs if draw exceeds 125% FLA for 3.5 seconds.
+        Maximum allowable spindle radial runout is 0.015 mm TIR at 1,000 RPM.
+        Troubleshooting steps:
+        1. Check temperature transmitter TT-02 when exceeds 65°C.
+        2. Verify coolant delivery is 3.8 L/min.
+        3. Regulate pump pressure to 45-70 bar.
+        """
+        try:
+            structured = structure_pdf_text_with_llm(raw_sample)
+            for expected_num in ["65°C", "3.8 L/min", "45-70 bar", "125% FLA", "3.5 seconds", "0.015 mm", "1,000 RPM"]:
+                assert expected_num in structured, f"Critical numeric value '{expected_num}' was altered or omitted by LLM!"
+        except Exception as e:
+            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                pytest.skip(f"Gemini API rate limit: {e}")
+            raise e
+

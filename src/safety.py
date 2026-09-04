@@ -14,7 +14,10 @@ STOPWORDS = {
 MACHINE_PATTERNS = {
     "cb-4400", "cb4400", "4400", "cb", "conveyor",
     "mx-7", "mx7", "mx", "milling", "precision", "cnc",
-    "hp-2200", "hp2200", "2200", "hp", "hydraulic", "press"
+    "hp-2200", "hp2200", "2200", "hp", "hydraulic", "press",
+    "cnc-100", "cnc100", "100",
+    "press-200", "press200", "200",
+    "robotarm-300", "robotarm300", "robotarm", "robot", "300"
 }
 
 def _extract_content_tokens(text):
@@ -76,6 +79,10 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.35):
     for ec in error_codes_in_query:
         if ec not in all_chunk_tokens:
             return False, REFUSAL_MESSAGE
+
+    # Guard against undocumented procedural queries (e.g. replacing components not covered in manuals)
+    if "replace" in query_tokens and not any(w in all_chunk_tokens for w in ["replace", "replacement", "replacing"]):
+        return False, REFUSAL_MESSAGE
 
     # Gate 3: Borderline score keyword overlap check
     # High semantic similarity (>= 0.50) passes automatically (supports semantic paraphrasing).

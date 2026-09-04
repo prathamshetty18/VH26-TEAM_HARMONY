@@ -1,6 +1,5 @@
 # MachineAssist — Demo Queries & Evaluation Suite
 
-<<<<<<< HEAD
 ## Part 1: Quick Core Demo Queries
 These 5 core test cases correspond directly to `tests/test_all_demos.py` for rapid end-to-end smoke testing.
 
@@ -288,22 +287,17 @@ These 5 core test cases correspond directly to `tests/test_all_demos.py` for rap
 - **Target Citation:** None (Undocumented Gap)
 - **Expected Output:**
   - States that HP-2200 manual covers codes H201–H622 on the HMI screen, but contains no LED blink documentation.
->>>>>>> 6fd00c82866297828997c5e19876f612ac53373f
 
 ---
 
 ## Running Test Log (Reusable Test Matrix)
 
-<<<<<<< HEAD
 Use this table during Phase 3, Phase 5, and Phase 8 validation runs. Duplicate the table for each test cycle.
 
-=======
->>>>>>> 6fd00c82866297828997c5e19876f612ac53373f
 ### Test Run Date: _________________ | Tested By: _________________ | Environment: [ ] CLI / [ ] FastAPI / [ ] React UI
 
 | # | Query Tested | Category | Expected Outcome | Actual Output & Citation | Pass / Fail | Notes / Discrepancies |
 |---|---|---|---|---|---|---|
-<<<<<<< HEAD
 | 1 | `"How do I fix error E101 on the CB-4400 conveyor belt?"` | 1. Exact Code | CB-4400 Overcurrent, Page 2 | | [ ] Pass<br>[ ] Fail | |
 | 2 | `"What does error E101 mean on the CNC Milling Machine MX-7 Precision?"` | 1. Exact Code | MX-7 Coolant Loss, Page 2 | | [ ] Pass<br>[ ] Fail | |
 | 3 | `"What is the corrective action for fault H205 on the HP-2200 hydraulic press?"` | 1. Exact Code | HP-2200 High Temp, Page 2 | | [ ] Pass<br>[ ] Fail | |
@@ -317,18 +311,3 @@ Use this table during Phase 3, Phase 5, and Phase 8 validation runs. Duplicate t
 | 11 | `"The status LED is flashing 3 short blinks followed by a long pause, what does this pattern mean?"` | 4. Undocumented | Honest refusal (not in manuals) | | [ ] Pass<br>[ ] Fail | |
 | 12 | `"What causes the intermittent flickering pattern on the CNC MX-7 status LED?"` | 4. Undocumented | Honest refusal for MX-7 LED | | [ ] Pass<br>[ ] Fail | |
 | 13 | `"The hydraulic press HP-2200 status LED is blinking 3 times in a row. How do I clear it?"` | 4. Undocumented | Honest refusal for HP-2200 LED | | [ ] Pass<br>[ ] Fail | |
-=======
-| 1 | `"What does E101 mean on CNC-100?"` | Core: Exact Code | CNC-100 Motor overheating | | [ ] Pass<br>[ ] Fail | |
-| 2 | `"Why is my Press-200 machine stopping due to oil pressure?"` | Core: Symptom | Press-200 Low hydraulic pressure | | [ ] Pass<br>[ ] Fail | |
-| 3 | `"What does error code E101 mean?"` | Core: Ambiguous | Disambiguate: CNC-100 vs Press-200 | | [ ] Pass<br>[ ] Fail | |
-| 4 | `"How do I replace the spindle bearing on CNC-100?"` | Core: Undocumented | Refusal without hallucination | | [ ] Pass<br>[ ] Fail | |
-| 5 | `"How do I fix error E101 on the CB-4400 conveyor belt?"` | Ext: Exact Code | CB-4400 Overcurrent, Page 2 | | [ ] Pass<br>[ ] Fail | |
-| 6 | `"What does error E101 mean on the CNC Milling Machine MX-7 Precision?"` | Ext: Exact Code | MX-7 Coolant Loss, Page 2 | | [ ] Pass<br>[ ] Fail | |
-| 7 | `"What is the corrective action for fault H205 on the HP-2200 hydraulic press?"` | Ext: Exact Code | HP-2200 High Temp, Page 2 | | [ ] Pass<br>[ ] Fail | |
-| 8 | `"Why is the conveyor overheating?"` | Ext: Symptom | Gearbox temp E401 / Page 4 | | [ ] Pass<br>[ ] Fail | |
-| 9 | `"The conveyor belt is squealing and chirping during morning startup."` | Ext: Symptom | Lagging / tension, Page 5 | | [ ] Pass<br>[ ] Fail | |
-| 10 | `"Our CNC milled parts show high-pitched chatter marks along the finished vertical surfaces."` | Ext: Symptom | Tool stickout / runout, Page 5 | | [ ] Pass<br>[ ] Fail | |
-| 11 | `"The hydraulic press main pump is making a loud cavitation whining sound."` | Ext: Symptom | Suction strainer / cold oil, Page 6 | | [ ] Pass<br>[ ] Fail | |
-| 12 | `"E101"` | Ext: Ambiguous | Disambiguate: CB-4400 vs MX-7 | | [ ] Pass<br>[ ] Fail | |
-| 13 | `"The status LED is flashing 3 short blinks followed by a long pause, what does this pattern mean?"` | Ext: Undocumented | Honest refusal (not in manuals) | | [ ] Pass<br>[ ] Fail | |
->>>>>>> 6fd00c82866297828997c5e19876f612ac53373f

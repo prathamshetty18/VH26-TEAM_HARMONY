@@ -26,7 +26,8 @@ from src.embed_store import (
     upsert_chunks,
     delete_by_machine,
     get_distinct_machines,
-    get_manuals_summary
+    get_manuals_summary,
+    invalidate_machines_cache
 )
 
 app = FastAPI(
@@ -356,6 +357,7 @@ def delete_manual(machine: str):
     if chunks_deleted == 0 and not file_deleted:
         raise HTTPException(status_code=404, detail=f"Manual for machine '{machine}' not found.")
 
+    invalidate_machines_cache()
     return {
         "status": "success",
         "message": f"Manual for '{machine}' deleted.",
