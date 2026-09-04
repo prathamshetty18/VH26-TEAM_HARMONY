@@ -1,4 +1,5 @@
 import re
+from typing import Optional, List, Dict, Any
 
 DEFAULT_KNOWN_MACHINES = [
     "Conveyor Belt System",
@@ -13,7 +14,6 @@ MACHINE_ALIASES = {
     "cb4400": "Conveyor Belt System",
     "conveyor belt system": "Conveyor Belt System",
     "conveyor belt": "Conveyor Belt System",
-    "conveyor": "Conveyor Belt System",
 
     # CNC Milling Machine (MX-7 Precision)
     "mx-7 precision": "CNC Milling Machine",
@@ -25,8 +25,6 @@ MACHINE_ALIASES = {
     "cnc milled": "CNC Milling Machine",
     "milling machine": "CNC Milling Machine",
     "cnc mill": "CNC Milling Machine",
-    "milling": "CNC Milling Machine",
-    "cnc": "CNC Milling Machine",
 
     # Hydraulic Press (HP-2200)
     "hp-2200": "Hydraulic Press",
@@ -49,12 +47,19 @@ MACHINE_ALIASES = {
     "machine c": "RobotArm-300",
 }
 
-def parse_query(query: str, known_machines=None, known_error_codes=None):
+LEGACY_MAP = {
+    "CNC-100": "CNC Milling Machine",
+    "Press-200": "Hydraulic Press",
+    "RobotArm-300": "RobotArm-300"
+}
+
+def parse_query(query: str, known_machines=None, known_error_codes=None) -> Dict[str, Any]:
     """
-    Extracts machine name and error code from a query string.
+    Extracts machine name (or unrecognized machine) and error code from a query string.
     Returns:
     {
         "machine": str or None,
+        "unrecognized_machine": str or None,
         "error_code": str or None,
         "raw_query": str
     }
@@ -64,22 +69,73 @@ def parse_query(query: str, known_machines=None, known_error_codes=None):
 
     query_lower = query.lower()
 
-    # 1. Detect Machine Name
+    # 1. Detect Machine Name with strict whole-entity / exact boundary matching
     detected_machine = None
     
-    # First check aliases (longest first to avoid substring collision)
+    valid_targets = set(known_machines)
+    for k, v in LEGACY_MAP.items():
+        if v in valid_targets:
+            valid_targets.add(k)
+
     sorted_aliases = sorted(MACHINE_ALIASES.keys(), key=len, reverse=True)
     for alias in sorted_aliases:
-        if re.search(rf"\b{re.escape(alias)}\b", query_lower):
-            detected_machine = MACHINE_ALIASES[alias]
-            break
+        target = MACHINE_ALIASES[alias]
+        if target in valid_targets or target in known_machines:
+            pattern = rf"(?:^|[^a-zA-Z0-9_-]){re.escape(alias)}(?:$|[^a-zA-Z0-9_-])"
+            if re.search(pattern, query_lower):
+                detected_machine = target
+                break
 
-    # If no alias hit, check known machines
+    # If no alias hit, check known machines directly
     if not detected_machine:
-        for m in known_machines:
-            if re.search(rf"\b{re.escape(m.lower())}\b", query_lower):
+        sorted_known = sorted(known_machines, key=len, reverse=True)
+        for m in sorted_known:
+            pattern = rf"(?:^|[^a-zA-Z0-9_-]){re.escape(m.lower())}(?:$|[^a-zA-Z0-9_-])"
+            if re.search(pattern, query_lower):
                 detected_machine = m
                 break
+
+    unrecognized_machine = None
+    if not detected_machine:
+        # Check if a machine was mentioned in the query
+        prep_match = re.search(
+            r"\b(?:on|for|in|at|machine|model|unit)\s+([A-Za-z0-9_.\-]+(?:\s+[A-Za-z0-9_.\-]+)*)",
+            query,
+            re.IGNORECASE
+        )
+        candidate = None
+        if prep_match:
+            raw_cand = prep_match.group(1).strip()
+            raw_cand = re.sub(r"[?,.!;:\"']+$", "", raw_cand).strip()
+            raw_cand = re.sub(r"^(?:the|my|a|an)\s+", "", raw_cand, flags=re.IGNORECASE).strip()
+            if raw_cand:
+                candidate = raw_cand
+        else:
+            token_match = re.search(r"\b([A-Za-z0-9]+-[A-Za-z0-9-]+)\b", query)
+            if token_match:
+                candidate = token_match.group(1).strip()
+            else:
+                mach_match = re.search(r"\b(Machine\s+[A-Za-z0-9]+)\b", query, re.IGNORECASE)
+                if mach_match:
+                    candidate = mach_match.group(1).strip()
+
+        if candidate:
+            cand_lower = candidate.lower()
+            is_known = False
+            for m in known_machines:
+                if cand_lower == m.lower():
+                    is_known = True
+                    detected_machine = m
+                    break
+            if not is_known:
+                for alias, target in MACHINE_ALIASES.items():
+                    if cand_lower == alias.lower() and (target in valid_targets or target in known_machines):
+                        is_known = True
+                        detected_machine = target
+                        break
+
+            if not is_known:
+                unrecognized_machine = candidate
 
     # 2. Detect Error Code
     detected_error_code = None
@@ -89,6 +145,7 @@ def parse_query(query: str, known_machines=None, known_error_codes=None):
 
     return {
         "machine": detected_machine,
+        "unrecognized_machine": unrecognized_machine,
         "error_code": detected_error_code,
         "raw_query": query
     }
@@ -97,10 +154,13 @@ if __name__ == "__main__":
     test_queries = [
         "What does E101 mean on Machine A?",
         "What does E101 mean on CNC-100?",
+        "What does E101 mean on CNC-999?",
+        "What does E101 mean on CNC?",
         "the motor is making a weird noise",
         "E101 error on Press-200",
         "What does E101 mean?"
     ]
     for q in test_queries:
-        res = parse_query(q)
+        res = parse_query(q, known_machines=["Conveyor Belt System", "CNC Milling Machine", "Hydraulic Press"])
         print(f"Query: '{q}' -> {res}")
+

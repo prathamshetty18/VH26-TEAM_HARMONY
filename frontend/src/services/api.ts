@@ -1,4 +1,4 @@
-﻿import type { Message, SessionMemoryState, Machine, BackendConfig, Citation, AmbiguityOption } from '../types';
+import type { Message, SessionMemoryState, Machine, BackendConfig, Citation, AmbiguityOption } from '../types';
 import { INITIAL_MACHINES, processMockQuery, extractMachineAndError } from './mockEngine';
 
 const DEFAULT_CONFIG: BackendConfig = {
@@ -87,7 +87,7 @@ export class DiagnosticService {
             session_id: sessionState.sessionId,
             machine_filter: scopedMachine || undefined,
           }),
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(30000), // Increased from 8000ms because LLM calls can take 10-15s
         });
 
         if (res.ok) {
