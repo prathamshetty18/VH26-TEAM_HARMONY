@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import type { Message, Citation } from '../../types';
 import { CitationChip } from './CitationChip';
 import { Check, Copy, Wrench, AlertTriangle, ListOrdered, BookOpen } from 'lucide-react';
@@ -23,6 +23,12 @@ export const NormalAnswerCard: React.FC<NormalAnswerCardProps> = ({
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs space-y-5 max-w-3xl">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+        <span className="text-[10px] md:text-xs font-mono px-2.5 py-0.5 rounded border uppercase font-bold bg-emerald-50 text-emerald-800 border-emerald-200">
+          Manual-Sourced Diagnostic
+        </span>
+      </div>
+
       {/* 01. MEANING */}
       {message.meaning && (
         <div>
