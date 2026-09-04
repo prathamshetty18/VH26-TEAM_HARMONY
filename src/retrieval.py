@@ -17,13 +17,22 @@ def retrieve(parsed_query, k=5):
     filter_metadata = None
     if machine:
         filter_metadata = {"machine": machine}
+        fetch_k = max(k, 15) if error_code else k
     elif error_code:
         filter_metadata = {"error_code": error_code}
-        k = max(k, 10)
+        fetch_k = max(k, 10)
+    else:
+        fetch_k = k
 
-    retrieved_chunks = search(query=search_text, k=k, filter_metadata=filter_metadata)
+    retrieved_chunks = search(query=search_text, k=fetch_k, filter_metadata=filter_metadata)
 
-    return retrieved_chunks
+    # Re-rank: If error_code is known, bring chunks matching error_code to the front
+    if error_code:
+        matching_chunks = [c for c in retrieved_chunks if c.get("error_code") == error_code]
+        other_chunks = [c for c in retrieved_chunks if c.get("error_code") != error_code]
+        retrieved_chunks = matching_chunks + other_chunks
+
+    return retrieved_chunks[:k]
 
 if __name__ == "__main__":
     from src.query_understanding import parse_query
