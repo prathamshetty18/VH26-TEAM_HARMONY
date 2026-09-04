@@ -59,7 +59,15 @@ export const App: React.FC = () => {
 
   const [machines, setMachines] = useState<Machine[]>(INITIAL_MACHINES);
   const [scopedMachine, setScopedMachine] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 'welcome_msg',
+      role: 'assistant',
+      cardType: 'normal',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      meaning: 'Manuals indexed. Ask about an error code or symptom.',
+    },
+  ]);
   const [events, setEvents] = useState<EventTrailItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
@@ -75,10 +83,13 @@ export const App: React.FC = () => {
 
   // Manuals state
   const [manualsData, setManualsData] = useState<ManualItem[]>([]);
-  const [activeManual, setActiveManual] = useState<string>('cncmx7.txt');
+  const [activeManual, setActiveManual] = useState<string>('multilingual');
   const [readerPage, setReaderPage] = useState<number>(1);
   const [manualViewMode, setManualViewMode] = useState<'pdf' | 'text'>('pdf');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
+  const [manualLang, setManualLang] = useState<'en' | 'zh' | 'ja' | 'de'>('en');
+  const [multilingualManual, setMultilingualManual] = useState<any>(null);
+  const [systemStatus, setSystemStatus] = useState<any>(null);
 
   // Sync session state to sessionStorage
   useEffect(() => {
@@ -97,7 +108,7 @@ export const App: React.FC = () => {
     }
   };
 
-  // Load backend health, machines, benchmarks, and manuals
+  // Load backend health, machines, benchmarks, manuals, and system status
   useEffect(() => {
     const loadData = async () => {
       const isHealthy = await diagnosticService.checkBackendHealth();
@@ -116,6 +127,16 @@ export const App: React.FC = () => {
       }
 
       await refreshManuals();
+
+      try {
+        const sysRes = await fetch(`${backendConfig.baseUrl}/api/system-status`);
+        if (sysRes.ok) {
+          const sData = await sysRes.json();
+          setSystemStatus(sData);
+        }
+      } catch (err) {
+        console.warn('Could not load system status', err);
+      }
     };
     loadData();
   }, [backendConfig]);
@@ -138,6 +159,22 @@ export const App: React.FC = () => {
     setActiveTab('manuals');
     document.getElementById('command-center')?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Load multilingual manual on language change
+  useEffect(() => {
+    const loadMultilingualManual = async () => {
+      try {
+        const res = await fetch(`${backendConfig.baseUrl}/api/manuals/multilingual?lang=${manualLang}`);
+        if (res.ok) {
+          const json = await res.json();
+          setMultilingualManual(json.manual);
+        }
+      } catch (err) {
+        console.warn('Could not load multilingual manual', err);
+      }
+    };
+    loadMultilingualManual();
+  }, [backendConfig, manualLang]);
 
   // Handle machine filter selection
   const handleSelectMachine = (machineId: string | null) => {
@@ -204,10 +241,10 @@ export const App: React.FC = () => {
     }
   };
 
-  // Handle ambiguity option selection
+  // Handle ambiguity option selection (sends machine name carrying session context)
   const handleSelectAmbiguityOption = (option: AmbiguityOption) => {
     handleSelectMachine(option.machine);
-    const query = option.queryHint || option.machine;
+    const query = option.machine || option.queryHint || '';
     handleSendMessage(query);
   };
 
@@ -293,8 +330,8 @@ export const App: React.FC = () => {
 
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-50/80 border border-indigo-200/60 text-indigo-700 text-xs font-semibold">
-            <span className={`w-2 h-2 rounded-full ${isLiveActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-            <span>{scopedMachine ? `Scope: ${scopedMachine}` : 'Scope: All Fleet'}</span>
+            <span className={`w-2 h-2 rounded-full ${isLiveActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+            <span>{isLiveActive ? 'Live API' : 'Simulated'} • {scopedMachine ? `Scope: ${scopedMachine}` : 'All Fleet'}</span>
           </div>
 
           <button 
@@ -406,7 +443,7 @@ export const App: React.FC = () => {
 
                 <div>
                   <div className="flex justify-between text-xs font-semibold text-slate-800 mb-1">
-                    <span>LOTO CP-1 & Interlocks</span>
+                    <span>Safety Scope & Interlocks</span>
                     <span className="text-cyan-600">100%</span>
                   </div>
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -431,15 +468,15 @@ export const App: React.FC = () => {
               <div className="bg-white/95 backdrop-blur-md border border-white/80 rounded-2xl p-4 shadow-xl shadow-indigo-500/5 hover:-translate-y-1 transition-transform text-xs">
                 <div className="font-bold text-slate-900 mb-2">Active Fleet Status</div>
                 <div className="flex justify-between py-1 border-b border-slate-50">
-                  <span className="text-slate-600">CB-4400 Conveyor</span>
+                  <span className="text-slate-600">CNC-100 Machining</span>
                   <span className="text-emerald-600 font-semibold">Nominal</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-50">
-                  <span className="text-slate-600">MX-7 Precision</span>
+                  <span className="text-slate-600">Press-200 Hydraulic</span>
                   <span className="text-emerald-600 font-semibold">Nominal</span>
                 </div>
                 <div className="flex justify-between py-1">
-                  <span className="text-slate-600">HP-2200 Press</span>
+                  <span className="text-slate-600">RobotArm-300 Articulated</span>
                   <span className="text-emerald-600 font-semibold">Nominal</span>
                 </div>
               </div>
@@ -499,7 +536,7 @@ export const App: React.FC = () => {
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">Streamline your work</h3>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Efficiency starts here. Enter any error code or symptom to retrieve verified manufacturer corrective steps and exact page citations.
+                Efficiency starts here. Enter any error code or symptom to retrieve manual-sourced corrective steps and exact page citations.
               </p>
             </div>
 
@@ -715,11 +752,11 @@ export const App: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <h3 className="text-lg font-bold text-slate-900">Technical Manuals & PDF Reader</h3>
                     <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold">
-                      {manualsData.length} Factory Documents
+                      {manualsData.length + 1} Factory Documents
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Read original manufacturer PDF manuals, inspect grounded vector chunks, and upload new equipment documentation.
+                    Read original manufacturer PDF manuals, inspect multilingual documentation, and upload new equipment manuals.
                   </p>
                 </div>
 
@@ -768,6 +805,25 @@ export const App: React.FC = () => {
                   <div className="text-xs font-bold uppercase tracking-wider text-slate-400 px-1">
                     Select Documentation
                   </div>
+
+                  {/* Multilingual Flagship Manual */}
+                  <button
+                    onClick={() => {
+                      setActiveManual('multilingual');
+                    }}
+                    className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                      activeManual === 'multilingual'
+                        ? 'border-indigo-600 bg-indigo-50/60 shadow-xs ring-1 ring-indigo-500/20'
+                        : 'border-slate-200 hover:border-slate-300 bg-slate-50/40 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg">🌐</span>
+                      <div className="font-bold text-sm text-indigo-950">Multilingual Instruction Manual</div>
+                    </div>
+                    <div className="text-xs text-indigo-600 mt-1 font-medium">Model MX-7 • English | 中文 | 日本語 | Deutsch</div>
+                  </button>
+
                   {manualsData.map((m) => {
                     const isSelected = activeManual === m.filename;
                     return (
@@ -805,43 +861,339 @@ export const App: React.FC = () => {
 
                 {/* Main Viewer Area */}
                 <div className="lg:col-span-8">
-                  {(() => {
-                    const selectedManual = manualsData.find((m) => m.filename === activeManual) || manualsData[0];
-                    if (!selectedManual) {
-                      return (
-                        <div className="p-12 text-center text-slate-400 border border-slate-200 rounded-2xl">
-                          No manual selected.
+                  {activeManual === 'multilingual' && multilingualManual?.sections ? (
+                    <div className="space-y-6">
+                      {/* Top Language Selector Bar */}
+                    <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                          <span>🌐</span>
+                          <span>{multilingualManual.machine_name}</span>
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">Interactive Instruction & Maintenance Manual</p>
+                      </div>
+                      <div className="flex items-center bg-slate-100 p-1 rounded-xl gap-1 text-xs">
+                        <button
+                          onClick={() => setManualLang('en')}
+                          className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                            manualLang === 'en' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          English
+                        </button>
+                        <button
+                          onClick={() => setManualLang('zh')}
+                          className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                            manualLang === 'zh' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          中文
+                        </button>
+                        <button
+                          onClick={() => setManualLang('ja')}
+                          className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                            manualLang === 'ja' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          日本語
+                        </button>
+                        <button
+                          onClick={() => setManualLang('de')}
+                          className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                            manualLang === 'de' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Deutsch
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Section 1: Overview */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>📘</span>
+                          <span>{multilingualManual.sections.overview.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">Section 1</span>
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed">{multilingualManual.sections.overview.machine_purpose}</p>
+                      <div>
+                        <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Main Components</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {multilingualManual.sections.overview.main_components?.map((c: string, i: number) => (
+                            <span key={i} className="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg font-medium">{c}</span>
+                          ))}
                         </div>
-                      );
-                    }
+                      </div>
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs text-slate-700 leading-relaxed">
+                        <strong className="text-slate-900">Operating Principle: </strong>{multilingualManual.sections.overview.basic_operating_principle}
+                      </div>
+                    </div>
 
-                    if (manualViewMode === 'pdf') {
-                      return (
-                        <PdfViewer
-                          manual={selectedManual}
-                          initialPage={readerPage}
-                          baseUrl={backendConfig.baseUrl}
-                          onSwitchToText={() => setManualViewMode('text')}
-                        />
-                      );
-                    }
+                    {/* Section 2: Safety Instructions */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>🛡️</span>
+                          <span>{multilingualManual.sections.safety.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full">Safety Mandates</span>
+                      </div>
+                      <div className="bg-rose-50/70 border-l-4 border-rose-500 p-3 rounded-r-xl space-y-1 text-xs text-rose-900">
+                        <div className="font-bold uppercase tracking-wider text-[10px]">Hazard Warnings</div>
+                        <ul className="list-disc list-inside space-y-0.5">
+                          {multilingualManual.sections.safety.warnings?.map((w: string, i: number) => (
+                            <li key={i}>{w}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="bg-amber-50/70 border-l-4 border-amber-500 p-3 rounded-r-xl space-y-1 text-xs text-amber-900">
+                        <div className="font-bold uppercase tracking-wider text-[10px]">Electrical Safety (400V 3-Phase)</div>
+                        <ul className="list-disc list-inside space-y-0.5">
+                          {multilingualManual.sections.safety.electrical_safety?.map((es: string, i: number) => (
+                            <li key={i}>{es}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Required PPE</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {multilingualManual.sections.safety.required_protective_equipment?.map((p: string, i: number) => (
+                            <div key={i} className="text-xs bg-slate-50 border border-slate-200 p-2 rounded-lg flex items-center space-x-1.5 text-slate-700">
+                              <span className="text-emerald-600 font-bold">✔</span>
+                              <span>{p}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
 
+                    {/* Section 3: Machine Components */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>⚙️</span>
+                          <span>{multilingualManual.sections.components.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">Components</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {multilingualManual.sections.components.components_list?.map((c: any, i: number) => (
+                          <div key={i} className="bg-slate-50 border border-slate-200 p-3 rounded-xl space-y-1 text-xs">
+                            <div className="font-bold text-slate-900">{c.name}</div>
+                            <div className="text-slate-600"><span className="font-semibold text-slate-700">Function:</span> {c.function}</div>
+                            <div className="text-emerald-700"><span className="font-semibold text-emerald-800">Normal:</span> {c.normal_condition}</div>
+                            <div className="text-rose-700"><span className="font-semibold text-rose-800">Common Problems:</span> {c.common_problems}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Section 4: Operating Instructions */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>🕹️</span>
+                          <span>{multilingualManual.sections.operating.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">SOP Steps</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="font-bold text-xs text-slate-900">Starting the Machine</div>
+                        <div className="space-y-1 text-xs">
+                          {multilingualManual.sections.operating.steps?.starting?.map((st: string, idx: number) => (
+                            <div key={idx} className="flex items-start space-x-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                              <span className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{idx + 1}</span>
+                              <span className="text-slate-700">{st}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1">
+                          <div className="font-bold text-slate-900">Stopping the Machine</div>
+                          <ul className="list-disc list-inside text-slate-600 space-y-0.5">
+                            {multilingualManual.sections.operating.steps?.stopping?.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
+                          </ul>
+                        </div>
+                        <div className="bg-rose-50/50 p-3 rounded-xl border border-rose-200 text-xs space-y-1">
+                          <div className="font-bold text-rose-900">Emergency Shutdown</div>
+                          <ul className="list-disc list-inside text-rose-800 space-y-0.5">
+                            {multilingualManual.sections.operating.steps?.emergency_shutdown?.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 5: Error and Fault Instructions */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>⚠️</span>
+                          <span>{multilingualManual.sections.error_fault.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">Fault Guides</span>
+                      </div>
+                      <div className="space-y-2.5">
+                        {multilingualManual.sections.error_fault.items?.map((item: any, i: number) => (
+                          <div key={i} className="border border-slate-200 rounded-xl p-3.5 bg-slate-50/60 border-l-4 border-l-amber-500 space-y-1.5 text-xs">
+                            <div className="font-bold text-slate-900 text-sm">Problem: {item.problem}</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-white p-2.5 rounded-lg border border-slate-100">
+                              <div>
+                                <span className="block text-[10px] uppercase font-bold text-slate-400">Possible Cause</span>
+                                <span className="text-slate-700">{item.possible_cause}</span>
+                              </div>
+                              <div>
+                                <span className="block text-[10px] uppercase font-bold text-slate-400">What to Check</span>
+                                <span className="text-slate-700">{item.what_to_check}</span>
+                              </div>
+                              <div>
+                                <span className="block text-[10px] uppercase font-bold text-slate-400">Recommended Action</span>
+                                <span className="text-emerald-700 font-medium">{item.recommended_action}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Section 6: Maintenance Instructions */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>🔧</span>
+                          <span>{multilingualManual.sections.maintenance.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">PM Schedule</span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                          <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                            <tr>
+                              <th className="p-2.5">Interval</th>
+                              <th className="p-2.5">Task & Scope</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {multilingualManual.sections.maintenance.maintenance_intervals?.map((mi: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-slate-50/60">
+                                <td className="p-2.5 font-bold text-indigo-700">{mi.interval}</td>
+                                <td className="p-2.5 text-slate-600">{mi.task}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Section 7: Troubleshooting Table */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>🔍</span>
+                          <span>{multilingualManual.sections.troubleshooting.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">9 Hardware Faults</span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                          <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                            <tr>
+                              <th className="p-2.5 w-1/4">Hardware Fault</th>
+                              <th className="p-2.5 w-1/3">Possible Cause</th>
+                              <th className="p-2.5">Solution & Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {multilingualManual.sections.troubleshooting.table?.map((row: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-slate-50/80">
+                                <td className="p-2.5 font-bold text-slate-900">{row.error}</td>
+                                <td className="p-2.5 text-slate-600">{row.possible_cause}</td>
+                                <td className="p-2.5 text-emerald-700 font-medium">{row.solution}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Section 8: Emergency Procedures */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>🚨</span>
+                          <span>{multilingualManual.sections.emergency_procedures.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full">Emergency Protocols</span>
+                      </div>
+                      <div className="space-y-2">
+                        {multilingualManual.sections.emergency_procedures.procedures?.map((p: any, i: number) => (
+                          <div key={i} className="bg-rose-50/60 border border-rose-200 rounded-xl p-3 text-xs space-y-1">
+                            <div className="font-bold text-rose-950">{p.situation}</div>
+                            <div className="text-slate-700 leading-relaxed">{p.action}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Section 9: Technical Specifications */}
+                    <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>📊</span>
+                          <span>{multilingualManual.sections.specifications.title}</span>
+                        </h4>
+                        <span className="text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">Preserved Units</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                        {multilingualManual.sections.specifications.specs?.map((spec: any, idx: number) => (
+                          <div key={idx} className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs space-y-0.5">
+                            <div className="text-[10px] uppercase font-bold text-slate-400">{spec.parameter}</div>
+                            <div className="font-mono font-bold text-slate-900">{spec.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                ) : (() => {
+                  const selectedManual = manualsData.find((m) => m.filename === activeManual) || manualsData[0];
+                  if (!selectedManual) {
                     return (
-                      <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 max-h-[700px] overflow-y-auto shadow-inner">
-                        <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 text-xs text-slate-400">
-                          <span className="font-mono">{selectedManual.filename}</span>
-                          <span>{selectedManual.chunkCount} parsed sections</span>
-                        </div>
-                        <pre className="text-xs font-mono text-slate-200 whitespace-pre-wrap leading-relaxed selection:bg-indigo-500 selection:text-white">
-                          {selectedManual.raw_text || 'No raw text available.'}
-                        </pre>
+                      <div className="p-12 text-center text-slate-400 border border-slate-200 rounded-2xl">
+                        No manual selected.
                       </div>
                     );
-                  })()}
-                </div>
+                  }
+
+                  if (manualViewMode === 'pdf') {
+                    return (
+                      <PdfViewer
+                        manual={selectedManual}
+                        initialPage={readerPage}
+                        baseUrl={backendConfig.baseUrl}
+                        onSwitchToText={() => setManualViewMode('text')}
+                      />
+                    );
+                  }
+
+                  return (
+                    <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 max-h-[700px] overflow-y-auto shadow-inner">
+                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 text-xs text-slate-400">
+                        <span className="font-mono">{selectedManual.filename}</span>
+                        <span>{selectedManual.chunkCount} parsed sections</span>
+                      </div>
+                      <pre className="text-xs font-mono text-slate-200 whitespace-pre-wrap leading-relaxed selection:bg-indigo-500 selection:text-white">
+                        {selectedManual.raw_text || 'No raw text available.'}
+                      </pre>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
           {/* TAB 4: VECTOR TELEMETRY */}
           {activeTab === 'telemetry' && (
@@ -854,19 +1206,19 @@ export const App: React.FC = () => {
                 <div className="space-y-3 text-xs">
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Collection:</span>
-                    <span className="font-mono font-bold">manuals_rag</span>
+                    <span className="font-mono font-bold">{systemStatus?.collection || 'manuals_rag'}</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Total Chunks:</span>
-                    <span className="font-mono font-bold text-emerald-600">60 Chunks</span>
+                    <span className="font-mono font-bold text-emerald-600">{systemStatus?.chunk_count ? `${systemStatus.chunk_count} Chunks` : '77 Chunks'}</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Stale Placeholders:</span>
-                    <span className="font-mono font-bold text-emerald-600">0 (Purged)</span>
+                    <span className="font-mono font-bold text-emerald-600">{systemStatus?.stale_entries ?? 0} (Purged)</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-slate-500">Distance Metric:</span>
-                    <span className="font-mono font-bold">Cosine Similarity</span>
+                    <span className="text-slate-500">Vector Engine:</span>
+                    <span className="font-mono font-bold">{systemStatus?.status || 'Active (Persistent)'}</span>
                   </div>
                 </div>
               </div>
@@ -886,6 +1238,10 @@ export const App: React.FC = () => {
                     <span className="font-bold text-emerald-600">Dual-Layer</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
+                    <span className="text-slate-500">Distance Metric:</span>
+                    <span className="font-mono font-bold">Cosine Similarity</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Top-K Chunks:</span>
                     <span className="font-mono font-bold">K=5</span>
                   </div>
@@ -903,16 +1259,16 @@ export const App: React.FC = () => {
                 </h4>
                 <div className="space-y-3 text-xs">
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-slate-500">CB-4400 LOTO:</span>
-                    <span className="font-bold">Panel CP-1</span>
+                    <span className="text-slate-500">CNC-100 Motor Thermal:</span>
+                    <span className="font-bold">Monitored (E101)</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-slate-500">MX-7 Chiller:</span>
-                    <span className="font-bold">2.2 - 2.8 bar</span>
+                    <span className="text-slate-500">Press-200 E-Stop:</span>
+                    <span className="font-bold">Interlock (E202)</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-slate-500">HP-2200 Max Temp:</span>
-                    <span className="font-bold">65°C via TT-02</span>
+                    <span className="text-slate-500">RobotArm-300 Joint Brake:</span>
+                    <span className="font-bold">Monitored (R101)</span>
                   </div>
                 </div>
               </div>

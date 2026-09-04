@@ -211,7 +211,18 @@ export class DiagnosticService {
             causes: causes.length > 0 ? causes : undefined,
             steps: steps.length > 0 ? steps : undefined,
             citations: citations.length > 0 ? citations : undefined,
+            fault: data.fault,
+            component: data.component,
+            confidence_score: data.confidence_score,
+            confidence_level: data.confidence_level,
+            confidence_percentage: data.confidence_percentage,
+            cause: data.cause,
+            recommendation: data.recommendation,
+            possible_faults: data.possible_faults,
+            evidence: data.evidence,
+            disclaimer: data.disclaimer,
           };
+
 
           const extracted = extractMachineAndError(userQuery, sessionState);
           const topMachine = extracted.machine || scopedMachine || (citations[0] ? (data.sources[0]?.machine) : null) || sessionState.lastMachine;

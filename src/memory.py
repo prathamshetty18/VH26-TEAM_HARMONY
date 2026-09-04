@@ -27,29 +27,47 @@ class SessionMemory:
 
     def resolve_query_with_memory(self, session_id, query):
         """
-        If query contains vague pronouns e.g. "that", "it", "this" and lacks machine/error_code,
-        inject stored memory context.
+        Seamlessly connects multi-turn dialogue with active session context:
+        1. Context Continuation: Vague follow-ups or queries lacking machine/error inherit active session state.
+        2. Machine Switch: A user specifying a machine while an error code is active inherits the error code.
+        3. Error Switch: A user specifying an error code while a machine is active inherits the machine.
         """
         sess = self.get_session(session_id)
         last_m = sess.get("last_machine")
         last_e = sess.get("last_error_code")
 
-        vague_terms = ["that", "it", "this", "what if", "how about"]
-        query_lower = query.lower()
-        
-        is_vague = any(term in query_lower for term in vague_terms)
+        # If session has no prior context, nothing to augment
+        if not last_m and not last_e:
+            return query
 
-        augmented_query = query
-        if is_vague:
-            injections = []
+        from src.query_understanding import parse_query
+        pq = parse_query(query)
+        has_new_machine = pq.get("machine") is not None
+        has_new_error = pq.get("error_code") is not None
+
+        query_lower = query.lower().strip()
+        injections = []
+
+        # Case 1: Machine specified, error code missing -> inherit error code
+        if has_new_machine and not has_new_error and last_e:
+            if last_e.lower() not in query_lower:
+                injections.append(f"error code {last_e}")
+
+        # Case 2: Error specified, machine missing -> inherit machine
+        elif has_new_error and not has_new_machine and last_m:
+            if last_m.lower() not in query_lower:
+                injections.append(f"machine {last_m}")
+
+        # Case 3: Neither machine nor error specified in follow-up -> inherit both
+        elif not has_new_machine and not has_new_error:
             if last_m and last_m.lower() not in query_lower:
                 injections.append(f"machine {last_m}")
             if last_e and last_e.lower() not in query_lower:
                 injections.append(f"error code {last_e}")
 
-            if injections:
-                augmented_query = f"{query} (regarding {' '.join(injections)})"
+        if injections:
+            return f"{query} (regarding {' '.join(injections)})"
 
-        return augmented_query
+        return query
 
 memory_store = SessionMemory()

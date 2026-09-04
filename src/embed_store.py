@@ -199,6 +199,17 @@ def search(query: str, k: int = 5, filter_metadata: Optional[Dict[str, Any]] = N
 
         for doc, meta, dist in zip(docs, metas, distances):
             sim_score = max(0.0, 1.0 - dist)
+            page_val = None
+            page_raw = meta.get("page")
+            if page_raw is not None and str(page_raw).strip():
+                try:
+                    page_val = int(str(page_raw).strip())
+                except ValueError:
+                    import re
+                    m = re.search(r"\d+", str(page_raw))
+                    if m:
+                        page_val = int(m.group(0))
+
             formatted_results.append({
                 "text": doc,
                 "machine": meta.get("machine"),

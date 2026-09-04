@@ -47,8 +47,8 @@ def parse_manual_text(content: str, filename: str = "manual.txt") -> List[Dict[s
         if err_match:
             current_error_code = err_match.group(1).strip()
         else:
-            # Regex fallback for error codes in section title e.g. E101, H205, or SYM-...
-            title_err_match = re.search(r"\b([EH]\d{3}|SYM-[A-Z0-9-]+)\b", section_title)
+            # Regex fallback for error codes in section title e.g. E101, H205, A032, or SYM-...
+            title_err_match = re.search(r"\b([A-Z]\d{3,4}|SYM-[A-Z0-9-]+)\b", section_title)
             if title_err_match:
                 current_error_code = title_err_match.group(1).strip()
 

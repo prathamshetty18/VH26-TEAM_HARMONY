@@ -2,12 +2,35 @@ import re
 from typing import Optional, List, Dict, Any
 
 DEFAULT_KNOWN_MACHINES = [
+    "CNC-100",
+    "Press-200",
+    "RobotArm-300",
     "Conveyor Belt System",
     "CNC Milling Machine",
     "Hydraulic Press"
 ]
 
 MACHINE_ALIASES = {
+    # CNC-100
+    "cnc-100": "CNC-100",
+    "cnc 100": "CNC-100",
+    "cnc100": "CNC-100",
+
+    # Press-200
+    "press-200": "Press-200",
+    "press 200": "Press-200",
+    "press200": "Press-200",
+
+    # RobotArm-300
+    "robot-arm-300": "RobotArm-300",
+    "robot arm 300": "RobotArm-300",
+    "robotarm-300": "RobotArm-300",
+    "robotarm 300": "RobotArm-300",
+    "robotarm300": "RobotArm-300",
+    "r300": "RobotArm-300",
+    "r-300": "RobotArm-300",
+    "r 300": "RobotArm-300",
+
     # Conveyor Belt System (CB-4400)
     "cb-4400": "Conveyor Belt System",
     "cb 4400": "Conveyor Belt System",
@@ -30,6 +53,7 @@ MACHINE_ALIASES = {
     "hp-2200": "Hydraulic Press",
     "hp 2200": "Hydraulic Press",
     "hp2200": "Hydraulic Press",
+    "hydraulic press 2200": "Hydraulic Press",
     "hydraulic press": "Hydraulic Press",
 
     # Legacy Test Machines (for test suite backwards compatibility)
@@ -137,11 +161,16 @@ def parse_query(query: str, known_machines=None, known_error_codes=None) -> Dict
             if not is_known:
                 unrecognized_machine = candidate
 
-    # 2. Detect Error Code
+    # 2. Detect Error Code (Supports alphanumeric error codes like E101, E-101, H205, A032, and SYM- series)
+    # Exclude machine model numbers (e.g. X200, P400, R300, HP2200, CB4400) from being treated as error codes.
     detected_error_code = None
-    err_match = re.search(r"\b([A-Z]\d{3,4}|SYM-[A-Z0-9-]+)\b", query, re.IGNORECASE)
-    if err_match:
-        detected_error_code = err_match.group(1).upper()
+    for match in re.finditer(r"\b([A-Z]-?\d{3,4}|SYM-[A-Z0-9-]+)\b", query, re.IGNORECASE):
+        raw_code = match.group(1).upper()
+        norm_code = raw_code if raw_code.startswith("SYM-") else raw_code.replace("-", "")
+        if raw_code.lower() in MACHINE_ALIASES or norm_code.lower() in MACHINE_ALIASES:
+            continue
+        detected_error_code = norm_code
+        break
 
     return {
         "machine": detected_machine,
