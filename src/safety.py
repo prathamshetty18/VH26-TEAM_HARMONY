@@ -18,7 +18,7 @@ MACHINE_PATTERNS = {
 }
 
 def _extract_content_tokens(text):
-    """Extract meaningful non-stopwords and non-machine tokens from query."""
+    """Extract non-stopword, non-machine tokens from text."""
     raw_tokens = re.findall(r"\b[a-zA-Z0-9_-]+\b", text.lower())
     tokens = []
     for t in raw_tokens:
@@ -29,14 +29,18 @@ def _extract_content_tokens(text):
     return set(tokens)
 
 
-def is_sufficient(retrieved_chunks, query="", threshold=0.40):
+def is_sufficient(retrieved_chunks, query="", threshold=0.35):
     """
-    Evaluates whether the retrieved chunks provide sufficient information to answer the query.
+    Evaluates whether retrieved chunks provide sufficient information to answer the query.
 
-    Checks:
-    1. Score threshold: top chunk similarity score must be >= threshold.
-    2. Error code presence: if query mentions an error code (e.g. E101), that code MUST exist in chunks.
-    3. Content overlap: at least 50% of the query's non-machine content keywords must appear in retrieved chunks.
+    Three-Gate Architecture:
+    1. Score Gate: top chunk similarity score must be >= threshold (0.35).
+    2. Error Code Gate: if the query asks for an explicit error code (e.g. E101, E999), 
+       that code MUST exist in the retrieved manual chunks.
+    3. Hybrid Semantic / Borderline Overlap Gate:
+       - High similarity (>= 0.50): trusted as a valid semantic match/paraphrase even without literal word overlap.
+       - Borderline similarity (0.35 <= score < 0.50): requires at least 40% query content token overlap 
+         in retrieved chunks to filter out incidental single-keyword matches (e.g. spindle bearing).
 
     Returns (is_sufficient_bool, result_or_refusal_message).
     """
@@ -46,7 +50,7 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.40):
     top_chunk = retrieved_chunks[0]
     score = top_chunk.get("score", 0.0)
 
-    # Gate 1: Similarity score check
+    # Gate 1: Baseline similarity score threshold
     if score < threshold:
         return False, REFUSAL_MESSAGE
 
@@ -57,7 +61,7 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.40):
     if not query_tokens:
         return True, retrieved_chunks
 
-    # Combine text of top retrieved chunks
+    # Extract all tokens from top 3 retrieved chunks
     combined_chunk_text = " ".join([c.get("text", "").lower() for c in retrieved_chunks[:3]])
     chunk_tokens = set(re.findall(r"\b[a-zA-Z0-9_-]+\b", combined_chunk_text))
     all_chunk_tokens = set()
@@ -67,18 +71,21 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.40):
             if st:
                 all_chunk_tokens.add(st)
 
-    # Gate 2: Error code verification
+    # Gate 2: Explicit error code verification
     error_codes_in_query = [t for t in query_tokens if re.match(r"^e\d{3}$", t)]
     for ec in error_codes_in_query:
         if ec not in all_chunk_tokens:
             return False, REFUSAL_MESSAGE
 
-    # Gate 3: Content token overlap requirement (>= 50%)
-    non_ec_query_tokens = [t for t in query_tokens if not re.match(r"^e\d{3}$", t)]
-    if non_ec_query_tokens:
-        matching = [t for t in non_ec_query_tokens if t in all_chunk_tokens]
-        match_ratio = len(matching) / len(non_ec_query_tokens)
-        if match_ratio < 0.5:
-            return False, REFUSAL_MESSAGE
+    # Gate 3: Borderline score keyword overlap check
+    # High semantic similarity (>= 0.50) passes automatically (supports semantic paraphrasing).
+    # Borderline similarity (< 0.50) requires at least 40% query token match to prevent keyword drift.
+    if score < 0.50:
+        non_ec_query_tokens = [t for t in query_tokens if not re.match(r"^e\d{3}$", t)]
+        if non_ec_query_tokens:
+            matching = [t for t in non_ec_query_tokens if t in all_chunk_tokens]
+            match_ratio = len(matching) / len(non_ec_query_tokens)
+            if match_ratio < 0.40:
+                return False, REFUSAL_MESSAGE
 
     return True, retrieved_chunks
