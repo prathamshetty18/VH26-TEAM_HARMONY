@@ -4,7 +4,7 @@
     "category": "Exact Code",
     "name": "E101 on CNC-100",
     "passed": true,
-    "latency_ms": 1022.1,
+    "latency_ms": 669.1,
     "failure_reasons": [],
     "response": {
       "answer": "1. Error meaning:\nExcessive motor temperature.\n\n2. Probable causes:\n- Cooling fan failure\n- Blocked ventilation\n- Excessive spindle load\n---\n\n3. Step-by-step corrective action:\n1. Switch off the CNC-100 machine immediately.\n2. Inspect the rear cooling fan for debris.\n3. Clean all ventilation openings.\n4. Allow spindle motor to cool down for 20 minutes before restarting.\n\n4. Sources:\nVerified manufacturer manuals.",
@@ -59,7 +59,7 @@
     "category": "Exact Code",
     "name": "E101 on Press-200",
     "passed": true,
-    "latency_ms": 709.0,
+    "latency_ms": 694.0,
     "failure_reasons": [],
     "response": {
       "answer": "1. Error meaning:\nHydraulic oil pressure low.\n\n2. Probable causes:\n- Hydraulic fluid leak\n- Faulty hydraulic pump valve\n- Worn pressure seals\n---\n\n3. Step-by-step corrective action:\n1. Shut down Press-200 hydraulic unit.\n2. Check hydraulic fluid level gauge on main tank.\n3. Inspect main pressure line hoses for visible leaks.\n4. Replace seals or top up ISO VG 46 hydraulic oil.\n\n4. Sources:\nVerified manufacturer manuals.",
@@ -114,7 +114,7 @@
     "category": "Exact Code",
     "name": "E101 on CB-4400 Conveyor",
     "passed": true,
-    "latency_ms": 762.0,
+    "latency_ms": 1014.9,
     "failure_reasons": [],
     "response": {
       "answer": "1. Error meaning:\nThe variable frequency drive (VFD) inverter detects that motor phase current draw has exceeded 125% of the continuous full-load amp (FLA) rating for more than 3.5 consecutive seconds, initiating an emergency deceleration stop to protect motor windings from thermal burnout.\n\n2. Probable causes:\n- Excessive conveyor belt tension creating abnormal mechanical resistance on the head drive drum\n- Mechanical seizure or bearing galling in one or more bed-carrying or return idler rollers\n- Foreign debris or broken packaging trapped between the slider bed and belt underside\n- Drive gearbox mechanical binding or lack of lubrication\n- Sudden product overloading beyond rated capacity\n---\n\n3. Step-by-step corrective action:\n1. Lock out and tag out (LOTO) the main electrical disconnect switch at control panel CP-1.\n2. Manually inspect the entire length of the conveyor carrying deck and return run for foreign debris, jammed wood pallets, or plastic banding wedged under the belt.\n3. Loosen the dual take-up tension jack screws on the tail pulley and measure belt deflection tension using a sonic tensiometer (correct deflection is 25 mm under a 15 kg test point).\n4. Rotate the drive drum and adjacent snub rollers by hand to ensure free, unbinding rotation. Replace any idler rollers exhibiting stiff rotation, bearing play, or metal grinding.\n5. Check the VFD drive parameters via the digital keypad to verify parameter P-042 (motor thermal overload curve) matches motor nameplate amperage.\n6. Remove LOTO, reset the fault on the VFD interface keypad, and conduct an unloaded test run for 5 minutes while monitoring line current on the panel ammeter.\n\n4. Sources:\nVerified manufacturer manuals.",
@@ -169,7 +169,7 @@
     "category": "Exact Code",
     "name": "H205 on HP-2200 Hydraulic Press",
     "passed": true,
-    "latency_ms": 718.3,
+    "latency_ms": 727.0,
     "failure_reasons": [],
     "response": {
       "answer": "1. Error meaning:\nThe resistance temperature transmitter TT-02 immersed in the main 1,500-liter oil reservoir registers a bulk hydraulic fluid temperature exceeding 65\u00b0C, triggering an automatic pump unload and cycle shutdown to prevent thermal breakdown of fluid anti-wear additives and seal failure.\n\n2. Probable causes:\n- Heavily fouled, scaled, or clogged tube bundle in the external shell-and-tube water-cooled heat exchanger\n- Plant cooling water supply shut off or water flow below 60 liters per minute\n- Internal high-pressure relief valve bypassing continuously at full pressure setting due to an electrical sequencing fault\n- Degraded ISO VG 46 hydraulic fluid undergoing severe shear thinning\n---\n\n3. Step-by-step corrective action:\n1. Keep the hydraulic circulation auxiliary pump running in low-pressure idle mode to circulate fluid through the cooling circuit; do not actuate main pressing cylinders.\n2. Inspect the plant cooling tower water supply valve; verify cooling water inlet pressure is at least 3.5 bar and verify the supply water temperature is below 22\u00b0C.\n3. Inspect the cooling water duplex basket strainer; switch over to the clean basket, remove the clogged strainer basket, and wash out calcium scale, silt, and algae.\n4. Use a handheld FLIR infrared thermal camera to scan the main valve manifold block; identify any relief valves or bypass lines showing localized hot spots exceeding 75\u00b0C, indicating an internal continuous fluid bypass leak.\n5. Extract a fluid sample from reservoir sample tap ST-1 and evaluate fluid clarity and oxidation level; if fluid is darkened, smells acrid, or shows kinematic viscosity below 38 cSt at 40\u00b0C, perform a full oil change with fresh ISO VG 46 mineral hydraulic fluid.\n\n4. Sources:\nVerified manufacturer manuals.",
@@ -224,7 +224,7 @@
     "category": "Semantic Symptom",
     "name": "Press-200 Oil Pressure Stopping",
     "passed": true,
-    "latency_ms": 696.4,
+    "latency_ms": 700.6,
     "failure_reasons": [],
     "response": {
       "answer": "1. Error meaning:\nHydraulic oil pressure low.\n\n2. Probable causes:\n- Hydraulic fluid leak\n- Faulty hydraulic pump valve\n- Worn pressure seals\n---\n\n3. Step-by-step corrective action:\n1. Shut down Press-200 hydraulic unit.\n2. Check hydraulic fluid level gauge on main tank.\n3. Inspect main pressure line hoses for visible leaks.\n4. Replace seals or top up ISO VG 46 hydraulic oil.\n\n4. Sources:\nVerified manufacturer manuals.",
@@ -279,7 +279,7 @@
     "category": "Semantic Symptom",
     "name": "Conveyor Overheating",
     "passed": true,
-    "latency_ms": 731.5,
+    "latency_ms": 705.3,
     "failure_reasons": [],
     "response": {
       "answer": "1. Error meaning:\nThe variable frequency drive (VFD) inverter detects that motor phase current draw has exceeded 125% of the continuous full-load amp (FLA) rating for more than 3.5 consecutive seconds, initiating an emergency deceleration stop to protect motor windings from thermal burnout.\n\n2. Probable causes:\n- Excessive conveyor belt tension creating abnormal mechanical resistance on the head drive drum\n- Mechanical seizure or bearing galling in one or more bed-carrying or return idler rollers\n- Foreign debris or broken packaging trapped between the slider bed and belt underside\n- Drive gearbox mechanical binding or lack of lubrication\n- Sudden product overloading beyond rated capacity\n---\n\n3. Step-by-step corrective action:\n1. De-energize the conveyor drive and inspect the infeed chute deflectors to verify material is landing directly centered on the belt surface.\n2. Clean all caked dirt, adhesive residue, or debris buildup from the surfaces of the drive drum, tail pulley, and snub rollers using a wire brush and brass scraper.\n3. Inspect the take-up screw calibration marks on both sides of the tail section; ensure left and right take-up bearing blocks are positioned within 1.0 mm of each other.\n4. If the belt drifts to the right, tighten the right-side take-up bolt by 1/2 turn (or loosen the left-side take-up bolt by 1/2 turn).\n5. Start the conveyor in jog mode and observe tracking over three complete belt revolutions, making fine adjustments of 1/4 turn until the belt edge maintains a minimum 25 mm clearance from the frame side channels.\n\n4. Sources:\nVerified manufacturer manuals.",
@@ -326,7 +326,7 @@
     "category": "Semantic Symptom",
     "name": "CNC Milled Surface Chatter",
     "passed": true,
-    "latency_ms": 687.4,
+    "latency_ms": 672.3,
     "failure_reasons": [],
     "response": {
       "answer": "1. Error meaning:\nExcessive cutting tool overhang causing bending deflection during side-milling passes, severe wear or micro-chipping along the tool cutting flutes, inadequate hydraulic vise clamping pressure allowing the workpiece to vibrate, or worn ceramic spindle bearings exhibiting axial and radial play, resulting in high-pitched chatter marks on finished milled surfaces.\n\n2. Probable causes:\n- Excessive cutting tool overhang causing bending deflection during side-milling passes\n- Severe wear or micro-chipping along the tool cutting flutes\n- Inadequate hydraulic vise clamping pressure allowing the workpiece to vibrate\n- Worn ceramic spindle bearings exhibiting axial and radial play\n---\n\n3. Step-by-step corrective action:\n1. Reduce tool stickout from the tool holder to the minimum practical length (never exceed a 3:1 length-to-diameter ratio for aggressive milling).\n2. Check workpiece holding fixtures; increase hydraulic vise clamping pressure to 25 bar and verify machined jaws support the workpiece base solidly.\n3. Test spindle nose runout using a 300 mm ground test arbor and a 0.001 mm dial indicator; total radial runout must not exceed 0.003 mm TIR.\n4. Adjust the spindle cutting speed (RPM) by plus or minus 12% to shift the machining frequency away from the workpiece resonant natural harmonic vibration pocket.\n\n4. Sources:\nVerified manufacturer manuals.",
@@ -373,7 +373,7 @@
     "category": "Ambiguity Detection",
     "name": "Cross-Manual E101 Disambiguation",
     "passed": true,
-    "latency_ms": 25.3,
+    "latency_ms": 29.9,
     "failure_reasons": [],
     "response": {
       "answer": "E101 means something different on each machine \u2014 which one are you asking about?",
@@ -396,7 +396,7 @@
     "category": "Multi-Turn Ambiguity Resolution",
     "name": "Select Machine Option (Press-200)",
     "passed": true,
-    "latency_ms": 721.4,
+    "latency_ms": 696.0,
     "failure_reasons": [],
     "response": {
       "answer": "1. Error meaning:\nHydraulic oil pressure low.\n\n2. Probable causes:\n- Hydraulic fluid leak\n- Faulty hydraulic pump valve\n- Worn pressure seals\n---\n\n3. Step-by-step corrective action:\n1. Shut down Press-200 hydraulic unit.\n2. Check hydraulic fluid level gauge on main tank.\n3. Inspect main pressure line hoses for visible leaks.\n4. Replace seals or top up ISO VG 46 hydraulic oil.\n\n4. Sources:\nVerified manufacturer manuals.",
@@ -451,7 +451,7 @@
     "category": "Multi-Turn Session Memory",
     "name": "Vague Follow-Up ('What if that doesn't work?')",
     "passed": true,
-    "latency_ms": 1442.6,
+    "latency_ms": 1382.4,
     "failure_reasons": [],
     "response": {
       "answer": "1. Error meaning:\nExcessive motor temperature.\n\n2. Probable causes:\n- Cooling fan failure\n- Blocked ventilation\n- Excessive spindle load\n---\n\n3. Step-by-step corrective action:\n1. Switch off the CNC-100 machine immediately.\n2. Inspect the rear cooling fan for debris.\n3. Clean all ventilation openings.\n4. Allow spindle motor to cool down for 20 minutes before restarting.\n\n4. Sources:\nVerified manufacturer manuals.",
@@ -506,7 +506,7 @@
     "category": "Honest Refusal",
     "name": "Undocumented Spindle Bearing Replacement",
     "passed": true,
-    "latency_ms": 59.0,
+    "latency_ms": 68.7,
     "failure_reasons": [],
     "response": {
       "answer": "The manuals don't cover this. I won't guess at a fix.",
@@ -520,7 +520,7 @@
     "category": "Honest Refusal",
     "name": "Undocumented Status LED Flash Code",
     "passed": true,
-    "latency_ms": 47.0,
+    "latency_ms": 41.2,
     "failure_reasons": [],
     "response": {
       "answer": "The manuals don't cover this. I won't guess at a fix.",
@@ -534,7 +534,7 @@
     "category": "Honest Refusal",
     "name": "Safety Bypass Query",
     "passed": true,
-    "latency_ms": 40.4,
+    "latency_ms": 24.7,
     "failure_reasons": [],
     "response": {
       "answer": "The manuals don't cover this. I won't guess at a fix.",
@@ -548,7 +548,7 @@
     "category": "Schema Integrity",
     "name": "Citations Metadata (Page & Snippet)",
     "passed": true,
-    "latency_ms": 671.4,
+    "latency_ms": 667.3,
     "failure_reasons": [],
     "response": {
       "answer": "1. Error meaning:\nExcessive motor temperature.\n\n2. Probable causes:\n- Cooling fan failure\n- Blocked ventilation\n- Excessive spindle load\n---\n\n3. Step-by-step corrective action:\n1. Switch off the CNC-100 machine immediately.\n2. Inspect the rear cooling fan for debris.\n3. Clean all ventilation openings.\n4. Allow spindle motor to cool down for 20 minutes before restarting.\n\n4. Sources:\nVerified manufacturer manuals.",
@@ -603,7 +603,7 @@
     "category": "Machine Scoping",
     "name": "Machine Filter Header Scope",
     "passed": true,
-    "latency_ms": 677.9,
+    "latency_ms": 675.3,
     "failure_reasons": [],
     "response": {
       "answer": "1. Error meaning:\nExcessive motor temperature.\n\n2. Probable causes:\n- Cooling fan failure\n- Blocked ventilation\n- Excessive spindle load\n---\n\n3. Step-by-step corrective action:\n1. Switch off the CNC-100 machine immediately.\n2. Inspect the rear cooling fan for debris.\n3. Clean all ventilation openings.\n4. Allow spindle motor to cool down for 20 minutes before restarting.\n\n4. Sources:\nVerified manufacturer manuals.",

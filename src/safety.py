@@ -89,7 +89,10 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.35):
 
     # Critical Action Gate: Queries requesting safety bypasses or unauthorized modifications
     # (e.g. bypass, override, rewire, rebuild, firmware) MUST be documented in the manuals.
-    critical_actions = {"bypass", "override", "rewire", "hack", "firmware"}
+    critical_actions = {
+        "bypass", "override", "rewire", "hack", "firmware", 
+        "disable", "bridge", "jumper", "defeat", "tamper"
+    }
     for ca in critical_actions:
         if ca in query_tokens and ca not in all_chunk_tokens:
             return False, REFUSAL_MESSAGE
