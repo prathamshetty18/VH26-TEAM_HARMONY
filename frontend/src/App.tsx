@@ -78,14 +78,10 @@ export const App: React.FC = () => {
 
   // Manuals state
   const [manualsData, setManualsData] = useState<any[]>([]);
-<<<<<<< HEAD
   const [activeManual, setActiveManual] = useState<string>('multilingual');
   const [manualLang, setManualLang] = useState<'en' | 'zh' | 'ja' | 'de'>('en');
   const [multilingualManual, setMultilingualManual] = useState<any>(null);
-=======
-  const [activeManual, setActiveManual] = useState<string>('cnc100.txt');
   const [systemStatus, setSystemStatus] = useState<any>(null);
->>>>>>> a5e549b19d767b3cca19ac04b03b07c326ed9a05
 
   // Sync session state to sessionStorage
   useEffect(() => {
