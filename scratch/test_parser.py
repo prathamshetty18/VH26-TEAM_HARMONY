@@ -1,28 +1,18 @@
-import os
 import re
-from typing import List, Dict, Any
+import os
 
-def load_and_chunk_manuals(manuals_dir="data/manuals") -> List[Dict[str, Any]]:
-    """
-    Reads manual text files from manuals_dir, normalizes and splits them into structured
-    chunks based on 'SECTION:' markers, and extracts error_code, machine, model, and page.
-    Supports both single-section header format and dual-section error code/troubleshooting format.
-    """
+def load_and_chunk_manuals(manuals_dir="data/manuals"):
     chunks = []
-    
     if not os.path.exists(manuals_dir):
         return chunks
 
     for filename in sorted(os.listdir(manuals_dir)):
         if not filename.endswith(".txt"):
             continue
-            
         filepath = os.path.join(manuals_dir, filename)
-        
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Global header metadata
         global_machine = None
         global_model = None
 
@@ -77,7 +67,7 @@ def load_and_chunk_manuals(manuals_dir="data/manuals") -> List[Dict[str, Any]]:
             page_match = re.search(r"^PAGE:\s*(.+)$", sec_text, re.MULTILINE)
             page_num = page_match.group(1).strip() if page_match else None
 
-            # Ensure error code and machine context are present in text for high-fidelity retrieval
+            # Ensure error code is present in chunk text for embedding and search
             chunk_text = sec_text
             if current_error_code and f"ERROR CODE: {current_error_code}" not in chunk_text:
                 chunk_text = f"ERROR CODE: {current_error_code}\n" + chunk_text
@@ -95,10 +85,12 @@ def load_and_chunk_manuals(manuals_dir="data/manuals") -> List[Dict[str, Any]]:
     return chunks
 
 if __name__ == "__main__":
-    parsed_chunks = load_and_chunk_manuals()
-    print(f"Total chunks parsed: {len(parsed_chunks)}")
-    for i, c in enumerate(parsed_chunks[:5]):
-        print(f"--- Chunk {i+1} ---")
-        print(f"Machine: {c['machine']} | Model: {c['model']} | Manual: {c['manual']}")
-        print(f"Section: {c['section']} | Page: {c['page']} | Error Code: {c['error_code']}")
-        print(f"Text Preview:\n{c['text'][:140]}...\n")
+    chunks = load_and_chunk_manuals()
+    print("Total chunks parsed:", len(chunks))
+    by_manual = {}
+    for c in chunks:
+        by_manual.setdefault(c["manual"], []).append(c)
+    for m, m_chunks in by_manual.items():
+        print(f"\nManual: {m} ({len(m_chunks)} chunks)")
+        for c in m_chunks:
+            print(f"  Sec: {c['section']:<35} | Code: {str(c['error_code']):<18} | Page: {c['page']}")

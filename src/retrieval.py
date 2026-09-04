@@ -17,6 +17,9 @@ def retrieve(parsed_query, k=5):
     filter_metadata = None
     if machine:
         filter_metadata = {"machine": machine}
+    elif error_code:
+        filter_metadata = {"error_code": error_code}
+        k = max(k, 10)
 
     retrieved_chunks = search(query=search_text, k=k, filter_metadata=filter_metadata)
 

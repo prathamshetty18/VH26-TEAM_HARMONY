@@ -19,9 +19,22 @@ def get_chroma_collection(collection_name: str = "machine_manuals") -> chromadb.
     )
     return collection
 
+def reset_collection(collection_name: str = "machine_manuals") -> chromadb.Collection:
+    """Deletes and re-creates collection for a clean indexing run."""
+    client = chromadb.PersistentClient(path=DB_DIR)
+    try:
+        client.delete_collection(name=collection_name)
+    except Exception:
+        pass
+    return client.create_collection(
+        name=collection_name,
+        embedding_function=embedding_func,
+        metadata={"hnsw:space": "cosine"}
+    )
+
 def index_chunks(chunks: List[Dict[str, Any]], collection_name: str = "machine_manuals") -> int:
     """
-    Stores chunks with metadata into Chroma collection.
+    Stores chunks with metadata into Chroma collection using upsert.
     """
     collection = get_chroma_collection(collection_name)
     
@@ -38,11 +51,12 @@ def index_chunks(chunks: List[Dict[str, Any]], collection_name: str = "machine_m
             "model": chunk.get("model", "Unknown"),
             "manual": chunk.get("manual", ""),
             "section": chunk.get("section", ""),
+            "page": str(chunk.get("page") or ""),
             "error_code": chunk.get("error_code") or ""
         })
 
     if ids:
-        collection.add(
+        collection.upsert(
             ids=ids,
             documents=documents,
             metadatas=metadatas
@@ -106,6 +120,7 @@ if __name__ == "__main__":
     import sys
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
     from src.ingest import load_and_chunk_manuals
+    reset_collection()
     chunks = load_and_chunk_manuals()
     indexed_count = index_chunks(chunks)
     print(f"Indexed {indexed_count} chunks into Chroma DB.")
