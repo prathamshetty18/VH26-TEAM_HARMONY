@@ -573,21 +573,45 @@ function updateMemoryUI() {
 // CITATION MODAL
 // --------------------------------------------------------------------------
 
+window.openPdfFromCitation = function(manualName, page = 1) {
+  document.getElementById('citation-modal')?.classList.remove('active');
+  if (typeof window.switchTab === 'function') {
+    window.switchTab('manuals');
+  }
+  
+  const manuals = (STATE.manualsData && STATE.manualsData.manuals) || [];
+  const cleanTarget = (manualName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const found = manuals.find(m => {
+    const cf = m.filename.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cm = (m.machine || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return cf.includes(cleanTarget) || cleanTarget.includes(cf) || cm.includes(cleanTarget) || cleanTarget.includes(cm);
+  }) || manuals[0];
+
+  if (found) {
+    window.setManualViewMode('pdf');
+    window.selectManualViewer(found.filename, page);
+  }
+};
+
 window.openCitationModal = function(source) {
   const modal = document.getElementById('citation-modal');
   const modalBody = document.getElementById('citation-modal-body');
   if (!modal || !modalBody) return;
 
+  const pageNum = source.page || 1;
   modalBody.innerHTML = `
     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
       <span class="badge-tag badge-indigo">${escapeHtml(source.machine || 'Machine')}</span>
-      <span style="font-size: 0.8rem; font-family: var(--font-mono); color: #64748b;">${escapeHtml(source.manual)}</span>
+      <span style="font-size: 0.8rem; font-family: var(--font-mono); color: #64748b;">${escapeHtml(source.manual)} • Page ${pageNum}</span>
     </div>
     <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem;">${escapeHtml(source.section)}</h3>
     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; font-size: 0.875rem; line-height: 1.6; color: #334155;">
       ${source.snippet ? escapeHtml(source.snippet) : 'Verified procedure extracted directly from the manufacturer technical manual.'}
     </div>
-    <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end;">
+    <div style="margin-top: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+      <button class="btn btn-primary" onclick="openPdfFromCitation('${escapeHtml(source.manual)}', ${pageNum})">
+        📄 Open in PDF Reader (Page ${pageNum}) →
+      </button>
       <button class="btn btn-secondary" onclick="document.getElementById('citation-modal').classList.remove('active')">Close Inspector</button>
     </div>
   `;
@@ -690,51 +714,118 @@ async function runFullBenchmark() {
 }
 
 // --------------------------------------------------------------------------
-// TOOL 3: MANUALS EXPLORER
+// TOOL 3: MANUALS EXPLORER & PDF READER
 // --------------------------------------------------------------------------
+
+let CURRENT_MANUAL_VIEW_MODE = 'pdf'; // 'pdf' or 'text'
+let CURRENT_MANUAL_PAGE = 1;
 
 function renderManualsViewer() {
   const navContainer = document.getElementById('manuals-nav-list');
   const viewer = document.getElementById('manual-text-display');
   if (!navContainer || !viewer) return;
 
-  const manuals = STATE.manualsData.manuals || [];
+  const manuals = (STATE.manualsData && STATE.manualsData.manuals) || [];
   if (manuals.length === 0) return;
 
   navContainer.innerHTML = manuals.map((m, idx) => `
-    <div class="manual-tab-item ${idx === 0 ? 'active' : ''}" onclick="selectManualViewer('${m.filename}')" id="manual-tab-${m.filename}">
-      <h5>${escapeHtml(m.title)}</h5>
+    <div class="manual-tab-item ${idx === 0 ? 'active' : ''}" onclick="selectManualViewer('${m.filename}', 1)" id="manual-tab-${m.filename}">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <h5>${escapeHtml(m.title)}</h5>
+        ${m.has_pdf ? '<span class="badge-tag badge-indigo" style="font-size: 0.65rem; padding: 2px 6px;">PDF</span>' : ''}
+      </div>
       <p>${escapeHtml(m.filename)} • ${m.pages} Pages • ${m.chunkCount} Chunks</p>
     </div>
   `).join('');
 
   // Default display first manual
-  selectManualViewer(manuals[0].filename);
+  selectManualViewer(manuals[0].filename, 1);
 }
 
-window.selectManualViewer = function(filename) {
+window.selectManualViewer = function(filename, page = 1) {
   document.querySelectorAll('.manual-tab-item').forEach(el => el.classList.remove('active'));
   const activeTab = document.getElementById(`manual-tab-${filename}`);
   if (activeTab) activeTab.classList.add('active');
 
-  const manuals = STATE.manualsData.manuals || [];
-  const selected = manuals.find(m => m.filename === filename);
+  const manuals = (STATE.manualsData && STATE.manualsData.manuals) || [];
+  const selected = manuals.find(m => m.filename === filename) || manuals[0];
   const viewer = document.getElementById('manual-text-display');
+  if (!selected || !viewer) return;
 
-  if (selected && viewer) {
-    viewer.innerHTML = `
-      <h2>${escapeHtml(selected.title)}</h2>
-      <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
-        <span class="badge-tag badge-indigo">${selected.filename}</span>
-        <span class="badge-tag badge-success">${selected.chunkCount} Ingested Chunks</span>
-        <span class="badge-tag" style="background: #f1f5f9; color: #475569;">Page 1 - ${selected.pages}</span>
-      </div>
-      <div style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.65; color: #334155; font-family: var(--font-sans);">
-${escapeHtml(selected.raw_text || '')}
-      </div>
-    `;
+  CURRENT_MANUAL_PAGE = page;
+  window.CURRENT_SELECTED_MANUAL = selected;
+
+  renderManualViewContent();
+};
+
+window.setManualViewMode = function(mode) {
+  CURRENT_MANUAL_VIEW_MODE = mode;
+  renderManualViewContent();
+};
+
+window.navigatePdfPage = function(delta) {
+  const selected = window.CURRENT_SELECTED_MANUAL;
+  if (!selected) return;
+  const newPage = CURRENT_MANUAL_PAGE + delta;
+  if (newPage >= 1 && newPage <= (selected.pages || 1)) {
+    CURRENT_MANUAL_PAGE = newPage;
+    renderManualViewContent();
   }
 };
+
+function renderManualViewContent() {
+  const viewer = document.getElementById('manual-text-display');
+  const selected = window.CURRENT_SELECTED_MANUAL;
+  if (!selected || !viewer) return;
+
+  const pdfUrl = selected.pdf_url || `/api/manuals/${selected.pdf_filename || selected.filename.replace('.txt', '.pdf')}/pdf`;
+
+  const headerHtml = `
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.25rem;">${escapeHtml(selected.title)}</h2>
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.35rem; align-items: center;">
+          <span class="badge-tag badge-indigo">${selected.filename}</span>
+          <span class="badge-tag badge-success">${selected.chunkCount} Grounded Chunks</span>
+          <span class="badge-tag" style="background: #f1f5f9; color: #475569;">${selected.pages} Pages</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <div style="background: #e2e8f0; padding: 3px; border-radius: 8px; display: flex; gap: 2px;">
+          <button class="btn ${CURRENT_MANUAL_VIEW_MODE === 'pdf' ? 'btn-primary' : 'btn-secondary'}" style="padding: 4px 10px; font-size: 0.75rem;" onclick="setManualViewMode('pdf')">
+            📄 PDF Reader
+          </button>
+          <button class="btn ${CURRENT_MANUAL_VIEW_MODE === 'text' ? 'btn-primary' : 'btn-secondary'}" style="padding: 4px 10px; font-size: 0.75rem;" onclick="setManualViewMode('text')">
+            📋 RAG Chunks
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (CURRENT_MANUAL_VIEW_MODE === 'pdf' && selected.has_pdf) {
+    viewer.innerHTML = `
+      ${headerHtml}
+      <div style="background: #0f172a; color: #f8fafc; padding: 0.5rem 1rem; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; background: #1e293b; color: #fff;" onclick="navigatePdfPage(-1)" ${CURRENT_MANUAL_PAGE <= 1 ? 'disabled style="opacity: 0.4;"' : ''}>◀ Prev</button>
+          <span>Page <strong>${CURRENT_MANUAL_PAGE}</strong> of ${selected.pages || 1}</span>
+          <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; background: #1e293b; color: #fff;" onclick="navigatePdfPage(1)" ${CURRENT_MANUAL_PAGE >= (selected.pages || 1) ? 'disabled style="opacity: 0.4;"' : ''}>Next ▶</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <a href="${pdfUrl}" target="_blank" class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; background: #1e293b; color: #fff; text-decoration: none;">↗ Open Tab</a>
+          <a href="${pdfUrl}?download=true" download="${selected.filename.replace('.txt', '.pdf')}" class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; background: #1e293b; color: #fff; text-decoration: none;">⬇ Download</a>
+        </div>
+      </div>
+      <iframe src="${pdfUrl}?v=2#page=${CURRENT_MANUAL_PAGE}" style="width: 100%; height: 580px; border: 1px solid #cbd5e1; border-top: none; border-radius: 0 0 12px 12px; background: #f8fafc;" title="${escapeHtml(selected.title)}"></iframe>
+    `;
+  } else {
+    viewer.innerHTML = `
+      ${headerHtml}
+      <pre style="background: #1e293b; color: #f8fafc; padding: 1.25rem; border-radius: 12px; font-family: var(--font-mono); font-size: 0.825rem; line-height: 1.6; max-height: 580px; overflow-y: auto;">${escapeHtml(selected.raw_text || '')}</pre>
+    `;
+  }
+}
 
 // --------------------------------------------------------------------------
 // TOOL 4: TELEMETRY

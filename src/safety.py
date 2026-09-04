@@ -53,6 +53,16 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.35):
     top_chunk = retrieved_chunks[0]
     score = top_chunk.get("score", 0.0)
 
+    # Extract all tokens from top 3 retrieved chunks
+    combined_chunk_text = " ".join([c.get("text", "").lower() for c in retrieved_chunks[:3]])
+    chunk_tokens = set(re.findall(r"\b[a-zA-Z0-9_-]+\b", combined_chunk_text))
+    all_chunk_tokens = set()
+    for ct in chunk_tokens:
+        all_chunk_tokens.add(ct)
+        for st in ct.split("-"):
+            if st:
+                all_chunk_tokens.add(st)
+
     # Gate 1: Baseline similarity score threshold
     if score < threshold:
         return False, REFUSAL_MESSAGE
@@ -64,18 +74,8 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.35):
     if not query_tokens:
         return True, retrieved_chunks
 
-    # Extract all tokens from top 3 retrieved chunks
-    combined_chunk_text = " ".join([c.get("text", "").lower() for c in retrieved_chunks[:3]])
-    chunk_tokens = set(re.findall(r"\b[a-zA-Z0-9_-]+\b", combined_chunk_text))
-    all_chunk_tokens = set()
-    for ct in chunk_tokens:
-        all_chunk_tokens.add(ct)
-        for st in ct.split("-"):
-            if st:
-                all_chunk_tokens.add(st)
-
-    # Gate 2: Explicit error code verification (E-series, H-series, SYM-series)
-    error_codes_in_query = [t for t in query_tokens if re.match(r"^[eh]\d{3}$", t) or t.startswith("sym")]
+    # Gate 2: Explicit error code verification (A-series, E-series, H-series, SYM-series)
+    error_codes_in_query = [t for t in query_tokens if re.match(r"^[a-z]\d{3,4}$", t) or t.startswith("sym")]
     for ec in error_codes_in_query:
         if ec not in all_chunk_tokens:
             return False, REFUSAL_MESSAGE
@@ -88,7 +88,7 @@ def is_sufficient(retrieved_chunks, query="", threshold=0.35):
     # High semantic similarity (>= 0.50) passes automatically (supports semantic paraphrasing).
     # Borderline similarity (< 0.50) requires at least 40% query token match to prevent keyword drift.
     if score < 0.50:
-        non_ec_query_tokens = [t for t in query_tokens if not (re.match(r"^[eh]\d{3}$", t) or t.startswith("sym"))]
+        non_ec_query_tokens = [t for t in query_tokens if not (re.match(r"^[a-z]\d{3,4}$", t) or t.startswith("sym"))]
         if non_ec_query_tokens:
             matching = [t for t in non_ec_query_tokens if t in all_chunk_tokens]
             match_ratio = len(matching) / len(non_ec_query_tokens)

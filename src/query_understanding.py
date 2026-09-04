@@ -74,7 +74,7 @@ def parse_query(query: str, known_machines=None, known_error_codes=None) -> Dict
     
     valid_targets = set(known_machines)
     for k, v in LEGACY_MAP.items():
-        if v in valid_targets:
+        if v in valid_targets or v == k:
             valid_targets.add(k)
 
     sorted_aliases = sorted(MACHINE_ALIASES.keys(), key=len, reverse=True)
@@ -139,7 +139,7 @@ def parse_query(query: str, known_machines=None, known_error_codes=None) -> Dict
 
     # 2. Detect Error Code
     detected_error_code = None
-    err_match = re.search(r"\b([EH]\d{3}|SYM-[A-Z0-9-]+)\b", query, re.IGNORECASE)
+    err_match = re.search(r"\b([A-Z]\d{3,4}|SYM-[A-Z0-9-]+)\b", query, re.IGNORECASE)
     if err_match:
         detected_error_code = err_match.group(1).upper()
 

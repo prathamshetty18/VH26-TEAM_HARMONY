@@ -1,4 +1,4 @@
-﻿export interface Machine {
+export interface Machine {
   id: string;
   name: string;
   category: string;
@@ -65,4 +65,16 @@ export interface EventTrailItem {
 export interface BackendConfig {
   mode: 'demo' | 'live';
   baseUrl: string;
+}
+
+export interface ManualItem {
+  filename: string;
+  title: string;
+  machine: string;
+  pages: number;
+  chunkCount: number;
+  pdf_filename?: string | null;
+  raw_text?: string;
+  has_pdf?: boolean;
+  pdf_url?: string | null;
 }

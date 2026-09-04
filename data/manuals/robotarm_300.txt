@@ -1,0 +1,54 @@
+MACHINE: RobotArm-300
+MODEL: RA-300X
+
+ERROR CODE: A032
+SECTION: Error Code A032 - Joint 2 Encoder Fault
+PAGE: 1
+MEANING: The CU-300 controller has lost a valid position signal from the joint 2 absolute encoder for more than 50 milliseconds during motion. This is a hard fault that immediately halts all axis motion.
+CAUSES:
+- Loose or degraded encoder cable connector at the joint 2 servo housing.
+- Electromagnetic interference from an adjacent unshielded high-current cable run.
+- Encoder battery backup depletion (a dead backup battery causes position loss on next power-up).
+
+SECTION: Error Code A032 - Joint 2 Encoder Fault
+PAGE: 1
+STEPS:
+1. Engage E-stop and confirm zero-energy state per Safety Precautions.
+2. Inspect the joint 2 encoder connector (J2-ENC) for looseness, corrosion, or bent pins.
+3. Reseat the connector fully and verify the retention clip engages audibly.
+4. If the fault persists, check encoder backup battery voltage at test point TP-4 on the joint 2 servo board; replace if below 2.8V.
+5. Clear the fault at the CU-300 HMI (Diagnostics > Clear Fault) and jog joint 2 through its full range at low speed to confirm stable encoder tracking before returning to automatic mode.
+
+ERROR CODE: A045
+SECTION: Error Code A045 - Overtemperature, Joint Drive
+PAGE: 1
+MEANING: Any joint servo drive's internal temperature sensor has exceeded 85°C. The controller throttles motion speed at 75°C before the hard cutoff at 85°C.
+CAUSES:
+- Blocked or fouled controller cabinet ventilation fan.
+- Ambient temperature at the installation site exceeding the rated 45°C maximum.
+- Sustained duty cycle above the rated continuous torque for one or more joints.
+
+SECTION: Error Code A045 - Overtemperature, Joint Drive
+PAGE: 1
+STEPS:
+1. Power down and allow the affected drive to cool for at least 15 minutes.
+2. Inspect and clean the CU-300 cabinet intake and exhaust fans.
+3. Confirm ambient site temperature is within the rated operating range.
+4. Review the motion program for excessive duty cycle on the affected joint and reduce cycle rate if the fault recurs after cooling.
+
+ERROR CODE: A210
+SECTION: Error Code A210 - Communication Ring Fault
+PAGE: 1
+MEANING: The EtherCAT ring topology check has failed, meaning the controller cannot confirm a closed loop between its IN and OUT ports.
+CAUSES:
+- A disconnected or damaged EtherCAT cable somewhere in the ring.
+- A downstream device on the ring powered off or in a fault state that breaks the chain.
+- Incorrect port wiring (IN/OUT reversed) at installation.
+
+SECTION: Error Code A210 - Communication Ring Fault
+PAGE: 1
+STEPS:
+1. Check that all devices on the EtherCAT ring are powered on.
+2. Inspect cabling at each ring junction for damage or loose connectors, starting from the CU-300 OUT port and working downstream.
+3. Confirm IN/OUT port wiring matches the line topology diagram (Appendix A).
+4. If the fault clears on isolating a single downstream device, that device's own controller and cabling require separate inspection.

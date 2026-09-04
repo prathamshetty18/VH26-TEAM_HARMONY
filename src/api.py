@@ -2,9 +2,12 @@ import sys
 import os
 import re
 import io
+import json
 from typing import List, Optional, Dict, Any
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import pypdf
 
@@ -13,17 +16,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-<<<<<<< HEAD
 MANUALS_DIR = os.path.join(REPO_ROOT, "data", "manuals")
-=======
-from typing import List, Optional, Dict, Any
-import json
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
->>>>>>> 8a65c82cf4e10e37af9a52814549587f29d2039e
 
 from src.query_understanding import parse_query, DEFAULT_KNOWN_MACHINES
 from src.retrieval import retrieve
@@ -31,18 +24,15 @@ from src.disambiguation import check_ambiguity
 from src.safety import is_sufficient, REFUSAL_MESSAGE
 from src.llm_answer import assemble_context, generate_answer, structure_pdf_text_with_llm
 from src.memory import memory_store
-<<<<<<< HEAD
 from src.ingest import validate_manual_content
 from src.embed_store import (
     upsert_chunks,
     delete_by_machine,
     get_distinct_machines,
     get_manuals_summary,
-    invalidate_machines_cache
+    invalidate_machines_cache,
+    get_chroma_collection
 )
-=======
-from src.embed_store import get_chroma_collection
->>>>>>> 8a65c82cf4e10e37af9a52814549587f29d2039e
 
 app = FastAPI(
     title="MachineAssist API",
@@ -58,7 +48,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-<<<<<<< HEAD
+STATIC_DIR = os.path.join(REPO_ROOT, "src", "static")
+if os.path.exists(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
 def sanitize_machine_filename(machine_name: str) -> str:
     """Sanitizes machine name to lowercase with underscores for files."""
     cleaned = re.sub(r"[^a-z0-9]+", "_", machine_name.lower()).strip("_")
@@ -67,11 +60,6 @@ def sanitize_machine_filename(machine_name: str) -> str:
 # ---------------------------------------------------------------------------
 # Pydantic Schemas
 # ---------------------------------------------------------------------------
-=======
-STATIC_DIR = os.path.join(REPO_ROOT, "src", "static")
-if os.path.exists(STATIC_DIR):
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
->>>>>>> 8a65c82cf4e10e37af9a52814549587f29d2039e
 
 class QueryRequest(BaseModel):
     message: str
@@ -150,21 +138,59 @@ def get_machines():
 
 @app.get("/api/manuals")
 def get_manuals_library():
-    """Returns content and metadata for all active factory manuals."""
+    """Returns content and metadata for all active factory manuals including PDF availability."""
     manuals_dir = os.path.join(REPO_ROOT, "data", "manuals")
     manual_configs = [
-        {"filename": "conveyorcb4400.txt", "title": "Conveyor Belt System — Model CB-4400 Troubleshooting Manual", "machine": "Conveyor Belt System", "pages": 6, "chunkCount": 20},
-        {"filename": "cncmx7.txt", "title": "CNC Milling Machine — Model MX-7 Precision Troubleshooting Manual", "machine": "CNC Milling Machine", "pages": 6, "chunkCount": 20},
-        {"filename": "presshp2200.txt", "title": "Hydraulic Press — Model HP-2200 Troubleshooting Manual", "machine": "Hydraulic Press", "pages": 6, "chunkCount": 20}
+        {"filename": "conveyorcb4400.txt", "title": "Conveyor Belt System — Model CB-4400 Troubleshooting Manual", "machine": "Conveyor Belt System", "pages": 6, "chunkCount": 20, "pdf_filename": "conveyorcb4400.pdf"},
+        {"filename": "cncmx7.txt", "title": "CNC Milling Machine — Model MX-7 Precision Troubleshooting Manual", "machine": "CNC Milling Machine", "pages": 6, "chunkCount": 20, "pdf_filename": "cncmx7.pdf"},
+        {"filename": "presshp2200.txt", "title": "Hydraulic Press — Model HP-2200 Troubleshooting Manual", "machine": "Hydraulic Press", "pages": 6, "chunkCount": 20, "pdf_filename": "presshp2200.pdf"}
     ]
+    seen_files = set()
     results = []
     for mc in manual_configs:
+        seen_files.add(mc["filename"])
         path = os.path.join(manuals_dir, mc["filename"])
         raw_text = ""
         if os.path.exists(path):
             with open(path, "r", encoding="utf-8") as f:
                 raw_text = f.read()
-        results.append({**mc, "raw_text": raw_text})
+        pdf_path = os.path.join(manuals_dir, mc["pdf_filename"])
+        has_pdf = os.path.exists(pdf_path)
+        results.append({
+            **mc,
+            "raw_text": raw_text,
+            "has_pdf": has_pdf,
+            "pdf_url": f"/api/manuals/{mc['pdf_filename']}/pdf" if has_pdf else None
+        })
+
+    # Also discover any dynamic uploaded manuals in manuals_dir
+    if os.path.exists(manuals_dir):
+        for fname in sorted(os.listdir(manuals_dir)):
+            if fname.endswith(".txt") and fname not in seen_files and not fname.startswith("."):
+                fpath = os.path.join(manuals_dir, fname)
+                try:
+                    with open(fpath, "r", encoding="utf-8") as f:
+                        raw_text = f.read()
+                    mach_match = re.search(r"^MACHINE:\s*(.+)$", raw_text, re.MULTILINE)
+                    mach_name = mach_match.group(1).strip() if mach_match else fname[:-4].replace("_", " ").title()
+                    pdf_cand = fname.replace(".txt", ".pdf")
+                    has_pdf = os.path.exists(os.path.join(manuals_dir, pdf_cand))
+                    page_matches = re.findall(r"PAGE:\s*(\d+)", raw_text)
+                    page_cnt = max([int(p) for p in page_matches]) if page_matches else 1
+                    chunk_cnt = len(re.findall(r"^SECTION:", raw_text, re.MULTILINE))
+                    results.append({
+                        "filename": fname,
+                        "title": f"{mach_name} Troubleshooting Manual",
+                        "machine": mach_name,
+                        "pages": page_cnt,
+                        "chunkCount": chunk_cnt,
+                        "pdf_filename": pdf_cand if has_pdf else None,
+                        "raw_text": raw_text,
+                        "has_pdf": has_pdf,
+                        "pdf_url": f"/api/manuals/{pdf_cand}/pdf" if has_pdf else None
+                    })
+                except Exception:
+                    pass
     return {"manuals": results}
 
 @app.get("/api/benchmarks")
@@ -347,6 +373,15 @@ async def upload_manual(file: UploadFile = File(...)):
             )
 
         is_valid, err_msg, machine_name, chunks = validate_manual_content(draft_text)
+        # Cache raw uploaded PDF bytes for confirmation
+        os.makedirs(MANUALS_DIR, exist_ok=True)
+        temp_pdf_name = f".draft_{sanitize_machine_filename(machine_name or 'unconfirmed')}.pdf"
+        try:
+            with open(os.path.join(MANUALS_DIR, temp_pdf_name), "wb") as f:
+                f.write(file_bytes)
+        except Exception:
+            pass
+
         return ManualUploadResponse(
             status="needs_review",
             machine=machine_name,
@@ -374,6 +409,19 @@ def confirm_manual(req: ManualConfirmRequest):
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(content)
 
+    # If draft PDF exists, promote to final machine PDF
+    base_name = out_filename.replace(".txt", "")
+    temp_pdf_name = f".draft_{out_filename}.pdf"
+    temp_pdf_path = os.path.join(MANUALS_DIR, temp_pdf_name)
+    final_pdf_path = os.path.join(MANUALS_DIR, f"{base_name}.pdf")
+    if os.path.exists(temp_pdf_path):
+        try:
+            if os.path.exists(final_pdf_path):
+                os.remove(final_pdf_path)
+            os.rename(temp_pdf_path, final_pdf_path)
+        except Exception:
+            pass
+
     delete_by_machine(machine_name)
     chunk_count = upsert_chunks(chunks)
 
@@ -385,6 +433,72 @@ def confirm_manual(req: ManualConfirmRequest):
         error=None,
         is_valid_format=True
     )
+
+@app.get("/api/manuals/{filename_or_machine}/pdf")
+@app.get("/manuals/{filename_or_machine}/pdf")
+def get_manual_pdf(filename_or_machine: str, download: bool = False):
+    """Streams PDF version of technical manual for in-browser PDF reader."""
+    if not os.path.exists(MANUALS_DIR):
+        raise HTTPException(status_code=404, detail="Manuals directory not found.")
+
+    found_path = None
+    target_filename = None
+
+    # 1. Exact match
+    target_pdf = filename_or_machine if filename_or_machine.lower().endswith(".pdf") else f"{filename_or_machine}.pdf"
+    direct_path = os.path.join(MANUALS_DIR, target_pdf)
+    if os.path.exists(direct_path):
+        found_path = direct_path
+        target_filename = target_pdf
+
+    # 2. Check sanitized machine name
+    if not found_path:
+        sanitized_base = sanitize_machine_filename(filename_or_machine).replace(".txt", "")
+        sanitized_pdf = os.path.join(MANUALS_DIR, f"{sanitized_base}.pdf")
+        if os.path.exists(sanitized_pdf):
+            found_path = sanitized_pdf
+            target_filename = f"{sanitized_base}.pdf"
+
+    # 3. Fuzzy search in manuals dir
+    if not found_path:
+        clean_query = filename_or_machine.lower().replace("-", "").replace(" ", "").replace("_", "").replace(".pdf", "")
+        for fname in os.listdir(MANUALS_DIR):
+            if fname.lower().endswith(".pdf") and not fname.startswith("."):
+                clean_f = fname.lower().replace("-", "").replace(" ", "").replace("_", "").replace(".pdf", "")
+                if clean_f in clean_query or clean_query in clean_f:
+                    found_path = os.path.join(MANUALS_DIR, fname)
+                    target_filename = fname
+                    break
+
+    if not found_path or not os.path.exists(found_path):
+        raise HTTPException(status_code=404, detail=f"PDF manual for '{filename_or_machine}' not found.")
+
+    if download:
+        headers = {
+            "Content-Disposition": f'attachment; filename="{target_filename}"',
+            "Content-Type": "application/pdf"
+        }
+        return FileResponse(
+            found_path,
+            media_type="application/pdf",
+            content_disposition_type="attachment",
+            filename=target_filename,
+            headers=headers
+        )
+    else:
+        headers = {
+            "Content-Disposition": "inline",
+            "Content-Type": "application/pdf",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+        return FileResponse(
+            found_path,
+            media_type="application/pdf",
+            content_disposition_type="inline",
+            headers=headers
+        )
 
 @app.get("/manuals", response_model=ManualsListResponse)
 def list_manuals():
@@ -416,6 +530,14 @@ def delete_manual(machine: str):
         except Exception as err:
             print(f"[delete_manual file remove error]: {err}")
 
+    # Remove corresponding PDF if present
+    pdf_path = os.path.join(MANUALS_DIR, f"{target_filename.replace('.txt', '')}.pdf")
+    if os.path.exists(pdf_path):
+        try:
+            os.remove(pdf_path)
+        except Exception:
+            pass
+
     # 2. Genuine fallback on miss (for legacy filenames e.g. cncmx7.txt)
     if not file_deleted and os.path.exists(MANUALS_DIR):
         for fname in os.listdir(MANUALS_DIR):
@@ -428,6 +550,10 @@ def delete_manual(machine: str):
                             if line.lower().startswith("machine:") and machine.lower() in line.lower():
                                 os.remove(fpath)
                                 file_deleted = True
+                                # Also remove matching pdf
+                                cand_pdf = fpath.replace(".txt", ".pdf")
+                                if os.path.exists(cand_pdf):
+                                    os.remove(cand_pdf)
                                 break
                 except Exception:
                     pass

@@ -1,3 +1,4 @@
+import re
 from src.embed_store import search, get_distinct_machines
 
 LEGACY_MACHINE_MAP = {
@@ -44,10 +45,18 @@ def retrieve(parsed_query, k=5):
 
     retrieved_chunks = search(query=search_text, k=fetch_k, filter_metadata=filter_metadata)
 
-    # Re-rank: If error_code is known, bring chunks matching error_code to the front
+    # Re-rank: If error_code is known, bring chunks matching error_code to the front and boost score
     if error_code:
-        matching_chunks = [c for c in retrieved_chunks if c.get("error_code") == error_code]
-        other_chunks = [c for c in retrieved_chunks if c.get("error_code") != error_code]
+        matching_chunks = []
+        other_chunks = []
+        for c in retrieved_chunks:
+            if c.get("error_code") == error_code or re.search(rf"\b{re.escape(error_code)}\b", c.get("text", ""), re.IGNORECASE):
+                c_copy = dict(c)
+                # Boost confidence for verified exact ground-truth code matches
+                c_copy["score"] = max(c_copy.get("score", 0.0), 0.90)
+                matching_chunks.append(c_copy)
+            else:
+                other_chunks.append(c)
         retrieved_chunks = matching_chunks + other_chunks
 
     return retrieved_chunks[:k]
