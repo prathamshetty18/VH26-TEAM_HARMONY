@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # MachineAssist — RAG-Based Intelligent Machine Troubleshooting System
 
 A retrieval-augmented troubleshooting assistant for factory technicians. It ingests multiple machine manuals, resolves conflicting/overlapping error codes across machines, retrieves the right information with citations, and refuses to answer when the manuals don't support an answer.
@@ -89,3 +90,7 @@ See **DESIGN.md**. It breaks the system into sequential phases (Phase 0 → Phas
 4. **Insufficient information** — a question with no documented answer → system explicitly says the manuals don't cover it, and does not invent an answer
 
 See `tests/demo_queries.md` for the exact scripted queries once Phase 1 data is authored.
+=======
+# VH26-TEAM_HARMONY
+APPLICATION DATA MANAGEMENT (RAG)
+>>>>>>> 172810e3e6f4e5359ccb47a766e51e5f2b861b86
