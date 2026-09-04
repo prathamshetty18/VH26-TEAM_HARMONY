@@ -1,5 +1,7 @@
 import os
 import sys
+import re
+from typing import Optional
 from dotenv import load_dotenv
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -13,6 +15,9 @@ try:
 except ImportError:
     from safety import REFUSAL_MESSAGE
 
+# Single unified source of truth for model name
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+
 SYSTEM_PROMPT = f"""You are MachineAssist, an expert factory troubleshooting assistant. Your task is to answer user queries using ONLY the provided manual sources.
 
 Format your answer using the following 4 sections:
@@ -23,6 +28,33 @@ Format your answer using the following 4 sections:
 
 Important: If the provided sources do NOT contain any information about the query, reply with ONLY:
 "{REFUSAL_MESSAGE}"
+"""
+
+PDF_STRUCTURING_SYSTEM_PROMPT = """You are a technical document parser. Your job is to convert unstructured industrial machine manual text into a standardized structure conforming to the specification below.
+
+Do NOT invent any information, causes, error codes, or steps that are not present in the source text.
+Preserve exact error codes, numbers, parameters, and descriptions.
+
+The structure MUST follow this exact format:
+MACHINE: <Machine Name>
+MODEL: <Model Name>
+
+ERROR CODE: <Code or Symptom ID e.g. E101 or SYM-OVERHEAT>
+SECTION: <Descriptive Section Title>
+PAGE: <Page number if known, or 1>
+MEANING: <One or two sentences explaining the error/symptom>
+CAUSES:
+- <Cause 1>
+- <Cause 2>
+
+SECTION: <Troubleshooting Section Title>
+PAGE: <Page number if known, or 1>
+STEPS:
+1. <Action Step 1>
+2. <Action Step 2>
+
+...Repeat for each error code or symptom block in the manual.
+Output ONLY the structured plain text with no markdown code fences, no extra preamble, and no commentary.
 """
 
 def assemble_context(chunks):
@@ -61,7 +93,7 @@ def generate_answer(query, context, api_key=None):
             system_instruction=SYSTEM_PROMPT
         )
 
-        model_name = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+        model_name = os.getenv("GEMINI_MODEL", GEMINI_MODEL)
         response = client.models.generate_content(
             model=model_name,
             contents=user_content,
@@ -106,6 +138,39 @@ def generate_answer(query, context, api_key=None):
         # Fallback if API call fails e.g. quota limit (429) or connection error
         # Construct structured answer from context so system remains operational during rate limits
         return f"1. Error meaning (Context Fallback):\n{context}\n2. Probable causes: See context above\n3. Step-by-step corrective action: Follow manual steps in context\n4. Sources: Manual sections cited above"
+
+def structure_pdf_text_with_llm(raw_text: str, api_key: Optional[str] = None) -> str:
+    """
+    Calls Gemini to format raw extracted PDF text into MANUAL_FORMAT_SPEC.md standard.
+    """
+    load_dotenv(override=True)
+    api_key = api_key or os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY is required to structure PDF content with Gemini.")
+
+    from google import genai
+    from google.genai import types
+    client = genai.Client(api_key=api_key)
+
+    config = types.GenerateContentConfig(
+        system_instruction=PDF_STRUCTURING_SYSTEM_PROMPT,
+        temperature=0.1
+    )
+
+    model_name = os.getenv("GEMINI_MODEL", GEMINI_MODEL)
+    response = client.models.generate_content(
+        model=model_name,
+        contents=raw_text,
+        config=config
+    )
+
+    if not response or not response.text:
+        raise RuntimeError("Gemini returned empty structured text.")
+
+    text = response.text.strip()
+    text = re.sub(r"^```[a-zA-Z]*\n", "", text)
+    text = re.sub(r"\n```$", "", text).strip()
+    return text
 
 if __name__ == "__main__":
     test_chunks = [
