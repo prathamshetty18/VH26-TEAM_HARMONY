@@ -61,7 +61,7 @@ def generate_answer(query, context, api_key=None):
             system_instruction=SYSTEM_PROMPT
         )
 
-        model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+        model_name = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
         response = client.models.generate_content(
             model=model_name,
             contents=user_content,
@@ -74,15 +74,18 @@ def generate_answer(query, context, api_key=None):
 
         candidate = response.candidates[0]
 
-        # finish_reason values: STOP=1 (normal), SAFETY=3 (blocked), OTHER non-1 = abnormal
         finish_reason = getattr(candidate, "finish_reason", None)
-        # finish_reason is an enum; value 1 == STOP (normal completion)
-        if finish_reason is not None and hasattr(finish_reason, "value"):
-            reason_val = finish_reason.value
-        else:
-            reason_val = finish_reason  # may already be int or None
+        is_stop = False
+        if finish_reason is None:
+            is_stop = True
+        elif hasattr(finish_reason, "name") and finish_reason.name == "STOP":
+            is_stop = True
+        elif hasattr(finish_reason, "value") and finish_reason.value in ("STOP", 1):
+            is_stop = True
+        elif "STOP" in str(finish_reason).upper():
+            is_stop = True
 
-        if reason_val not in (None, 1):
+        if not is_stop:
             # Blocked by safety filters or other abnormal stop — do not hallucinate
             return REFUSAL_MESSAGE
 
@@ -99,6 +102,7 @@ def generate_answer(query, context, api_key=None):
         return text
 
     except Exception as e:
+        print(f"[generate_answer error]: {type(e).__name__}: {e}")
         # Fallback if API call fails e.g. quota limit (429) or connection error
         # Construct structured answer from context so system remains operational during rate limits
         return f"1. Error meaning (Context Fallback):\n{context}\n2. Probable causes: See context above\n3. Step-by-step corrective action: Follow manual steps in context\n4. Sources: Manual sections cited above"
