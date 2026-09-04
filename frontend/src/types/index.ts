@@ -1,4 +1,4 @@
-﻿export interface Machine {
+export interface Machine {
   id: string;
   name: string;
   category: string;
@@ -23,6 +23,23 @@ export interface AmbiguityOption {
   queryHint?: string;
 }
 
+export interface PossibleFault {
+  fault: string;
+  confidence_score: number;
+  confidence_percentage: number;
+  confidence_level: string;
+  is_primary: boolean;
+  component?: string;
+}
+
+export interface FaultEvidence {
+  contributing_evidence: string;
+  reasoning: string;
+  sensor_readings: Record<string, any>;
+  reasoning_points?: string[];
+  disclaimer: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -38,6 +55,18 @@ export interface Message {
   steps?: string[];
   citations?: Citation[];
 
+  // Confidence scoring additions
+  fault?: string;
+  component?: string;
+  confidence_score?: number;
+  confidence_level?: string;
+  confidence_percentage?: number;
+  cause?: string;
+  recommendation?: string;
+  possible_faults?: PossibleFault[];
+  evidence?: FaultEvidence;
+  disclaimer?: string;
+
   // Ambiguity clarification structure
   ambiguityPrompt?: string;
   ambiguityOptions?: AmbiguityOption[];
@@ -45,6 +74,7 @@ export interface Message {
   // Refusal structure
   refusalMessage?: string;
 }
+
 
 export interface SessionMemoryState {
   sessionId: string;

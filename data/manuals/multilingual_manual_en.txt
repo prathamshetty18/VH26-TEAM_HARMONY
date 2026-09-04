@@ -1,0 +1,236 @@
+================================================================================
+CNC Milling Machine — Model MX-7 Precision — [English]
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Machine Overview
+--------------------------------------------------------------------------------
+Machine Name: CNC Milling Machine — Model MX-7 Precision
+Purpose: High-precision 5-axis vertical CNC milling center engineered for tight-tolerance aerospace components, medical implants, and high-speed precision tooling production.
+Main Components:
+  * High-Speed Electro-Spindle (24,000 RPM)
+  * 5-Axis Digital AC Servo Drive System (X, Y, Z, A, C)
+  * 40-Station High-Speed Automatic Tool Changer (ATC)
+  * Industrial CNC Motion Controller & Operator Console
+  * High-Pressure Through-Spindle Coolant (TSC) Unit (70 bar)
+  * Centralized Automated Slideway Lubrication Pump (18 bar)
+Operating Principle: The machine synchronizes 5 closed-loop servo axes with high-speed tool rotation up to 24,000 RPM. Optical linear glass scales provide continuous position feedback to the CNC controller, allowing automated milling, drilling, and contouring operations with repeatability of +/- 0.002 mm.
+
+--------------------------------------------------------------------------------
+2. Safety Instructions
+--------------------------------------------------------------------------------
+[Safety Precautions]
+  * Ensure enclosure safety interlock doors remain locked during active machining cycles.
+  * Verify raw stock workpiece is securely clamped to the milling bed before pressing Cycle Start.
+  * Keep hands and clothing clear of the tool magazine and spindle envelope during power-up.
+
+[Electrical Safety]
+  * Supply voltage is 400V AC (3-phase). Only certified electricians may open the main electrical control cabinet.
+  * Follow strict Lockout/Tagout (LOTO) procedures at the main circuit disconnect switch prior to servicing.
+  * Wait at least 10 minutes after disconnecting power to allow high-voltage servo bus capacitors to discharge.
+
+[Emergency Procedures]
+  * In any abnormal condition, immediately press any red palm Emergency Stop (E-stop) push-button.
+  * In case of smoke, electrical burning odor, or fire, strike E-stop and switch the main 400V circuit breaker to OFF.
+
+[Warnings]
+  ! WARNING: High Voltage (400V) inside rear electrical cabinet.
+  ! WARNING: Spindle rotates up to 24,000 RPM. Flying chips and broken cutters present severe projectile hazards.
+  ! WARNING: Automatic tool changer arm moves rapidly without warning during program execution.
+
+[Required Protective Equipment (PPE)]
+  + Safety glasses with side shields (ANSI Z87.1 / EN 166)
+  + Steel-toed safety boots with slip-resistant soles (EN ISO 20345)
+  + Hearing protection for continuous cutting operations exceeding 85 dBA
+  + Cut-resistant gloves when handling carbide tools (NEVER wear gloves near rotating spindle!)
+
+--------------------------------------------------------------------------------
+3. Machine Components
+--------------------------------------------------------------------------------
+Component: High-Speed Electro-Spindle
+  Function:           Directly rotates cutting tools with continuous variable speed up to 24,000 RPM.
+  Normal Condition:   Smooth running, housing temperature below 45°C (max limit 94°C), vibration below 0.8 mm/s.
+  Common Problems:    Bearing wear, thermal overload exceeding 94°C, dynamic unbalance, tool unclamp failure.
+
+Component: Axis Servo Drives & Linear Guideways
+  Function:           Translates CNC coordinates into linear motion along X, Y, Z axes and rotation along A, C axes.
+  Normal Condition:   Smooth movement without jerk, positioning repeatability +/- 0.002 mm, constant 18 bar oil film.
+  Common Problems:    Linear glass scale contamination, ballscrew backlash, servo following error.
+
+Component: Automatic Tool Changer (ATC)
+  Function:           Stores 40 tool holders and automatically swaps tools in the spindle within 1.8 seconds.
+  Normal Condition:   Clean tool pot pockets, pneumatic pressure at 6.5 bar, smooth 180° arm swing.
+  Common Problems:    Gripper claw chip jamming, tool clamp sensor failure, drop in pneumatic pressure.
+
+Component: Through-Spindle Coolant (TSC) Unit
+  Function:           Delivers high-pressure cutting fluid directly through cutter internal channels to evacuate chips.
+  Normal Condition:   Pressure between 45 bar and 70 bar, flow rate > 6.2 L/min, filter indicator green.
+  Common Problems:    Clogged 25-micron filter element, coolant pump cavitation, line rupture.
+
+Component: Centralized Progressive Lubrication Pump
+  Function:           Metered delivery of ISO VG 68 way lube oil to all linear guideways and ballscrew nuts.
+  Normal Condition:   Pressure pulse builds to 18 bar every 20 minutes, reservoir level above minimum.
+  Common Problems:    Low oil level, cracked 4 mm nylon delivery tube, stuck divider manifold valve.
+
+--------------------------------------------------------------------------------
+4. Operating Instructions
+--------------------------------------------------------------------------------
+[Starting]
+  1. Verify main electrical disconnect switch is ON (400V).
+  2. Turn CNC power key-switch to ON and allow operating system to boot completely.
+  3. Release all Emergency Stop buttons (twist clockwise).
+  4. Press the Machine Ready button on the operator console.
+  5. Execute the 'HOME REF' zero-return routine on all 5 axes (X, Y, Z, A, C).
+  6. Run the automated 15-minute spindle warm-up cycle at 4,000 RPM before heavy machining.
+
+[Normal Operation]
+  1. Load verified CNC part program via USB or local network.
+  2. Inspect cutting tool condition and measure tool length/diameter offsets.
+  3. Mount raw workpiece and verify clamping hydraulic/pneumatic pressure is at 25 bar.
+  4. Set Work Coordinate System (WCS) using the optical 3D touch probe.
+  5. Verify through-spindle coolant tank is filled with 8% synthetic emulsion.
+  6. Close enclosure door and press the illuminated green 'CYCLE START' button.
+
+[Monitoring]
+  1. Monitor spindle motor load meter; normal load must remain below 80%.
+  2. Confirm coolant delivery flow rate reads above 6.2 L/min during cutting.
+  3. Observe axis vibration gauges and listen for abnormal acoustic chattering.
+  4. Check spindle temperature readout on the telemetry page (ensure < 94°C).
+
+[Stopping]
+  1. Press 'FEED HOLD' button to pause axis motion at the end of a cut pass.
+  2. Enter M05 in MDI mode to bring spindle rotation to a full stop.
+  3. Turn off coolant delivery with M09.
+  4. Jog axes to part loading position and open enclosure door to inspect workpiece.
+
+[Emergency Shutdown]
+  1. Strike any red palm-type Emergency Stop button immediately.
+  2. Spindle power is cut and dynamic electronic braking stops rotation within 1.5 seconds.
+  3. Axis drives immediately freeze in position to prevent tool plunge.
+  4. Turn off main 400V circuit breaker if an electrical emergency or fire is observed.
+
+--------------------------------------------------------------------------------
+5. Error and Fault Instructions
+--------------------------------------------------------------------------------
+Problem: Motor overheating (Spindle motor reaches 94°C or above)
+  --> Possible Cause:     High load cutting, poor cooling circuit ventilation, low chiller coolant, or bearing wear.
+  --> What to Check:      Check spindle temperature on telemetry, inspect chiller fluid level at 2.5 bar, check for clogged fan filters.
+  --> Recommended Action: Stop the machine immediately and inspect the motor. Allow 15 minutes idle rotation at 500 RPM to circulate chiller fluid.
+
+Problem: Spindle excessive vibration at high RPM
+  --> Possible Cause:     Tool holder dynamic unbalance, chipped carbide cutter insert, or worn ceramic bearings.
+  --> What to Check:      Inspect tool holder balance grade (ISO 1940-1 Grade G2.5), check cutter teeth with optical loupe, measure spindle nose radial runout.
+  --> Recommended Action: Replace damaged cutter insert. Rebalance tool holder or replace worn tool assembly before exceeding 10,000 RPM.
+
+Problem: Through-spindle coolant pressure drop below 45 bar
+  --> Possible Cause:     Clogged 25-micron inline filter element, low reservoir tank fluid, or air trapped in pump.
+  --> What to Check:      Check red pop-up differential pressure indicator on filter housing, check tank level sight glass.
+  --> Recommended Action: Replace dirty filter cartridge (Part No. MX-FLT-025), top up coolant to full line, bleed pump air valve.
+
+Problem: Automatic tool changer arm failure to clamp tool
+  --> Possible Cause:     Shop pneumatic supply pressure below 6.0 bar, metal chips in spindle taper, or worn pull stud.
+  --> What to Check:      Check pneumatic supply pressure gauge (must read 6.5 bar), inspect internal spindle BT40 taper for swarf.
+  --> Recommended Action: Wipe spindle taper with conical felt wiper, adjust shop regulator to 6.5 bar, replace scored pull stud.
+
+--------------------------------------------------------------------------------
+6. Maintenance Instructions
+--------------------------------------------------------------------------------
+[Regular Inspection]
+  * Daily: Check oil level in central lubrication tank (ISO VG 68 way lube).
+  * Daily: Verify pneumatic supply regulator is stable at 6.5 bar.
+  * Daily: Inspect coolant tank level and verify synthetic emulsion concentration at 8% using a refractometer.
+
+[Cleaning]
+  * Clean metal chips from way covers, ballscrews, and door rails after each shift.
+  * Wipe spindle internal BT40 taper clean using dry, lint-free cloth and cleaner.
+  * Clean electrical cabinet air filter grilles with compressed air weekly.
+
+[Lubrication]
+  * Keep central lubrication reservoir filled with ISO VG 68 slideway lubricant.
+  * Apply high-speed spindle grease (Kluber NBU 15) to tool changer cam mechanism monthly.
+  * Grease counterweight chain linkages every 500 operating hours.
+
+[Component Inspection]
+  * Inspect linear optical scale glass scanning windows for coolant mist or contamination.
+  * Measure spindle mechanical axial play with dial test indicator (must be < 0.003 mm).
+  * Check emergency stop switches and door interlocks for positive circuit break.
+
+[Replacement Instructions]
+  * High-pressure coolant filter: Replace 25-micron element whenever differential pressure pop-up activates.
+  * Way cover wiper seals: Replace damaged polyurethane wiper lips annually.
+  * Spindle chiller fluid: Flush and refill closed-loop glycol chiller mixture annually.
+
+[Maintenance Intervals]
+  - Daily (8 Hours): Check lube oil level, pneumatic pressure (6.5 bar), clean chip pan and spindle taper.
+  - Weekly (50 Hours): Clean electrical cabinet filters, check coolant concentration (8%), test E-stop circuits.
+  - Monthly (200 Hours): Grease tool changer gripper claws, check linear scale air purge regulator (1.5 bar).
+  - Semi-Annual (1,000 Hours): Inspect ballscrew backlash, check drawbar clamping retention force (> 10.5 kN).
+  - Annual (2,000 Hours): Flush chiller glycol loop, replace axis way cover wipers, recalibrate laser geometry.
+
+--------------------------------------------------------------------------------
+7. Troubleshooting
+--------------------------------------------------------------------------------
+Error / Fault: Motor overheating
+  Possible Cause: Excessive cutting load, spindle cooling circuit failure, ambient temperature > 38°C, or bearing degradation (Temp > 94°C).
+  Solution:       Reduce feed rate, verify chiller loop pressure is 2.5 bar, clean cabinet air filters, allow motor to cool.
+
+Error / Fault: Excessive vibration
+  Possible Cause: Unbalanced tool holder, tool stickout ratio > 3:1, worn spindle bearings, or loose workpiece clamping.
+  Solution:       Balance tool holder to G2.5 at 24,000 RPM, reduce overhang, verify hydraulic clamping at 25 bar.
+
+Error / Fault: Abnormal noise
+  Possible Cause: Dry ballscrew contact, dry gear meshing, loose protective sheet metal, or chipped tool insert.
+  Solution:       Force manual lubrication cycle (18 bar), inspect cutter edges under optical scope, tighten way cover bolts.
+
+Error / Fault: Voltage problems
+  Possible Cause: Main 400V supply phase imbalance > 3%, incoming line surge, or blown phase fuse in control cabinet.
+  Solution:       Measure 3-phase line voltages at input terminal block (380V - 420V nominal). Check incoming facility power tap.
+
+Error / Fault: Current problems
+  Possible Cause: Spindle motor stator overcurrent, axis mechanical jam, or defective servo drive IGBT module.
+  Solution:       Disconnect drive output and measure winding resistance (balanced to 0.1 ohm). Clear mechanical axis obstruction.
+
+Error / Fault: Sensor failure
+  Possible Cause: Linear optical scale condensation, metal chips blocking proximity switch, or broken 24V sensor cable.
+  Solution:       Clean scale glass window with isopropyl alcohol, blow clean proximity switch face, test 24V DC sensor voltage.
+
+Error / Fault: Bearing failure
+  Possible Cause: Loss of bearing grease, dynamic tool imbalance at 24,000 RPM, or coolant ingress into spindle cartridge.
+  Solution:       Check spindle vibration level; if radial runout exceeds 0.005 mm TIR, replace spindle hybrid ceramic bearing pack.
+
+Error / Fault: Power failure
+  Possible Cause: Main supply breaker tripped, 24V DC control power supply overload, or safety relay fault.
+  Solution:       Reset main 400V circuit breaker, check 24V DC switching power supply output LED, trace safety interlock loop.
+
+Error / Fault: Communication failure
+  Possible Cause: EtherCAT bus cable loose, servo amplifier node address conflict, or electromagnetic interference (EMI).
+  Solution:       Reseat shielded RJ45 bus cables, verify shielded ground braid connection, verify drive node rotary switch addresses.
+
+--------------------------------------------------------------------------------
+8. Emergency Procedures
+--------------------------------------------------------------------------------
+Situation: Critical hardware failure
+  Action:    1. Strike red palm E-stop immediately. 2. Do not attempt to move axes manually. 3. Turn OFF main electrical isolator. 4. Tag the machine with 'DO NOT OPERATE' lock and notify maintenance supervisor.
+
+Situation: Overheating (Spindle or coolant > 94°C)
+  Action:    1. Abort cutting cycle. 2. If no smoke is present, allow spindle to idle at 500 RPM for 10 minutes to circulate chiller fluid. 3. If temperature continues climbing past 105°C, hit Emergency Stop. 4. Inspect chiller pump and fluid level.
+
+Situation: Electrical fault (Sparks, smoke, or burnt odor)
+  Action:    1. Immediately strike E-stop button. 2. Switch main 400V disconnect handle to OFF position. 3. If fire develops, discharge a CO2 or Class C dry powder fire extinguisher. Never use water on electrical machinery!
+
+Situation: Unexpected machine shutdown
+  Action:    1. Do not immediately cycle power. 2. Inspect control cabinet error LEDs and record fault codes. 3. Verify main supply voltage. 4. Inspect axis way covers for mechanical binding before restarting.
+
+Situation: Emergency stop activation & reset sequence
+  Action:    1. Ensure all personnel are clear of machine cutting area. 2. Resolve initial hazard condition. 3. Twist active E-stop button clockwise to pop it out. 4. Press blue 'ALARM RESET' button on pendant. 5. Re-reference axes (HOME REF).
+
+--------------------------------------------------------------------------------
+9. Technical Specifications
+--------------------------------------------------------------------------------
+  Voltage                             : 400V AC +/- 10% (3-Phase, 50/60 Hz)
+  Current                             : 32A continuous full load (45A peak inrush)
+  Power                               : 15 kW continuous S1 rating (22 kW S6-40%)
+  RPM                                 : 100 - 24,000 RPM (Continuous variable speed)
+  Temperature range                   : Ambient: 18°C - 25°C | Chiller: 20°C +/- 0.5°C | Max Motor Limit: 94°C (Alarm at 115°C)
+  Pressure                            : Shop Air: 6.5 bar | Central Lube: 18 bar | TSC Coolant: 45 bar - 70 bar
+  Operating conditions                : Clean industrial workshop, 30% - 75% RH non-condensing, foundation vibration < 0.5 mm/s
