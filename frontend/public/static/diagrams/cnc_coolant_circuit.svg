@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="100%" height="100%" style="background:#0b1120; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
+  <defs>
+    <linearGradient id="coolantFlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="50%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="sensorAlert" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0.3" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Title &amp; Metadata Header -->
+  <rect x="20" y="16" width="760" height="50" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="36" y="44" fill="#38bdf8" font-size="16" font-weight="bold">SYSTEM SCHEMATIC: THROUGH-SPINDLE COOLANT (TSC) CIRCUIT</text>
+  <text x="590" y="44" fill="#94a3b8" font-size="12">DOC ID: DIA-MX7-E101 | REV 3.2</text>
+
+  <!-- Reservoir Tank -->
+  <rect x="50" y="320" width="160" height="120" rx="8" fill="#0f172a" stroke="#0284c7" stroke-width="2"/>
+  <rect x="55" y="360" width="150" height="75" rx="4" fill="#0284c7" fill-opacity="0.25"/>
+  <text x="75" y="348" fill="#e2e8f0" font-size="13" font-weight="bold">COOLANT TANK</text>
+  <text x="80" y="390" fill="#7dd3fc" font-size="11">Cap: 180 Liters</text>
+  <text x="80" y="410" fill="#94a3b8" font-size="10">Clean Side Reservoir</text>
+
+  <!-- Suction Strainer -->
+  <rect x="90" y="270" width="80" height="40" rx="4" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+  <text x="100" y="294" fill="#cbd5e1" font-size="11">STRAINER 50&#181;m</text>
+
+  <!-- Pipe from tank to strainer -->
+  <line x1="130" y1="320" x2="130" y2="310" stroke="#38bdf8" stroke-width="4"/>
+
+  <!-- High-Pressure Pump Unit -->
+  <circle cx="280" cy="230" r="50" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+  <polygon points="265,210 305,230 265,250" fill="#38bdf8"/>
+  <text x="250" y="165" fill="#f8fafc" font-size="13" font-weight="bold">HP PUMP M-02</text>
+  <text x="245" y="300" fill="#94a3b8" font-size="11">7.5 kW | 70 Bar</text>
+
+  <!-- Pipe Strainer to Pump -->
+  <path d="M 170 290 L 230 290 L 230 230" fill="none" stroke="#38bdf8" stroke-width="4"/>
+
+  <!-- 10 Micron Secondary Filter Unit -->
+  <rect x="370" y="195" width="70" height="70" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
+  <line x1="370" y1="230" x2="440" y2="230" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,4"/>
+  <text x="375" y="180" fill="#cbd5e1" font-size="11" font-weight="bold">FILTER UNIT</text>
+  <text x="382" y="280" fill="#94a3b8" font-size="10">10&#181;m Bag Filter</text>
+
+  <!-- Pipe Pump to Filter -->
+  <line x1="330" y1="230" x2="370" y2="230" stroke="#38bdf8" stroke-width="4"/>
+
+  <!-- CRITICAL: Flow Sensor FL-10 (Error E101 Location) -->
+  <g filter="url(#glow)">
+    <rect x="490" y="180" width="110" height="100" rx="8" fill="url(#sensorAlert)" stroke="#ef4444" stroke-width="2.5"/>
+  </g>
+  <circle cx="545" cy="225" r="18" fill="#ef4444" fill-opacity="0.3"/>
+  <text x="502" y="205" fill="#fecaca" font-size="12" font-weight="bold">SENSOR FL-10</text>
+  <text x="500" y="245" fill="#f87171" font-size="10" font-weight="bold">FLOW TRIP &lt; 3.8 L/m</text>
+  <text x="508" y="265" fill="#ef4444" font-size="11" font-weight="bold">FAULT: E101</text>
+
+  <!-- Pipe Filter to Sensor -->
+  <line x1="440" y1="230" x2="490" y2="230" stroke="#38bdf8" stroke-width="4"/>
+
+  <!-- Spindle Cartridge &amp; Nozzle -->
+  <rect x="660" y="160" width="100" height="140" rx="8" fill="#1e293b" stroke="#a855f7" stroke-width="2.5"/>
+  <path d="M 760 215 L 785 220 L 785 240 L 760 245 Z" fill="#c084fc"/>
+  <text x="672" y="195" fill="#f3e8ff" font-size="12" font-weight="bold">SPINDLE</text>
+  <text x="668" y="215" fill="#c084fc" font-size="11">MX-7 Cartridge</text>
+  <text x="672" y="250" fill="#94a3b8" font-size="10">Rotary Union</text>
+  <text x="670" y="275" fill="#e2e8f0" font-size="10">24,000 RPM</text>
+
+  <!-- Pipe Sensor to Spindle -->
+  <line x1="600" y1="230" x2="660" y2="230" stroke="#38bdf8" stroke-width="4"/>
+
+  <!-- Return Loop to Tank -->
+  <path d="M 710 300 L 710 400 L 210 400" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="6,4"/>
+  <text x="450" y="420" fill="#64748b" font-size="10">GRAVITY RETURN DRAINAGE</text>
+
+  <!-- Fault Diagnostic Pointer Badge -->
+  <rect x="440" y="90" width="220" height="55" rx="6" fill="#7f1d1d" stroke="#f87171" stroke-width="1.5"/>
+  <text x="450" y="112" fill="#fef2f2" font-size="11" font-weight="bold">E101 CHECKPOINT 1:</text>
+  <text x="450" y="130" fill="#fecaca" font-size="10">Clean FL-10 turbine &amp; check pressure</text>
+  <line x1="545" y1="145" x2="545" y2="180" stroke="#ef4444" stroke-width="2" stroke-dasharray="3,3"/>
+</svg>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="100%" height="100%" style="background:#0b1120; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
+  <defs>
+    <filter id="glowWarn" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Title &amp; Metadata Header -->
+  <rect x="20" y="16" width="760" height="50" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="36" y="44" fill="#38bdf8" font-size="16" font-weight="bold">HYDRAULIC SCHEMATIC: MAIN RAM PROPORTIONAL PRESSURE LOOP</text>
+  <text x="580" y="44" fill="#94a3b8" font-size="12">DOC ID: DIA-HP2200-H201 | REV 4.0</text>
+
+  <!-- Hydraulic Fluid Reservoir -->
+  <rect x="40" y="320" width="160" height="120" rx="8" fill="#0f172a" stroke="#d97706" stroke-width="2"/>
+  <rect x="45" y="360" width="150" height="75" rx="4" fill="#d97706" fill-opacity="0.2"/>
+  <text x="65" y="348" fill="#e2e8f0" font-size="12" font-weight="bold">OIL RESERVOIR</text>
+  <text x="70" y="390" fill="#fcd34d" font-size="11">ISO VG 46 Oil</text>
+  <text x="70" y="410" fill="#94a3b8" font-size="10">Temp Range: 35-50&#176;C</text>
+
+  <!-- Main Variable Axial Piston Pump -->
+  <circle cx="260" cy="240" r="45" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+  <polygon points="245,225 285,240 245,255" fill="#38bdf8"/>
+  <text x="225" y="180" fill="#f8fafc" font-size="12" font-weight="bold">AXIAL PUMP P-01</text>
+  <text x="235" y="305" fill="#94a3b8" font-size="11">250 Bar Peak</text>
+
+  <!-- Suction Line -->
+  <path d="M 120 320 L 120 240 L 215 240" fill="none" stroke="#d97706" stroke-width="4"/>
+
+  <!-- Proportional Pressure Control Relief Valve PV-01 -->
+  <g filter="url(#glowWarn)">
+    <rect x="360" y="200" width="110" height="85" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="2.5"/>
+  </g>
+  <text x="372" y="225" fill="#fef3c7" font-size="11" font-weight="bold">VALVE PV-01</text>
+  <text x="372" y="245" fill="#f59e0b" font-size="10">Proportional Relief</text>
+  <text x="372" y="265" fill="#94a3b8" font-size="10">0-10V DC Input</text>
+
+  <!-- Line Pump to Valve -->
+  <line x1="305" y1="240" x2="360" y2="240" stroke="#ef4444" stroke-width="4"/>
+
+  <!-- Pressure Transducer PT-01 (Error H201 / E101 Location) -->
+  <g filter="url(#glowWarn)">
+    <rect x="520" y="140" width="105" height="90" rx="8" fill="#7f1d1d" stroke="#ef4444" stroke-width="2.5"/>
+  </g>
+  <circle cx="572" cy="180" r="16" fill="#ef4444" fill-opacity="0.3"/>
+  <text x="532" y="162" fill="#fee2e2" font-size="11" font-weight="bold">SENSOR PT-01</text>
+  <text x="528" y="200" fill="#f87171" font-size="9" font-weight="bold">PRESSURE DROP</text>
+  <text x="535" y="218" fill="#ef4444" font-size="10" font-weight="bold">H201 / E101</text>
+
+  <!-- Line Valve to Transducer -->
+  <line x1="470" y1="240" x2="572" y2="240" stroke="#ef4444" stroke-width="4"/>
+  <line x1="572" y1="240" x2="572" y2="230" stroke="#ef4444" stroke-width="4"/>
+
+  <!-- Main 200-Ton Hydraulic Cylinder Ram -->
+  <rect x="670" y="160" width="90" height="180" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+  <rect x="690" y="210" width="50" height="110" rx="3" fill="#64748b"/>
+  <rect x="705" y="320" width="20" height="70" fill="#94a3b8"/>
+  <text x="682" y="190" fill="#f8fafc" font-size="12" font-weight="bold">MAIN RAM</text>
+  <text x="685" y="205" fill="#38bdf8" font-size="10">2,200 kN Press</text>
+
+  <!-- Pressure Line into Cylinder Top Port -->
+  <line x1="572" y1="240" x2="670" y2="240" stroke="#ef4444" stroke-width="4"/>
+
+  <!-- Tank Return Line -->
+  <path d="M 415 285 L 415 380 L 200 380" fill="none" stroke="#d97706" stroke-width="3" stroke-dasharray="6,4"/>
+  <text x="270" y="400" fill="#d97706" font-size="10">TANK RETURN DRAIN</text>
+
+  <!-- Diagnostic Alert Callout -->
+  <rect x="420" y="75" width="290" height="50" rx="6" fill="#7f1d1d" stroke="#f87171" stroke-width="1.5"/>
+  <text x="430" y="96" fill="#fef2f2" font-size="11" font-weight="bold">FAULT H201 / E101 CHECKPOINT:</text>
+  <text x="430" y="114" fill="#fecaca" font-size="10">Inspect PV-01 valve spool &amp; verify PT-01 4-20mA signal</text>
+  <line x1="572" y1="125" x2="572" y2="140" stroke="#ef4444" stroke-width="2" stroke-dasharray="3,3"/>
+</svg>

@@ -5,7 +5,7 @@ import os
 import concurrent.futures
 
 BASE_URL = "http://127.0.0.1:8000"
-REPO_ROOT = r"C:\Users\HP\VH26-TEAM_HARMONY"
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 MANUALS_DIR = os.path.join(REPO_ROOT, "data", "manuals")
 REFUSAL_EXPECTED = "The manuals don't cover this. I won't guess at a fix."
 

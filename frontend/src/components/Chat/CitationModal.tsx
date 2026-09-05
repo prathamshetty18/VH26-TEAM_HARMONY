@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import type { Citation } from '../../types';
 import { FileText, X, CheckCircle } from 'lucide-react';
 
@@ -50,6 +50,32 @@ export const CitationModal: React.FC<CitationModalProps> = ({ citation, onClose 
               {citation.snippet ||
                 `Section 4.2 Spindle Thermal Cutoff (E101): Thermal sensor triggers safety shutoff when stator temperature exceeds 105°C. Check coolant lines and reset breaker after 15-minute cooldown.`}
             </div>
+          </div>
+
+          {/* Reranking & Retrieval Transparency Card */}
+          <div className="bg-slate-50 border border-slate-200 rounded-md p-3 text-xs font-mono space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500 uppercase tracking-wider font-semibold">Retrieval Pipeline</span>
+              <span className="text-slate-800 font-bold">Hybrid (k=20) → Cross-Encoder ms-marco (Top 5)</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500 uppercase tracking-wider font-semibold">Match Classification</span>
+              <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${citation.match_type === 'keyword' ? 'bg-indigo-100 text-indigo-800' : 'bg-cyan-100 text-cyan-900'}`}>
+                {citation.match_type === 'keyword' ? 'Exact Keyword Match (Prioritized)' : 'Semantic Cross-Encoder Reranked'}
+              </span>
+            </div>
+            {citation.rerank_score !== undefined && citation.match_type !== 'keyword' && (
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 uppercase tracking-wider font-semibold">Cross-Encoder Relevance Logit</span>
+                <span className="text-emerald-700 font-bold">{citation.rerank_score > 0 ? `+${citation.rerank_score}` : citation.rerank_score}</span>
+              </div>
+            )}
+            {citation.rank !== undefined && (
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 uppercase tracking-wider font-semibold">Rank Position</span>
+                <span className="text-slate-900 font-bold">Rank #{citation.rank} of top 5</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center space-x-2.5 text-xs md:text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded p-3 font-mono">

@@ -411,6 +411,31 @@ function appendNormalCard(data, elapsedMs) {
       ` : ''}
 
       ${citationsHtml}
+
+      ${(data.diagrams && data.diagrams.length > 0) ? `
+        <div class="card-content-section">
+          <div class="section-label" style="color: #0284c7; display: flex; align-items: center; gap: 0.4rem;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #0284c7;"></span>
+            Technical Schematics &amp; Diagrams
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem;">
+            ${data.diagrams.map(d => `
+              <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; overflow: hidden; padding: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.25rem 0.5rem; border-bottom: 1px solid #1e293b; font-size: 0.75rem; color: #94a3b8;">
+                  <span style="font-weight: 600; color: #38bdf8;">${escapeHtml(d.title)}</span>
+                  <span style="font-size: 0.7rem; font-family: var(--font-mono);">${escapeHtml(d.system || '')}</span>
+                </div>
+                <div style="padding: 0.5rem; text-align: center; max-height: 260px; overflow: hidden;">
+                  <img src="${escapeHtml(d.url)}" alt="${escapeHtml(d.title)}" style="max-width: 100%; max-height: 240px; object-fit: contain; border-radius: 4px;" />
+                </div>
+                <div style="padding: 0.25rem 0.5rem; font-size: 0.725rem; color: #94a3b8; font-family: var(--font-mono);">
+                  ${escapeHtml(d.caption)}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
     </div>
   `;
 

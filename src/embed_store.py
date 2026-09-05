@@ -8,31 +8,38 @@ embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(
     model_name="all-MiniLM-L6-v2"
 )
 
-DB_DIR = "./chroma_db"
+def get_embedding_function():
+    """Returns the shared SentenceTransformerEmbeddingFunction instance."""
+    return embedding_func
 
-def get_chroma_collection(collection_name: str = "machine_manuals") -> chromadb.Collection:
+DB_DIR = os.getenv("CHROMA_PATH", "./chroma_db")
+DEFAULT_COLLECTION = os.getenv("CHROMA_COLLECTION", "machine_manuals")
+
+def get_chroma_collection(collection_name: Optional[str] = None) -> chromadb.Collection:
+    name = collection_name or DEFAULT_COLLECTION
     client = chromadb.PersistentClient(path=DB_DIR)
     collection = client.get_or_create_collection(
-        name=collection_name,
+        name=name,
         embedding_function=embedding_func,
         metadata={"hnsw:space": "cosine"}
     )
     return collection
 
-def reset_collection(collection_name: str = "machine_manuals") -> chromadb.Collection:
+def reset_collection(collection_name: Optional[str] = None) -> chromadb.Collection:
     """Deletes and re-creates collection for a clean indexing run."""
+    name = collection_name or DEFAULT_COLLECTION
     client = chromadb.PersistentClient(path=DB_DIR)
     try:
-        client.delete_collection(name=collection_name)
+        client.delete_collection(name=name)
     except Exception:
         pass
     return client.create_collection(
-        name=collection_name,
+        name=name,
         embedding_function=embedding_func,
         metadata={"hnsw:space": "cosine"}
     )
 
-def index_chunks(chunks: List[Dict[str, Any]], collection_name: str = "machine_manuals") -> int:
+def index_chunks(chunks: List[Dict[str, Any]], collection_name: Optional[str] = None) -> int:
     """
     Stores chunks with metadata into Chroma collection using upsert.
     """
@@ -52,7 +59,10 @@ def index_chunks(chunks: List[Dict[str, Any]], collection_name: str = "machine_m
             "manual": chunk.get("manual", ""),
             "section": chunk.get("section", ""),
             "page": str(chunk.get("page") or ""),
-            "error_code": chunk.get("error_code") or ""
+            "error_code": chunk.get("error_code") or "",
+            "diagram_url": chunk.get("diagram_url") or "",
+            "diagram_title": chunk.get("diagram_title") or "",
+            "diagram_caption": chunk.get("diagram_caption") or ""
         })
 
     if ids:
@@ -64,20 +74,22 @@ def index_chunks(chunks: List[Dict[str, Any]], collection_name: str = "machine_m
 
     return len(ids)
 
-def search(query: str, k: int = 5, filter_metadata: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+def search(query: str, k: int = 5, filter_metadata: Optional[Dict[str, Any]] = None, collection_name: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     Performs similarity search in Chroma collection.
     Returns top k chunks with similarity scores.
     """
-    collection = get_chroma_collection("machine_manuals")
+    collection = get_chroma_collection(collection_name)
 
     where_clause = None
     if filter_metadata:
-        # Construct Chroma where filter
         filters = []
         for key, val in filter_metadata.items():
             if val is not None:
-                filters.append({key: {"$eq": val}})
+                if isinstance(val, (list, tuple, set)):
+                    filters.append({key: {"$in": list(val)}})
+                else:
+                    filters.append({key: {"$eq": val}})
         
         if len(filters) == 1:
             where_clause = filters[0]
@@ -111,6 +123,10 @@ def search(query: str, k: int = 5, filter_metadata: Optional[Dict[str, Any]] = N
                     if m:
                         page_val = int(m.group(0))
 
+            diag_url = meta.get("diagram_url")
+            diag_title = meta.get("diagram_title")
+            diag_caption = meta.get("diagram_caption")
+
             formatted_results.append({
                 "text": doc,
                 "machine": meta.get("machine"),
@@ -119,6 +135,9 @@ def search(query: str, k: int = 5, filter_metadata: Optional[Dict[str, Any]] = N
                 "section": meta.get("section"),
                 "page": page_val,
                 "error_code": meta.get("error_code") if meta.get("error_code") != "" else None,
+                "diagram_url": diag_url if diag_url else None,
+                "diagram_title": diag_title if diag_title else None,
+                "diagram_caption": diag_caption if diag_caption else None,
                 "score": sim_score,
                 "distance": dist,
                 "score_type": "similarity"

@@ -19,9 +19,15 @@ class SessionMemory:
     def update_session(self, session_id, machine=None, error_code=None, last_answer=None):
         sess = self.get_session(session_id)
         if machine:
+            if sess.get("last_machine") and sess.get("last_machine") != machine:
+                # Reset error code when switching to a different machine
+                sess["last_error_code"] = None
             sess["last_machine"] = machine
         if error_code:
             sess["last_error_code"] = error_code
+        elif machine and not error_code:
+            # Query was for general machine without error code
+            sess["last_error_code"] = None
         if last_answer:
             sess["last_answer"] = last_answer
 
@@ -42,11 +48,29 @@ class SessionMemory:
 
         from src.query_understanding import parse_query
         pq = parse_query(query)
-        has_new_machine = pq.get("machine") is not None
+        new_machine = pq.get("machine")
+        has_new_machine = new_machine is not None
         has_new_error = pq.get("error_code") is not None
 
         query_lower = query.lower().strip()
         injections = []
+
+        is_diagram_or_overview = bool(re.search(
+            r"\b(diagram|diagrams|schematic|schematics|image|images|drawing|drawings|blueprint|blueprints|circuit|circuits|flowchart|layout|overview|manual|guide|spec|specs)\b",
+            query_lower
+        ))
+
+        # If user explicitly asks for a diagram or overview, do NOT inject an old error code
+        if is_diagram_or_overview:
+            if not has_new_machine and last_m:
+                injections.append(f"machine {last_m}")
+            if injections:
+                return f"{query} (regarding {' '.join(injections)})"
+            return query
+
+        # If machine changed, do NOT carry over error code from a different machine
+        if has_new_machine and last_m and new_machine != last_m:
+            return query
 
         # Case 1: Machine specified, error code missing -> inherit error code
         if has_new_machine and not has_new_error and last_e:
@@ -58,12 +82,17 @@ class SessionMemory:
             if last_m.lower() not in query_lower:
                 injections.append(f"machine {last_m}")
 
-        # Case 3: Neither machine nor error specified in follow-up -> inherit both
+        # Case 3: Neither machine nor error specified in follow-up -> inherit both only if follow-up intent
         elif not has_new_machine and not has_new_error:
-            if last_m and last_m.lower() not in query_lower:
-                injections.append(f"machine {last_m}")
-            if last_e and last_e.lower() not in query_lower:
-                injections.append(f"error code {last_e}")
+            is_followup = bool(re.search(
+                r"\b(it|that|again|fix|troubleshoot|step|steps|cause|causes|action|actions|procedure|how|why|explain|solve|resolve|clear|reset|do|should|first|second|third|next|check|now|mean)\b",
+                query_lower
+            ))
+            if is_followup:
+                if last_m and last_m.lower() not in query_lower:
+                    injections.append(f"machine {last_m}")
+                if last_e and last_e.lower() not in query_lower:
+                    injections.append(f"error code {last_e}")
 
         if injections:
             return f"{query} (regarding {' '.join(injections)})"

@@ -758,20 +758,28 @@ export const App: React.FC = () => {
                 </h4>
                 <div className="space-y-3 text-xs">
                   <div className="flex justify-between border-b pb-2">
+                    <span className="text-slate-500">Retrieval Architecture:</span>
+                    <span className="font-bold text-indigo-700">Hybrid (Keyword + Vector)</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-slate-500">Cross-Encoder Reranker:</span>
+                    <span className="font-bold text-sky-700">ms-marco-MiniLM-L-6-v2</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Disambiguation Gate:</span>
                     <span className="font-bold text-emerald-600">Active</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Refusal Threshold:</span>
-                    <span className="font-bold text-emerald-600">Dual-Layer</span>
+                    <span className="font-bold text-emerald-600">Dual-Layer (Cosine &gt; 0.35)</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Distance Metric:</span>
                     <span className="font-mono font-bold">Cosine Similarity</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-slate-500">Top-K Chunks:</span>
-                    <span className="font-mono font-bold">K=5</span>
+                    <span className="text-slate-500">Candidate Pool:</span>
+                    <span className="font-mono font-bold">k=20 → Top-5 Reranked</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-slate-500">Cross-Manual Leakage:</span>

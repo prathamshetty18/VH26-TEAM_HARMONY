@@ -39,6 +39,36 @@ def assemble_context(chunks):
         context_blocks.append(block)
     return "\n---\n".join(context_blocks)
 
+def _extract_structured_answer_from_context(context: str) -> str:
+    """Extract structured 4-section answer directly from manual context chunks."""
+    import re
+    m_match = re.search(r"MEANING:\s*(.+)", context, re.IGNORECASE)
+    meaning = m_match.group(1).strip() if m_match else "Extracted from verified equipment manuals."
+    
+    causes = []
+    c_match = re.search(r"CAUSES:\s*\n((?:(?:\s*-\s*[^\n]+\n?))+)", context, re.IGNORECASE)
+    if c_match:
+        for line in c_match.group(1).splitlines():
+            l_str = line.strip()
+            if l_str.startswith("-"):
+                causes.append(l_str)
+    if not causes:
+        causes = ["- Check equipment operating parameters in technical manual."]
+
+    steps = []
+    s_match = re.search(r"STEPS:\s*\n((?:(?:\s*\d+[\.\)]\s*[^\n]+\n?))+)", context, re.IGNORECASE)
+    if s_match:
+        for line in s_match.group(1).splitlines():
+            l_str = line.strip()
+            if re.match(r"^\d+[\.\)]", l_str):
+                steps.append(l_str)
+    if not steps:
+        steps = ["1. Review operating procedure in attached manufacturer manual."]
+
+    causes_text = "\n".join(causes)
+    steps_text = "\n".join(steps)
+    return f"1. Error meaning:\n{meaning}\n\n2. Probable causes:\n{causes_text}\n\n3. Step-by-step corrective action:\n{steps_text}\n\n4. Sources:\nVerified manufacturer manuals."
+
 def generate_answer(query, context, api_key=None):
     """
     Calls the Google GenAI SDK (google-genai) directly to generate a structured answer.
@@ -47,8 +77,7 @@ def generate_answer(query, context, api_key=None):
     api_key = api_key or os.getenv("GEMINI_API_KEY")
     
     if not api_key:
-        # Fallback placeholder if no API key is provided yet
-        return f"System Prompt Context:\n{context}\n\n[Placeholder Response - Please set GEMINI_API_KEY in .env to generate live responses via Gemini Flash API]\n1. Error meaning: Extracted from manuals\n2. Probable causes: Listed in manual sections\n3. Corrective action: Follow step-by-step manual instructions"
+        return _extract_structured_answer_from_context(context)
 
     try:
         from google import genai
@@ -103,35 +132,7 @@ def generate_answer(query, context, api_key=None):
 
     except Exception as e:
         print(f"[generate_answer error]: {type(e).__name__}: {e}")
-        # Fallback if API call fails e.g. quota limit (429) or connection error
-        # Construct structured answer from context without internal debugging headers
-        import re
-        m_match = re.search(r"MEANING:\s*(.+)", context, re.IGNORECASE)
-        meaning = m_match.group(1).strip() if m_match else "Extracted from verified equipment manuals."
-        
-        causes = []
-        c_match = re.search(r"CAUSES:\s*\n((?:(?:\s*-\s*[^\n]+\n?))+)", context, re.IGNORECASE)
-        if c_match:
-            for line in c_match.group(1).splitlines():
-                l_str = line.strip()
-                if l_str.startswith("-"):
-                    causes.append(l_str)
-        if not causes:
-            causes = ["- Check equipment operating parameters in technical manual."]
-
-        steps = []
-        s_match = re.search(r"STEPS:\s*\n((?:(?:\s*\d+[\.\)]\s*[^\n]+\n?))+)", context, re.IGNORECASE)
-        if s_match:
-            for line in s_match.group(1).splitlines():
-                l_str = line.strip()
-                if re.match(r"^\d+[\.\)]", l_str):
-                    steps.append(l_str)
-        if not steps:
-            steps = ["1. Review operating procedure in attached manufacturer manual."]
-
-        causes_text = "\n".join(causes)
-        steps_text = "\n".join(steps)
-        return f"1. Error meaning:\n{meaning}\n\n2. Probable causes:\n{causes_text}\n\n3. Step-by-step corrective action:\n{steps_text}\n\n4. Sources:\nVerified manufacturer manuals."
+        return _extract_structured_answer_from_context(context)
 
 if __name__ == "__main__":
     test_chunks = [

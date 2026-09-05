@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="100%" height="100%" style="background:#0b1120; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
+  <defs>
+    <filter id="glowServo" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Title &amp; Metadata Header -->
+  <rect x="20" y="16" width="760" height="50" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="36" y="44" fill="#38bdf8" font-size="16" font-weight="bold">SYSTEM SCHEMATIC: ROBOTIC JOINT AXIS SERVO &amp; ENCODER LOOP</text>
+  <text x="590" y="44" fill="#94a3b8" font-size="12">DOC ID: DIA-ROBOT-R101 | REV 1.4</text>
+
+  <!-- Robot Controller Cabinet -->
+  <rect x="50" y="160" width="160" height="220" rx="8" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+  <text x="65" y="195" fill="#f8fafc" font-size="13" font-weight="bold">RC-300 CONTROLLER</text>
+  <text x="65" y="225" fill="#93c5fd" font-size="11">Motion CPU Board</text>
+  <text x="65" y="250" fill="#94a3b8" font-size="10">Interpolation Cycle: 1ms</text>
+  <text x="65" y="275" fill="#94a3b8" font-size="10">Safety Bus Interface</text>
+
+  <!-- Joint Axis Servo Drive Module -->
+  <g filter="url(#glowServo)">
+    <rect x="290" y="180" width="150" height="180" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
+  </g>
+  <text x="305" y="210" fill="#f8fafc" font-size="12" font-weight="bold">SERVO DRIVE AXIS-1</text>
+  <text x="305" y="235" fill="#38bdf8" font-size="10">PWM Frequency: 16 kHz</text>
+  <text x="305" y="260" fill="#f59e0b" font-size="10">Current Loop: 62.5 &#181;s</text>
+  <text x="305" y="295" fill="#ef4444" font-size="11" font-weight="bold">TRACKING ERROR</text>
+  <text x="305" y="320" fill="#fca5a5" font-size="10">Threshold: &gt; 0.05 rad</text>
+
+  <!-- Controller to Drive Bus -->
+  <line x1="210" y1="240" x2="290" y2="240" stroke="#3b82f6" stroke-width="4"/>
+  <text x="220" y="230" fill="#93c5fd" font-size="9">EtherCAT BUS</text>
+
+  <!-- Joint Motor &amp; Harmonic Drive Unit -->
+  <rect x="520" y="170" width="220" height="200" rx="10" fill="#0f172a" stroke="#8b5cf6" stroke-width="2.5"/>
+  <circle cx="580" cy="270" r="40" fill="#1e293b" stroke="#c084fc" stroke-width="2"/>
+  <text x="548" y="275" fill="#f3e8ff" font-size="11" font-weight="bold">BLDC MOTOR</text>
+  
+  <!-- Optical Encoder Unit -->
+  <rect x="650" y="230" width="70" height="80" rx="4" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="655" y="260" fill="#fde68a" font-size="10" font-weight="bold">ENCODER</text>
+  <text x="655" y="280" fill="#94a3b8" font-size="9">23-bit Abs</text>
+
+  <!-- Power and Feedback Lines -->
+  <path d="M 440 230 L 540 230" fill="none" stroke="#ef4444" stroke-width="3"/>
+  <text x="450" y="220" fill="#f87171" font-size="9">3-Phase UVW</text>
+  <path d="M 685 310 L 685 390 L 365 390 L 365 360" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,3"/>
+  <text x="470" y="410" fill="#fde68a" font-size="10">ENCODER SERIAL FEEDBACK (SSI)</text>
+
+  <!-- Diagnostic Note -->
+  <rect x="330" y="80" width="310" height="50" rx="6" fill="#7f1d1d" stroke="#f87171" stroke-width="1.5"/>
+  <text x="342" y="100" fill="#fef2f2" font-size="11" font-weight="bold">ROBOT R101 / LAG CHECKPOINT:</text>
+  <text x="342" y="118" fill="#fecaca" font-size="10">Check encoder umbilical connector &amp; joint brake release</text>
+  <line x1="480" y1="130" x2="480" y2="170" stroke="#ef4444" stroke-width="2" stroke-dasharray="3,3"/>
+</svg>

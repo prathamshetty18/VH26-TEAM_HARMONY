@@ -1,4 +1,4 @@
-﻿.env
+.env
 __pycache__/
 *.pyc
 chroma_db/
@@ -11,3 +11,4 @@ node_modules/
 dist/
 frontend/node_modules/
 frontend/dist/
+scratch/

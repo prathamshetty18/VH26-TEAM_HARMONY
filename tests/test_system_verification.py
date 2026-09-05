@@ -231,18 +231,20 @@ TEST_CASES = [
 ]
 
 
-def execute_test(tc: Dict[str, Any]) -> Dict[str, Any]:
+def execute_test(tc: Dict[str, Any], run_id: str = "") -> Dict[str, Any]:
     start_t = time.perf_counter()
     
     if tc.get("multi_turn"):
         turns = tc["turns"]
         resp_data = None
         for t in turns:
-            payload = {"message": t["message"], "session_id": t["session_id"]}
+            sid = f"{run_id}_{t['session_id']}" if run_id else t["session_id"]
+            payload = {"message": t["message"], "session_id": sid}
             r = requests.post(ENDPOINT, json=payload, timeout=20.0)
             resp_data = r.json()
     else:
-        payload = {"message": tc["query"], "session_id": tc["session_id"]}
+        sid = f"{run_id}_{tc['session_id']}" if run_id else tc["session_id"]
+        payload = {"message": tc["query"], "session_id": sid}
         if tc.get("machine_filter"):
             payload["machine_filter"] = tc["machine_filter"]
         r = requests.post(ENDPOINT, json=payload, timeout=20.0)
@@ -351,8 +353,9 @@ def main():
     print(header)
     print(divider)
 
+    run_id = f"run_{int(time.time()*1000)}"
     for tc in TEST_CASES:
-        res = execute_test(tc)
+        res = execute_test(tc, run_id=run_id)
         results.append(res)
         if res["passed"]:
             passed_count += 1

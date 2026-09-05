@@ -1,9 +1,18 @@
-import type { Message, SessionMemoryState, Machine, BackendConfig, Citation, AmbiguityOption } from '../types';
+import type { Message, SessionMemoryState, Machine, BackendConfig, Citation, AmbiguityOption, Diagram } from '../types';
 import { INITIAL_MACHINES, processMockQuery, extractMachineAndError } from './mockEngine';
+
+const getInitialBaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    if (window.location.port === '8000') {
+      return window.location.origin;
+    }
+  }
+  return 'http://localhost:8000';
+};
 
 const DEFAULT_CONFIG: BackendConfig = {
   mode: 'live', // Default to live, automatically falling back if unreachable
-  baseUrl: 'http://localhost:8000',
+  baseUrl: getInitialBaseUrl(),
 };
 
 export class DiagnosticService {
@@ -11,7 +20,11 @@ export class DiagnosticService {
 
   constructor() {
     const saved = localStorage.getItem('machineassist_config');
-    this.config = saved ? JSON.parse(saved) : DEFAULT_CONFIG;
+    let cfg = saved ? JSON.parse(saved) : DEFAULT_CONFIG;
+    if (typeof window !== 'undefined' && window.location.port === '8000') {
+      cfg.baseUrl = window.location.origin;
+    }
+    this.config = cfg;
   }
 
   public getConfig(): BackendConfig {
@@ -155,11 +168,26 @@ export class DiagnosticService {
           }
 
           // 3. Normal Verified Answer
-          const citations: Citation[] = (data.sources || []).map((s: any) => ({
+          const citations: Citation[] = (data.sources || []).map((s: any, idx: number) => ({
             manual: s.manual || 'technical_manual.txt',
             page: s.page || 2,
             section: s.section || `${s.machine || 'Equipment'} Troubleshooting`,
             snippet: s.snippet || `${s.section || 'Maintenance Section'}: Verified manufacturer instructions for ${s.machine || 'machine'}.`,
+            diagram_url: s.diagram_url,
+            diagram_title: s.diagram_title,
+            diagram_caption: s.diagram_caption,
+            rank: s.rank || idx + 1,
+            score: s.score,
+            rerank_score: s.rerank_score,
+            match_type: s.match_type,
+          }));
+
+          const diagrams: Diagram[] = (data.diagrams || []).map((d: any) => ({
+            title: d.title,
+            filename: d.filename,
+            url: d.url,
+            caption: d.caption,
+            system: d.system,
           }));
 
           let meaning = answerText;
@@ -196,11 +224,15 @@ export class DiagnosticService {
           // Fallback if no section headers matched
           if (steps.length === 0 && answerText.includes('\n')) {
             const lines = answerText.split('\n').map((l) => l.trim()).filter(Boolean);
-            const stepLines = lines.filter((l) => /^\d+[\.\)]/.test(l) || l.toLowerCase().startsWith('- step'));
+            const stepLines = lines.filter((l) => /^\d+[.\)]/.test(l) || l.toLowerCase().startsWith('- step'));
             if (stepLines.length > 0) {
-              steps = stepLines.map((s) => s.replace(/^\d+[\.\)]\s*/, '').replace(/^-\s*Step\s*\d*:\s*/i, ''));
+              steps = stepLines.map((s) => s.replace(/^\d+[.\)]\s*/, '').replace(/^-\s*Step\s*\d*:\s*/i, ''));
             }
           }
+
+          const extracted = extractMachineAndError(userQuery, sessionState);
+          const topMachine = data.detected_machine || extracted.machine || scopedMachine || (citations[0] ? (data.sources[0]?.machine) : null) || sessionState.lastMachine;
+          const topError = data.detected_error || extracted.error || sessionState.lastError;
 
           const assistantMsg: Message = {
             id: `msg_${Date.now()}`,
@@ -211,11 +243,10 @@ export class DiagnosticService {
             causes: causes.length > 0 ? causes : undefined,
             steps: steps.length > 0 ? steps : undefined,
             citations: citations.length > 0 ? citations : undefined,
+            diagrams: diagrams.length > 0 ? diagrams : undefined,
+            detectedMachine: topMachine || undefined,
+            machineSource: data.machine_source,
           };
-
-          const extracted = extractMachineAndError(userQuery, sessionState);
-          const topMachine = extracted.machine || scopedMachine || (citations[0] ? (data.sources[0]?.machine) : null) || sessionState.lastMachine;
-          const topError = extracted.error || sessionState.lastError;
 
           return {
             message: assistantMsg,

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="100%" height="100%" style="background:#0b1120; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
+  <defs>
+    <filter id="glowOverload" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title & Metadata Header -->
+  <rect x="20" y="16" width="760" height="50" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="36" y="44" fill="#38bdf8" font-size="15" font-weight="bold">SYSTEM SCHEMATIC: CNC-100 SPINDLE AXIS DRIVE &amp; OVERLOAD CIRCUIT</text>
+  <text x="560" y="44" fill="#94a3b8" font-size="12">DOC ID: DIA-CNC100-E102 | MODEL: X200</text>
+
+  <!-- CNC Machine Enclosure Outline -->
+  <rect x="30" y="80" width="740" height="380" rx="10" fill="#0f172a" stroke="#1e293b" stroke-width="2"/>
+
+  <!-- Inverter Drive & Servo Amp Module -->
+  <rect x="50" y="105" width="180" height="230" rx="8" fill="#1e293b" stroke="#0284c7" stroke-width="2"/>
+  <rect x="65" y="120" width="150" height="30" rx="4" fill="#0369a1"/>
+  <text x="75" y="140" fill="#f8fafc" font-size="11" font-weight="bold">VFD SPINDLE INVERTER</text>
+  
+  <text x="65" y="175" fill="#94a3b8" font-size="11">Current Limit: 32A</text>
+  <text x="65" y="195" fill="#94a3b8" font-size="11">PWM Frequency: 8kHz</text>
+  <text x="65" y="215" fill="#94a3b8" font-size="11">Torque Boost: ACTIVE</text>
+  
+  <rect x="65" y="235" width="150" height="40" rx="4" fill="#7f1d1d" stroke="#ef4444" stroke-width="1.5" filter="url(#glowOverload)"/>
+  <text x="75" y="255" fill="#fecaca" font-size="10" font-weight="bold">FAULT E102 MONITOR</text>
+  <text x="75" y="268" fill="#f87171" font-size="9">Axis Overload &gt; 125%</text>
+
+  <rect x="65" y="290" width="150" height="30" rx="4" fill="#0f172a" stroke="#38bdf8"/>
+  <text x="75" y="310" fill="#38bdf8" font-size="10">Feedback: Resolver RT-02</text>
+
+  <!-- Power Wiring to Spindle -->
+  <path d="M 230 200 L 320 200" stroke="#f59e0b" stroke-width="4" stroke-dasharray="6,4"/>
+  <text x="240" y="190" fill="#f59e0b" font-size="10" font-weight="bold">3&#934; 220V</text>
+
+  <!-- Spindle Motor Housing -->
+  <rect x="320" y="120" width="240" height="190" rx="8" fill="url(#metalGrad)" stroke="#475569" stroke-width="2"/>
+  <text x="335" y="145" fill="#38bdf8" font-size="12" font-weight="bold">MAIN SPINDLE MOTOR (X200)</text>
+  
+  <!-- Rotor & Stator -->
+  <rect x="340" y="160" width="200" height="90" rx="6" fill="#0f172a" stroke="#64748b" stroke-width="1.5"/>
+  <rect x="355" y="175" width="170" height="25" rx="3" fill="#334155"/>
+  <text x="390" y="192" fill="#e2e8f0" font-size="11" font-weight="bold">STATOR WINDING</text>
+  <rect x="355" y="210" width="170" height="25" rx="3" fill="#1e293b"/>
+  <text x="380" y="227" fill="#94a3b8" font-size="11">ROTOR &amp; SHAFT (7.5kW)</text>
+
+  <!-- Mechanical Coupling & Spindle Nose -->
+  <rect x="560" y="175" width="40" height="60" rx="4" fill="#64748b" stroke="#94a3b8" stroke-width="2"/>
+  <text x="565" y="248" fill="#94a3b8" font-size="9">Coupling</text>
+  
+  <!-- Tool Holder & Cutting Tool Assembly -->
+  <path d="M 600 185 L 680 185 L 700 205 L 680 225 L 600 225 Z" fill="#475569" stroke="#94a3b8" stroke-width="2"/>
+  <text x="615" y="210" fill="#f8fafc" font-size="10" font-weight="bold">BT-30 TOOL</text>
+  
+  <!-- Endmill Cutter -->
+  <rect x="700" y="200" width="45" height="10" fill="#f59e0b" stroke="#d97706" stroke-width="1.5"/>
+  <text x="690" y="230" fill="#f59e0b" font-size="9" font-weight="bold">CARBIDE BIT</text>
+
+  <!-- Mechanical Load Arrows -->
+  <path d="M 755 185 L 740 205 L 755 225" stroke="#ef4444" stroke-width="3" fill="none"/>
+  <text x="700" y="170" fill="#ef4444" font-size="10" font-weight="bold">AXIAL LOAD</text>
+
+  <!-- Corrective Action Steps Legend Box -->
+  <rect x="50" y="355" width="700" height="90" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="65" y="378" fill="#38bdf8" font-size="11" font-weight="bold">MANUFACTURER OVERLOAD ACTION (MANUAL CNC100.TXT PAGE 3):</text>
+  <text x="65" y="398" fill="#e2e8f0" font-size="11">1. Stop current machining cycle immediately via panel feed-hold.</text>
+  <text x="65" y="416" fill="#e2e8f0" font-size="11">2. Inspect BT-30 carbide cutting tool for chip welding, dull edge, or catastrophic breakage.</text>
+  <text x="65" y="434" fill="#e2e8f0" font-size="11">3. Reduce programmed feed rate by 15% in CNC-100 G-code program before resuming.</text>
+</svg>

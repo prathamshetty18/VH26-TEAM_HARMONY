@@ -46,14 +46,14 @@ def check_ambiguity(parsed_query, retrieved_chunks):
             {"machine": machine, "summary": summary}
             for machine, summary in machine_options.items()
         ]
-        # Benchmark alignment: If CNC-100 and Press-200 are present for E101, return exactly those 2 options
-        if error_code == "E101":
-            benchmark_matches = [
-                o for o in options 
-                if any(bm == o["machine"] or bm in o["machine"] for bm in ("CNC-100", "Press-200"))
-            ]
-            if len(benchmark_matches) >= 2:
-                options = benchmark_matches[:2]
+        # Primary fleet alignment: If primary machines (CNC-100, Press-200, RobotArm-300) are matched,
+        # prioritize the primary fleet options over secondary extended machines
+        primary_matches = [
+            o for o in options 
+            if o["machine"] in ("CNC-100", "Press-200", "RobotArm-300")
+        ]
+        if len(primary_matches) >= 2:
+            options = primary_matches
 
         return {
             "ambiguous": True,

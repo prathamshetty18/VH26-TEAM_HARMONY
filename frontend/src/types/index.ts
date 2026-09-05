@@ -1,4 +1,4 @@
-﻿export interface Machine {
+export interface Machine {
   id: string;
   name: string;
   category: string;
@@ -7,11 +7,26 @@
   pageCount: number;
 }
 
+export interface Diagram {
+  title: string;
+  filename: string;
+  url: string;
+  caption: string;
+  system?: string;
+}
+
 export interface Citation {
   manual: string; // e.g. cnc100.txt
   page: number;   // e.g. 4
   section?: string; // e.g. E101 Troubleshooting - Spindle Overheat
   snippet?: string;
+  diagram_url?: string;
+  diagram_title?: string;
+  diagram_caption?: string;
+  rank?: number;
+  score?: number;
+  rerank_score?: number;
+  match_type?: string;
 }
 
 export type CardType = 'user' | 'normal' | 'ambiguity' | 'refusal';
@@ -37,6 +52,9 @@ export interface Message {
   causes?: string[];
   steps?: string[];
   citations?: Citation[];
+  diagrams?: Diagram[];
+  detectedMachine?: string;
+  machineSource?: string;
 
   // Ambiguity clarification structure
   ambiguityPrompt?: string;

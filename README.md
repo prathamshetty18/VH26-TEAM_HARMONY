@@ -10,7 +10,7 @@ This is **not** a basic "chat with PDF" app. It is explicitly designed to handle
 - **Hallucination control** — a real, three-gate mechanism, not just a prompt instruction
 - **Full traceability**: every answer cites manual, section, and machine
 
-**Status:** Backend (Phases 0–8) implemented and verified against all 4 required demo cases. See [Section 6: Demo Verification Matrix](#6-demo-verification-matrix).
+**Status:** Full-Stack Integrated (Phases 0–8 + Hybrid Search + Context Detection + SVG Schematics). Verified 100% (15/15 passed) against the comprehensive benchmark test suite.
 
 ---
 
@@ -18,22 +18,30 @@ This is **not** a basic "chat with PDF" app. It is explicitly designed to handle
 
 ```mermaid
 flowchart TD
-    A[Technician Query] --> B[FastAPI Endpoint /query]
-    B --> C[Query Understanding: Parse Machine and Error Code]
-    C --> D[Vector Retrieval: ChromaDB Filtered Search]
-    D --> E{Ambiguity Check}
-    E -- Multiple Machines Match --> F[Return Disambiguation Options]
-    E -- Unique or Machine-Filtered --> G{Safety Control: 3 Gates}
-    G -- Fails Score / Error-Code / Keyword-Overlap Gate --> H[Hard Refusal, No LLM Call]
-    G -- Passes All 3 Gates --> I[Context Assembly and Grounding]
-    I --> J[Gemini 2.5 Flash via google-genai]
-    J --> K[4-Section Structured Response with Citations]
+    A[Technician Query] --> B[FastAPI Endpoint /query & Web UI]
+    B --> C[Query Understanding: 4-Layer Detection]
+    C --> C1[1. Alias Match]
+    C --> C2[2. Fuzzy Match - Typos]
+    C --> C3[3. Semantic Match - Descriptions]
+    C --> C4[4. Session Context Fallback]
+    C --> D[Hybrid Retrieval Engine]
+    D --> D1[ChromaDB Exact Keyword Pre-Filter]
+    D --> D2[SentenceTransformer Dense Vector Search]
+    D --> E{Cross-Manual Ambiguity Check}
+    E -- Multi-Machine Conflict --> F[Return Clickable Machine Options Card]
+    E -- Resolved or Scoped --> G{Safety Gatekeeper: 3 Gates}
+    G -- Fails Similarity / Error-Code / Keyword Gate --> H[Hard Refusal: No LLM Call, Zero Guesswork]
+    G -- Passes All 3 Gates --> I[Context Assembly & Grounding]
+    I --> J[Gemini Flash LLM via google-genai]
+    I --> K[Technical SVG Schematic Resolution]
+    J --> L[Structured 4-Section Answer Card + Interactive Schematic + Citations]
+    K --> L
 ```
 
 **Pipeline order:**
-`parse_query` → `retrieve` → `check_ambiguity` → *(if ambiguous: return options, stop)* → `safety gates` → *(if insufficient: hard refusal, stop)* → `assemble_context` → `generate_answer` → `update memory` → `return answer + sources`
+`parse_query_with_context` → `hybrid_retrieve` → `check_ambiguity` → *(if ambiguous: return options, stop)* → `safety gates` → *(if insufficient: hard refusal, stop)* → `assemble_context` → `generate_answer` → `match_diagram` → `update memory` → `return answer + diagrams + sources`
 
-> **The core design principle:** Retrieve first, generate second, never invent. The LLM only writes prose from grounded context — it never decides facts, and it's never called at all when the safety gates fail.
+> **The core design principle:** Retrieve first, generate second, never invent. The LLM only writes prose from grounded context — it never decides facts, and it is never called when safety gates fail.
 
 ---
 
@@ -54,15 +62,33 @@ flowchart TD
 
 ---
 
+## 2.1 Supported Factory Machinery
+
+The factory environment operates 6 distinct physical machine units with dedicated technical documentation:
+
+| Machine Name | Model Code | Manual Source | Subsystems Covered | Distinct Identity Notes |
+|---|---|---|---|---|
+| **`CNC-100`** | `X200` | `cnc100.txt` | Spindle motor, cooling fan, spindle axis load, coolant tank | Compact machining center (distinct from MX-7) |
+| **`CNC Milling Machine`** | `MX-7 Precision` | `cncmx7.txt` | Through-spindle coolant (TSC), RTD thermistor, Heidenhain optical scale | Heavy 5-axis vertical machining center |
+| **`Press-200`** | `P400` | `press200.txt` | Main cylinder, E-stop interlock, guide pillars | Workshop hydraulic press (distinct from HP-2200) |
+| **`Hydraulic Press`** | `HP-2200` | `presshp2200.txt` | 280-bar ram, proportional valve PV-01, water chiller, accumulators | Heavy industrial production stamping press |
+| **`Conveyor Belt System`** | `CB-4400` | `conveyorcb4400.txt` | VFD inverter drive, optical pulse tachometer, helical-bevel gearbox | Automated material handling transfer line |
+| **`RobotArm-300`** | `R300` | `robotarm300.txt` | Brushless AC servo, harmonic drive reducer, optical resolver | 6-axis articulated assembly manipulator |
+
+---
+
 ## 3. Project Structure
 
 ```
 machineassist/
 ├── data/
 │   └── manuals/              # source manuals (txt), one per machine
-│       ├── cnc100.txt
-│       ├── press200.txt
-│       └── robotarm300.txt
+│       ├── cnc100.txt         # CNC-100 (Model X200)
+│       ├── cncmx7.txt         # CNC Milling Machine (Model MX-7 Precision)
+│       ├── conveyorcb4400.txt # Conveyor Belt System (Model CB-4400)
+│       ├── press200.txt       # Press-200 (Model P400)
+│       ├── presshp2200.txt    # Hydraulic Press (Model HP-2200)
+│       └── robotarm300.txt    # RobotArm-300 (Model R300)
 ├── src/
 │   ├── ingest.py             # Phase 1: parse SECTION: blocks + metadata tagging
 │   ├── embed_store.py        # Phase 2: sentence-transformers embeddings + Chroma store
@@ -99,29 +125,48 @@ export GEMINI_API_KEY=...       # Windows PowerShell: $env:GEMINI_API_KEY="..."
 
 ## 5. Running
 
+### Option A: Unified Single-Port Application (Production Mode)
+Start the FastAPI server; it automatically serves the complete production React web console, static assets, and API routes:
 ```bash
 uvicorn src.api:app --reload --port 8000
 ```
+Open **`http://localhost:8000/`** in your browser.
 
-- **`POST /query`** — primary RAG endpoint.  
-  Body: `{"message": "...", "session_id": "..."}`  
-  Response: `{"answer": "...", "sources": [...], "ambiguous": false, "options": []}`
-- **`GET /health`** — health check endpoint
+### Option B: Development Mode with Vite Hot-Reloading
+Start the backend and frontend servers in separate terminals:
+```bash
+# Terminal 1: Backend API
+uvicorn src.api:app --reload --port 8000
 
-Test either endpoint via `curl` or FastAPI's built-in Swagger UI at `http://localhost:8000/docs` before wiring up the frontend.
+# Terminal 2: React Vite Dev Server (auto-proxies all API calls to port 8000)
+cd frontend
+npm run dev
+```
+Open **`http://localhost:5173/`** in your browser.
 
 ---
 
-## 6. Demo Verification Matrix
+## 6. System Verification Matrix
 
-All 4 required demo cases pass end-to-end (`tests/test_all_demos.py`):
+All 15 core and edge benchmark scenarios pass with **100% success rate** (`tests/test_system_verification.py`):
 
-| Demo Case | Query | Machine Identified | Pipeline Behavior | Result |
-|---|---|---|---|:---:|
-| **1. Exact error code** | *"What does E101 mean on CNC-100?"* | CNC-100 | Retrieved CNC-100's E101 chunks; generated 4-section answer (meaning, causes, steps, sources) | ✅ PASS |
-| **2. Natural language symptom** | *"Why is Press-200 stopping due to oil pressure?"* | Press-200 | Semantic retrieval found Press-200's E101 chunk (*"hydraulic oil pressure low"*) with no exact keyword match on the code | ✅ PASS |
-| **3. Cross-manual ambiguity** | *"What does E101 mean?"* | None specified | Flagged `ambiguous: true`; returned CNC-100 vs Press-200 as clickable options instead of guessing | ✅ PASS |
-| **4. Insufficient information** | *"How do I replace spindle bearing on CNC-100?"* | CNC-100 | Safety Gate 3 (keyword overlap) failed — 0% overlap for "bearing"/"replace"; hard refusal returned, LLM never called | ✅ PASS |
+| ID | Test Category | Query / Scenario | Target Machine | Pipeline Verification | Result |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| **TC-01** | Exact Code | *"What does E101 mean on CNC-100?"* | CNC-100 | Keyword pre-filter (score 1.0) fetches E101; 4-section answer generated with diagram | ✅ PASS |
+| **TC-02** | Exact Code | *"What is error code E101 on Press-200?"* | Press-200 | Filtered retrieval extracts Press-200 hydraulic pressure low chunks | ✅ PASS |
+| **TC-03** | Exact Code | *"How do I fix error E101 on the CB-4400 conveyor belt?"* | Conveyor Belt | VFD current overload retrieved; step-by-step LOTO and tensioning instructions | ✅ PASS |
+| **TC-04** | Exact Code | *"What is the corrective action for fault H205 on the HP-2200?"* | Hydraulic Press | Oil high temperature shutdown chunks retrieved with heat exchanger procedure | ✅ PASS |
+| **TC-05** | Semantic Symptom | *"Why is Press-200 stopping due to oil pressure?"* | Press-200 | Dense vector search matches E101 symptoms without literal error code in prompt | ✅ PASS |
+| **TC-06** | Semantic Symptom | *"Why is the conveyor overheating?"* | Conveyor Belt | Semantic match identifies drive gearbox RTD probe lubrication symptoms | ✅ PASS |
+| **TC-07** | Semantic Symptom | *"Our CNC milled parts show high-pitched chatter marks..."* | CNC Milling | Dense vector match extracts tool stickout, arbor TIR runout, and RPM tuning | ✅ PASS |
+| **TC-08** | Ambiguity Trigger | *"What does E101 mean?"* | None | Detects cross-manual conflict; prompts user to select target machine | ✅ PASS |
+| **TC-09** | Ambiguity Resolution | User clicks *"Press-200"* option | Press-200 | Inherits active E101 error from memory; outputs Press-200 corrective actions | ✅ PASS |
+| **TC-10** | Multi-Turn Memory | Follow-up: *"What if that doesn't work?"* | CNC-100 | Session memory inherits machine and error code; provides next diagnostic steps | ✅ PASS |
+| **TC-11** | Honest Refusal | *"How do I replace spindle bearing on CNC-100?"* | CNC-100 | Undocumented topic; 0% keyword overlap on bearing; hard safety refusal returned | ✅ PASS |
+| **TC-12** | Honest Refusal | *"Status LED flashing 3 short blinks followed by long pause"* | None | Undocumented pattern; score below threshold; hard safety refusal returned | ✅ PASS |
+| **TC-13** | Honest Refusal | *"How do I bypass safety light curtain interlock on Press-200?"* | Press-200 | Critical safety bypass keyword detected; hard refusal returned without guessing | ✅ PASS |
+| **TC-14** | Schema Integrity | Citation format & metadata integrity | Any | Citations verify non-empty `manual`, `section`, `page`, and grounded `snippet` | ✅ PASS |
+| **TC-15** | Machine Scoping | Scoped Machine header filter validation | CNC-100 | Scoped filter isolates chunks strictly to the selected machine unit | ✅ PASS |
 
 ---
 

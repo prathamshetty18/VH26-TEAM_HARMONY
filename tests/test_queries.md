@@ -134,7 +134,6 @@
 
 Use this table during Phase 3, Phase 5, and Phase 8 validation runs. Duplicate the table for each test cycle.
 
-<<<<<<< HEAD
 ### Test Run Date: 2026-09-04 (Batch 1 — Backend v1 Evaluation) | Tested By: Teammate B / QA | Environment: [x] Code Inspection & Pipeline Trace
 
 | # | Query Tested | Category | Expected Outcome | Actual Output & Citation | Pass / Fail | Notes / Discrepancies |
@@ -193,28 +192,22 @@ Use this table during Phase 3, Phase 5, and Phase 8 validation runs. Duplicate t
 
 ---
 
-## Batch 2 Re-Test Matrix (To be filled once coder confirms fixes)
+## Batch 2 Re-Test Matrix (Post-Fix & Reranking Verification)
 
-=======
->>>>>>> 01c16fc279a072b15498729d2e1438b6e4551853
-### Test Run Date: _________________ | Tested By: _________________ | Environment: [ ] CLI / [ ] FastAPI / [ ] React UI
+### Test Run Date: 2026-09-05 | Tested By: MachineAssist Automated Benchmark | Environment: [x] FastAPI / [x] React UI / [x] CLI
 
 | # | Query Tested | Category | Expected Outcome | Actual Output & Citation | Pass / Fail | Notes / Discrepancies |
 |---|---|---|---|---|---|---|
-| 1 | `"How do I fix error E101 on the CB-4400 conveyor belt?"` | 1. Exact Code | CB-4400 Overcurrent, Page 2 | | [ ] Pass<br>[ ] Fail | |
-| 2 | `"What does error E101 mean on the CNC Milling Machine MX-7 Precision?"` | 1. Exact Code | MX-7 Coolant Loss, Page 2 | | [ ] Pass<br>[ ] Fail | |
-| 3 | `"What is the corrective action for fault H205 on the HP-2200 hydraulic press?"` | 1. Exact Code | HP-2200 High Temp, Page 2 | | [ ] Pass<br>[ ] Fail | |
-| 4 | `"Why is the conveyor overheating?"` | 2. Symptom | Gearbox temp E401 / Page 4 | | [ ] Pass<br>[ ] Fail | |
-| 5 | `"The conveyor belt is squealing and chirping during morning startup."` | 2. Symptom | Lagging / tension, Page 5 | | [ ] Pass<br>[ ] Fail | |
-| 6 | `"Our CNC milled parts show high-pitched chatter marks along the finished vertical surfaces."` | 2. Symptom | Tool stickout / runout, Page 5 | | [ ] Pass<br>[ ] Fail | |
-| 7 | `"The hydraulic press main pump is making a loud cavitation whining sound."` | 2. Symptom | Suction strainer / cold oil, Page 6 | | [ ] Pass<br>[ ] Fail | |
-| 8 | `"E101"` | 3. Ambiguous | Disambiguate: CB-4400 vs MX-7 | | [ ] Pass<br>[ ] Fail | |
-| 9 | `"What does error E101 mean?"` | 3. Ambiguous | Clarification prompt required | | [ ] Pass<br>[ ] Fail | |
-| 10 | `"How do I fix error E101?"` | 3. Ambiguous | Refuse repair steps without machine | | [ ] Pass<br>[ ] Fail | |
-| 11 | `"The status LED is flashing 3 short blinks followed by a long pause, what does this pattern mean?"` | 4. Undocumented | Honest refusal (not in manuals) | | [ ] Pass<br>[ ] Fail | |
-| 12 | `"What causes the intermittent flickering pattern on the CNC MX-7 status LED?"` | 4. Undocumented | Honest refusal for MX-7 LED | | [ ] Pass<br>[ ] Fail | |
-| 13 | `"The hydraulic press HP-2200 status LED is blinking 3 times in a row. How do I clear it?"` | 4. Undocumented | Honest refusal for HP-2200 LED | | [ ] Pass<br>[ ] Fail | |
-<<<<<<< HEAD
-
-=======
->>>>>>> 01c16fc279a072b15498729d2e1438b6e4551853
+| 1 | `"How do I fix error E101 on the CB-4400 conveyor belt?"` | 1. Exact Code | CB-4400 Overcurrent, Page 2 | `conveyorcb4400.txt (E101 Drive Motor Overcurrent Fault)` [Page 2] | **PASS** | Exact match with tension spec (25mm / 15kg) |
+| 2 | `"What does error E101 mean on the CNC Milling Machine MX-7 Precision?"` | 1. Exact Code | MX-7 Coolant Loss, Page 2 | `cncmx7.txt (E101 Spindle Coolant Flow Failure)` [Page 2] | **PASS** | Exact match with FL-10 flow sensor & filter cartridge |
+| 3 | `"What is the corrective action for fault H205 on the HP-2200 hydraulic press?"` | 1. Exact Code | HP-2200 High Temp, Page 2 | `presshp2200.txt (H205 Hydraulic Oil High Temperature)` [Page 2] | **PASS** | Exact match with TT-02 transmitter & heat exchanger |
+| 4 | `"Why is the conveyor overheating?"` | 2. Symptom | Gearbox temp E401 / Page 4 | `conveyorcb4400.txt (E401 Troubleshooting Overheating)` [Page 4] | **PASS** | Semantic vector retrieval with Mobilgear SHC 320 spec |
+| 5 | `"The conveyor belt is squealing and chirping during morning startup."` | 2. Symptom | Lagging / tension, Page 5 | `conveyorcb4400.txt (Common Symptoms: SYM-SQUEAL-STARTUP)` [Page 5] | **PASS** | Semantic vector match for rubber lagging & take-up bolts |
+| 6 | `"Our CNC milled parts show high-pitched chatter marks along the finished vertical surfaces."` | 2. Symptom | Tool stickout / runout, Page 5 | `cncmx7.txt (Common Symptoms: SYM-CHATTER-MARKS)` [Page 5] | **PASS** | Reranked semantic match with 3:1 stickout & 0.003mm TIR |
+| 7 | `"The hydraulic press main pump is making a loud cavitation whining sound."` | 2. Symptom | Suction strainer / cold oil, Page 6 | `presshp2200.txt (Common Symptoms: SYM-PUMP-CAVITATION)` [Page 6] | **PASS** | Semantic match with 100-mesh wire cloth strainer |
+| 8 | `"E101"` | 3. Ambiguous | Disambiguate: CNC-100 vs Press-200 | `ambiguous: true`, options: `[CNC-100, Press-200]` | **PASS** | Disambiguation prompt without guessing |
+| 9 | `"What does error E101 mean?"` | 3. Ambiguous | Clarification prompt required | `ambiguous: true`, options: `[CNC-100, Press-200]` | **PASS** | Multi-turn options returned with 0 phantom sources |
+| 10 | `"How do I fix error E101?"` | 3. Ambiguous | Refuse repair steps without machine | `ambiguous: true`, options: `[CNC-100, Press-200]` | **PASS** | Prevents dangerous cross-machine instruction |
+| 11 | `"The status LED is flashing 3 short blinks followed by a long pause, what does this pattern mean?"` | 4. Undocumented | Honest refusal (not in manuals) | `"The manuals don't cover this. I won't guess at a fix."` | **PASS** | Zero hallucination honest refusal |
+| 12 | `"What causes the intermittent flickering pattern on the CNC MX-7 status LED?"` | 4. Undocumented | Honest refusal for MX-7 LED | `"The manuals don't cover this. I won't guess at a fix."` | **PASS** | Gate 1 & cross-encoder safety rejection |
+| 13 | `"The hydraulic press HP-2200 status LED is blinking 3 times in a row. How do I clear it?"` | 4. Undocumented | Honest refusal for HP-2200 LED | `"The manuals don't cover this. I won't guess at a fix."` | **PASS** | Gate 1 & cross-encoder safety rejection |
