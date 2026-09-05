@@ -34,8 +34,7 @@ from src.embed_store import (
     invalidate_machines_cache,
     get_chroma_collection
 )
-from src.translation import translate_input, translateInput
-from src.multilingual_manual_data import get_multilingual_manual, get_available_languages
+from src.translation import translate_input, translateInput, _module_instance
 from src.confidence import (
     get_confidence_level,
     calculate_model_confidence,
@@ -139,10 +138,16 @@ class ManualUploadResponse(BaseModel):
     draft_text: Optional[str] = None
     error: Optional[str] = None
     is_valid_format: Optional[bool] = None
+    source_language: Optional[str] = "en"
+    detected_language: Optional[str] = "English"
+    is_translated: Optional[bool] = False
 
 class ManualConfirmRequest(BaseModel):
     machine: str
     content: str
+    source_language: Optional[str] = "en"
+    detected_language: Optional[str] = "English"
+    is_translated: Optional[bool] = False
 
 class ManualSummaryItem(BaseModel):
     machine: str
@@ -194,14 +199,7 @@ def get_manuals_library():
         {"filename": "conveyorcb4400.txt", "title": "Conveyor Belt System — Model CB-4400 Troubleshooting Manual", "machine": "Conveyor Belt System", "pages": 6, "chunkCount": 20, "pdf_filename": "conveyorcb4400.pdf"},
         {"filename": "cncmx7.txt", "title": "CNC Milling Machine — Model MX-7 Precision Troubleshooting Manual", "machine": "CNC Milling Machine", "pages": 6, "chunkCount": 20, "pdf_filename": "cncmx7.pdf"},
         {"filename": "presshp2200.txt", "title": "Hydraulic Press — Model HP-2200 Troubleshooting Manual", "machine": "Hydraulic Press", "pages": 6, "chunkCount": 20, "pdf_filename": "presshp2200.pdf"},
-        {"filename": "cnc100.txt", "title": "CNC Machining Center — Model CNC-100 Service Manual", "machine": "CNC-100", "pages": 4, "chunkCount": 10, "pdf_filename": "cnc100.pdf"},
-        {"filename": "press200.txt", "title": "Hydraulic Press — Model Press-200 Maintenance Guide", "machine": "Press-200", "pages": 4, "chunkCount": 10, "pdf_filename": "press200.pdf"},
-        {"filename": "robotarm300.txt", "title": "Articulated Robot — Model RobotArm-300 Diagnostic Manual", "machine": "RobotArm-300", "pages": 2, "chunkCount": 5, "pdf_filename": "robotarm300.pdf"},
-        {"filename": "multilingual_manual.txt", "title": "Multilingual Machine Instruction Manual (All 4 Languages)", "machine": "CNC Milling Machine", "pages": 12, "chunkCount": 36, "pdf_filename": "multilingual_manual.pdf"},
-        {"filename": "multilingual_manual_zh.txt", "title": "数控铣床 MX-7 说明书 — 中文 (Simplified Chinese Manual)", "machine": "CNC Milling Machine", "pages": 8, "chunkCount": 24, "pdf_filename": "multilingual_manual_zh.pdf"},
-        {"filename": "multilingual_manual_ja.txt", "title": "CNCフライス盤 MX-7 取扱説明書 — 日本語 (Japanese Manual)", "machine": "CNC Milling Machine", "pages": 8, "chunkCount": 24, "pdf_filename": "multilingual_manual_ja.pdf"},
-        {"filename": "multilingual_manual_de.txt", "title": "CNC-Fräsmaschine MX-7 Handbuch — Deutsch (German Manual)", "machine": "CNC Milling Machine", "pages": 8, "chunkCount": 24, "pdf_filename": "multilingual_manual_de.pdf"},
-        {"filename": "multilingual_manual_en.txt", "title": "CNC Milling Machine MX-7 Manual — English", "machine": "CNC Milling Machine", "pages": 8, "chunkCount": 24, "pdf_filename": "multilingual_manual_en.pdf"}
+        {"filename": "robotarm_300.txt", "title": "Articulated Robot — Model RobotArm-300 Diagnostic Manual", "machine": "RobotArm-300", "pages": 2, "chunkCount": 6, "pdf_filename": "robotarm_300.pdf"},
     ]
     seen_files = set()
     results = []
@@ -215,17 +213,44 @@ def get_manuals_library():
         pdf_name = mc.get("pdf_filename", mc["filename"].replace(".txt", ".pdf"))
         pdf_path = os.path.join(manuals_dir, pdf_name)
         has_pdf = os.path.exists(pdf_path)
+
+        # Check for optional translation metadata
+        base_name = os.path.splitext(mc["filename"])[0]
+        meta_file = os.path.join(manuals_dir, f"{base_name}.meta.json")
+        is_trans = False
+        src_lang = "en"
+        det_lang = "English"
+        if os.path.exists(meta_file):
+            try:
+                with open(meta_file, "r", encoding="utf-8") as mf:
+                    mdata = json.load(mf)
+                    is_trans = mdata.get("is_translated", False)
+                    src_lang = mdata.get("source_language", "en")
+                    det_lang = mdata.get("detected_language", "English")
+            except Exception:
+                pass
+
         results.append({
             **mc,
             "raw_text": raw_text,
             "has_pdf": has_pdf,
-            "pdf_url": f"/api/manuals/{pdf_name}/pdf" if has_pdf else None
+            "pdf_url": f"/api/manuals/{pdf_name}/pdf" if has_pdf else None,
+            "is_translated": is_trans,
+            "source_language": src_lang,
+            "detected_language": det_lang
         })
 
-    # Also discover any dynamic uploaded manuals in manuals_dir
+    # Also discover any dynamic uploaded manuals in manuals_dir (excluding legacy demo or archived files)
+    ignored_prefixes = (".", "multilingual_")
+    ignored_exact = {"cnc100.txt", "press200.txt", "robotarm300.txt"}
     if os.path.exists(manuals_dir):
         for fname in sorted(os.listdir(manuals_dir)):
-            if fname.endswith(".txt") and fname not in seen_files and not fname.startswith("."):
+            if (
+                fname.endswith(".txt")
+                and fname not in seen_files
+                and fname not in ignored_exact
+                and not any(fname.startswith(p) for p in ignored_prefixes)
+            ):
                 fpath = os.path.join(manuals_dir, fname)
                 try:
                     with open(fpath, "r", encoding="utf-8") as f:
@@ -237,6 +262,22 @@ def get_manuals_library():
                     page_matches = re.findall(r"PAGE:\s*(\d+)", raw_text)
                     page_cnt = max([int(p) for p in page_matches]) if page_matches else 1
                     chunk_cnt = len(re.findall(r"^SECTION:", raw_text, re.MULTILINE))
+
+                    base_name = fname[:-4]
+                    meta_file = os.path.join(manuals_dir, f"{base_name}.meta.json")
+                    is_trans = False
+                    src_lang = "en"
+                    det_lang = "English"
+                    if os.path.exists(meta_file):
+                        try:
+                            with open(meta_file, "r", encoding="utf-8") as mf:
+                                mdata = json.load(mf)
+                                is_trans = mdata.get("is_translated", False)
+                                src_lang = mdata.get("source_language", "en")
+                                det_lang = mdata.get("detected_language", "English")
+                        except Exception:
+                            pass
+
                     results.append({
                         "filename": fname,
                         "title": f"{mach_name} Troubleshooting Manual",
@@ -246,24 +287,14 @@ def get_manuals_library():
                         "pdf_filename": pdf_cand if has_pdf else None,
                         "raw_text": raw_text,
                         "has_pdf": has_pdf,
-                        "pdf_url": f"/api/manuals/{pdf_cand}/pdf" if has_pdf else None
+                        "pdf_url": f"/api/manuals/{pdf_cand}/pdf" if has_pdf else None,
+                        "is_translated": is_trans,
+                        "source_language": src_lang,
+                        "detected_language": det_lang
                     })
                 except Exception:
                     pass
     return {"manuals": results}
- 
-@app.get("/api/manuals/multilingual")
-def get_multilingual_manual_endpoint(lang: Optional[str] = "en"):
-    """
-    Returns the comprehensive 9-section machine instruction manual.
-    Supports English ('en'), Simplified Chinese ('zh'), Japanese ('ja'), and German ('de').
-    """
-    manual_data = get_multilingual_manual(lang)
-    return {
-        "languages": get_available_languages(),
-        "selected_language": manual_data.get("language_code", "en"),
-        "manual": manual_data
-    }
  
 @app.get("/api/benchmarks")
 def get_benchmarks():
@@ -498,13 +529,24 @@ async def upload_manual(file: UploadFile = File(...)):
         delete_by_machine(machine_name)
         chunk_count = upsert_chunks(chunks)
 
+        # Language detection on 2,500-char substantive sample
+        sample_lines = [l.strip() for l in content.splitlines() if len(l.strip().split()) >= 4]
+        sample_text = " ".join(sample_lines)[:2500] if sample_lines else content[:2500]
+        det = _module_instance.detect_language(sample_text)
+        detected_code = det.get("language", "en")
+        detected_name = det.get("language_name", "English")
+        is_trans = detected_code != "en"
+
         return ManualUploadResponse(
             status="success",
             machine=machine_name,
             chunk_count=chunk_count,
             draft_text=None,
             error=None,
-            is_valid_format=True
+            is_valid_format=True,
+            source_language=detected_code,
+            detected_language=detected_name,
+            is_translated=is_trans
         )
 
     elif ext == ".pdf":
@@ -525,7 +567,15 @@ async def upload_manual(file: UploadFile = File(...)):
                 detail="No extractable text found — this may be a scanned document. OCR is not currently supported."
             )
 
-        # Call Gemini to structure the raw text into standard format
+        # Sample substantive body text for language detection (first 2,500 chars purely for metadata)
+        non_empty_chars = [ch for ch in extracted_text if not ch.isspace()]
+        sample_text = extracted_text[:2500] if len(non_empty_chars) >= 2500 else extracted_text
+        det = _module_instance.detect_language(sample_text)
+        detected_code = det.get("language", "en")
+        detected_name = det.get("language_name", "English")
+        is_trans = detected_code != "en"
+
+        # Call Gemini to structure and translate the raw text into standard English format
         try:
             draft_text = structure_pdf_text_with_llm(extracted_text)
         except Exception as err:
@@ -535,10 +585,35 @@ async def upload_manual(file: UploadFile = File(...)):
                 chunk_count=0,
                 draft_text=None,
                 error=f"LLM structuring failed: {str(err)}",
-                is_valid_format=False
+                is_valid_format=False,
+                source_language=detected_code,
+                detected_language=detected_name,
+                is_translated=is_trans
             )
 
         is_valid, err_msg, machine_name, chunks = validate_manual_content(draft_text)
+
+        # Post-structuring language verification check on MEANING/CAUSES/STEPS
+        structured_content_lines = []
+        for line in draft_text.splitlines():
+            sline = line.strip()
+            if any(sline.startswith(k) for k in ["MEANING:", "CAUSES:", "STEPS:", "SECTION:"]):
+                parts = sline.split(":", 1)
+                if len(parts) > 1 and parts[1].strip():
+                    structured_content_lines.append(parts[1].strip())
+            elif sline.startswith("-") or (sline and sline[0].isdigit() and "." in sline[:4]):
+                structured_content_lines.append(sline)
+        post_sample = " ".join(structured_content_lines)[:2500] if structured_content_lines else draft_text[:2500]
+        post_det = _module_instance.detect_language(post_sample)
+        post_lang = post_det.get("language", "en")
+        post_conf = post_det.get("confidence", 0.0)
+
+        # If it's still non-English with high confidence, flag needs_review and invalidate format
+        if post_lang != "en" and post_conf >= 0.70:
+            is_valid = False
+            post_name = post_det.get("language_name", post_lang)
+            err_msg = f"Translation incomplete: Structured output contains non-English text ({post_name}, confidence: {post_conf:.2f}). Manual review required."
+
         # Cache raw uploaded PDF bytes for confirmation
         os.makedirs(MANUALS_DIR, exist_ok=True)
         temp_pdf_name = f".draft_{sanitize_machine_filename(machine_name or 'unconfirmed')}.pdf"
@@ -554,7 +629,10 @@ async def upload_manual(file: UploadFile = File(...)):
             chunk_count=len(chunks),
             draft_text=draft_text,
             error=err_msg,
-            is_valid_format=is_valid
+            is_valid_format=is_valid,
+            source_language=detected_code,
+            detected_language=detected_name,
+            is_translated=is_trans
         )
 
 @app.post("/manuals/confirm", response_model=ManualUploadResponse)
@@ -588,6 +666,19 @@ def confirm_manual(req: ManualConfirmRequest):
         except Exception:
             pass
 
+    # Save optional translation metadata if manual was translated
+    meta_path = os.path.join(MANUALS_DIR, f"{base_name}.meta.json")
+    if req.is_translated or (req.source_language and req.source_language != "en"):
+        try:
+            with open(meta_path, "w", encoding="utf-8") as mf:
+                json.dump({
+                    "is_translated": True,
+                    "source_language": req.source_language or "en",
+                    "detected_language": req.detected_language or "English"
+                }, mf, indent=2)
+        except Exception:
+            pass
+
     delete_by_machine(machine_name)
     chunk_count = upsert_chunks(chunks)
 
@@ -597,7 +688,10 @@ def confirm_manual(req: ManualConfirmRequest):
         chunk_count=chunk_count,
         draft_text=None,
         error=None,
-        is_valid_format=True
+        is_valid_format=True,
+        source_language=req.source_language,
+        detected_language=req.detected_language,
+        is_translated=req.is_translated
     )
 
 @app.get("/api/manuals/{filename_or_machine}/pdf")

@@ -72,8 +72,7 @@ export async function processMockQuery(
     }
   }
 
-  const errorMatch = trimmed.match(/\b([EHR]\d{3}|SYM-[A-Z0-9-]+)\b/i);
-  const detectedError = errorMatch ? errorMatch[1].toUpperCase() : sessionState.lastError;
+
 
   // SCENARIO 4: Insufficient Information / Honest Refusal Check
   if (
@@ -251,29 +250,18 @@ export async function processMockQuery(
     };
   }
 
-  // Default fallback answer
+  // Default refusal for unsupported queries, foreign machines, unindexed codes, gibberish, or off-topic queries
   return {
     message: {
       id: msgId,
       role: 'assistant',
-      cardType: 'normal',
+      cardType: 'refusal',
       timestamp,
-      meaning: `Diagnostic procedure evaluated for ${detectedMachine || 'plant equipment'}.`,
-      causes: ['Operating condition outside standard parameters.'],
-      steps: ['Consult equipment service manual and verify safety disconnect.'],
-      citations: [
-        {
-          manual: detectedMachine === 'CNC-100' ? 'cnc100.txt' : (detectedMachine === 'Press-200' ? 'press200.txt' : 'robotarm300.txt'),
-          page: 1,
-          section: 'Equipment Overview',
-          snippet: 'Manual-sourced technical documentation guidelines.',
-        },
-      ],
+      refusalMessage: "The manuals don't cover this. I won't guess at a fix.",
     },
     newSession: {
       ...sessionState,
       lastMachine: detectedMachine || sessionState.lastMachine,
-      lastError: detectedError || sessionState.lastError,
       updatedAt: timestamp,
     },
   };

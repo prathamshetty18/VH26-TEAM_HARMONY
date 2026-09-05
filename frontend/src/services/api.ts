@@ -238,13 +238,38 @@ export class DiagnosticService {
             },
             isLiveBackend: true,
           };
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          const errMsg = errData.detail || `Diagnostic backend error (${res.status})`;
+          return {
+            message: {
+              id: `msg_${Date.now()}`,
+              role: 'assistant',
+              cardType: 'refusal',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              refusalMessage: `Backend request failed: ${errMsg}`,
+            },
+            newSession: sessionState,
+            isLiveBackend: true,
+          };
         }
-      } catch (err) {
-        console.warn('Live API request failed or timed out. Falling back to local diagnostic engine.', err);
+      } catch (err: any) {
+        console.error('Live API request failed or timed out:', err);
+        return {
+          message: {
+            id: `msg_${Date.now()}`,
+            role: 'assistant',
+            cardType: 'refusal',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            refusalMessage: 'Unable to connect to the MachineAssist diagnostic backend at http://localhost:8000. Please ensure the backend server is running.',
+          },
+          newSession: sessionState,
+          isLiveBackend: false,
+        };
       }
     }
 
-    // Default or fallback to mock engine
+    // Explicit Simulation Mode (only if explicitly set to 'mock' in settings)
     const { message, newSession } = await processMockQuery(userQuery, sessionState, scopedMachine);
     return { message, newSession, isLiveBackend: false };
   }

@@ -37,6 +37,7 @@ MACHINE_ALIASES = {
     "cb4400": "Conveyor Belt System",
     "conveyor belt system": "Conveyor Belt System",
     "conveyor belt": "Conveyor Belt System",
+    "conveyor": "Conveyor Belt System",
 
     # CNC Milling Machine (MX-7 Precision)
     "mx-7 precision": "CNC Milling Machine",

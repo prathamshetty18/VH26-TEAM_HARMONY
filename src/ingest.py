@@ -1,5 +1,6 @@
 import os
 import re
+import unicodedata
 from typing import List, Dict, Any, Tuple, Optional
 
 def parse_manual_text(content: str, filename: str = "manual.txt") -> List[Dict[str, Any]]:
@@ -10,6 +11,9 @@ def parse_manual_text(content: str, filename: str = "manual.txt") -> List[Dict[s
     chunks = []
     if not content or not content.strip():
         return chunks
+
+    # Normalize full-width CJK characters to standard ASCII
+    content = unicodedata.normalize('NFKC', content)
 
     # Global header metadata
     global_machine = None

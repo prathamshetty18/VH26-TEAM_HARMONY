@@ -49,16 +49,19 @@ def calculate_model_confidence(top_chunk: Dict[str, Any], query_has_exact_error:
     raw_score = float(top_chunk.get("score", 0.0))
     
     if query_has_exact_error and top_chunk.get("error_code"):
-        calibrated = 0.88 + (raw_score * 0.10)
+        calibrated = 0.88 + (min(raw_score, 1.0) * 0.10)
     else:
         if raw_score >= 0.65:
             calibrated = 0.85 + (raw_score - 0.65) * 0.35
         elif raw_score >= 0.50:
             calibrated = 0.70 + (raw_score - 0.50) * 1.0
+        elif raw_score >= 0.35:
+            calibrated = 0.35 + (raw_score - 0.35) * 1.8
         else:
-            calibrated = 0.40 + (raw_score - 0.35) * 2.0
+            # Below 0.35 raw similarity is strictly low confidence (< 0.25)
+            calibrated = max(0.10, raw_score * 0.6)
 
-    return round(min(0.98, max(0.15, calibrated)), 2)
+    return round(min(0.98, max(0.10, calibrated)), 2)
 
 
 def extract_fault_title_and_component(

@@ -58,8 +58,40 @@ class SessionMemory:
             if last_m.lower() not in query_lower:
                 injections.append(f"machine {last_m}")
 
-        # Case 3: Neither machine nor error specified in follow-up -> inherit both
+        # Case 3: Neither machine nor error specified in follow-up -> inherit both only if follow-up intent
         elif not has_new_machine and not has_new_error:
+            # Diagnostic target terms indicating follow-up on previous error
+            diagnostic_intent_words = {
+                "step", "steps", "procedure", "cause", "causes", "meaning", "mean",
+                "fix", "fixes", "remedy", "solution", "action", "corrective",
+                "inspect", "inspection", "check", "detail", "details", "explain",
+                "troubleshoot", "troubleshooting", "resolve", "resolution"
+            }
+            # Pronouns referring to prior subject (only if accompanied by question or action verb)
+            context_pronouns = {"this", "that", "it"}
+
+            from src.safety import FACTORY_DOMAIN_VOCAB
+            query_tokens = set(re.findall(r"\b[a-zA-Z0-9_-]+\b", query_lower))
+
+            has_diagnostic_intent = bool(query_tokens.intersection(diagnostic_intent_words))
+            has_domain_vocab = bool(query_tokens.intersection(FACTORY_DOMAIN_VOCAB))
+            has_pronoun_reference = bool(query_tokens.intersection(context_pronouns)) and any(
+                w in query_tokens for w in {"why", "how", "what", "fix", "do", "explain", "about"}
+            )
+
+            # Common off-topic triggers that should never inherit industrial equipment context
+            off_topic_words = {
+                "weather", "president", "cake", "bake", "recipe", "joke", "poem",
+                "flower", "flowers", "movie", "song", "capital", "country", "football",
+                "soccer", "game", "who", "when", "birthday", "dinner", "lunch", "pizza",
+                "led", "blinking", "blinks", "flashing", "flicker", "flickering", "beep", "beeps"
+            }
+            is_off_topic = bool(query_tokens.intersection(off_topic_words))
+
+            # Must have real follow-up intent and must not be an off-topic query
+            if is_off_topic or not (has_diagnostic_intent or has_domain_vocab or has_pronoun_reference):
+                return query
+
             if last_m and last_m.lower() not in query_lower:
                 injections.append(f"machine {last_m}")
             if last_e and last_e.lower() not in query_lower:

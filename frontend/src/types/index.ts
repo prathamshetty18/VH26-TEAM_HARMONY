@@ -107,4 +107,8 @@ export interface ManualItem {
   raw_text?: string;
   has_pdf?: boolean;
   pdf_url?: string | null;
+  is_translated?: boolean;
+  source_language?: string | null;
+  detected_language?: string | null;
 }
+

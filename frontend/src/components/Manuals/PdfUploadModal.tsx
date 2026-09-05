@@ -34,6 +34,8 @@ export const PdfUploadModal: React.FC<PdfUploadModalProps> = ({
   const [draftContent, setDraftContent] = useState<string>('');
   const [draftMachine, setDraftMachine] = useState<string>('');
   const [chunkCount, setChunkCount] = useState<number>(0);
+  const [sourceLanguage, setSourceLanguage] = useState<string>('English');
+  const [isTranslated, setIsTranslated] = useState<boolean>(false);
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -89,6 +91,8 @@ export const PdfUploadModal: React.FC<PdfUploadModalProps> = ({
         setDraftContent(data.draft_text || '');
         setDraftMachine(data.machine || file.name.replace(/\.[^/.]+$/, ''));
         setChunkCount(data.chunk_count || 0);
+        setSourceLanguage(data.detected_language || 'English');
+        setIsTranslated(!!data.is_translated);
       } else if (data.status === 'success') {
         setSuccessMessage(`Successfully indexed ${data.machine || 'manual'} with ${data.chunk_count} verified chunks!`);
         onUploadSuccess();
@@ -279,6 +283,19 @@ export const PdfUploadModal: React.FC<PdfUploadModalProps> = ({
           ) : (
             /* Human-in-the-Loop Review Studio */
             <div className="space-y-4">
+              {isTranslated && (
+                <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+                  <div className="flex items-center space-x-2.5">
+                    <span className="px-2.5 py-1 rounded-lg bg-amber-200 text-amber-950 font-bold text-[10px] uppercase tracking-wider">
+                      {sourceLanguage} → English
+                    </span>
+                    <span className="font-medium text-amber-900">
+                      Document translated to canonical English for RAG retrieval. Verify technical parameters below.
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">

@@ -32,11 +32,16 @@ Important: If the provided sources do NOT contain any information about the quer
 
 PDF_STRUCTURING_SYSTEM_PROMPT = """You are a technical document parser. Your job is to convert unstructured industrial machine manual text into a standardized structure conforming strictly to the specification below.
 
+LANGUAGE NORMALIZATION & TRANSLATION:
+1. ALL structured output fields (MACHINE, MODEL, SECTION, MEANING, CAUSES, STEPS) MUST BE IN ENGLISH.
+2. If the source manual text is in Chinese, Japanese, German, or any other non-English language, you MUST TRANSLATE all descriptions, meanings, causes, and corrective action steps into clear, professional technical English during structuring.
+3. If the source text is already in English, retain the English wording.
+
 CRITICAL PRESERVATION RULES:
 1. NUMERIC VALUES, THRESHOLDS, UNITS, AND ERROR CODES MUST BE COPIED CHARACTER-FOR-CHARACTER from the source text.
-2. NEVER round, reword, approximate, convert, or reformat any numbers, tolerances, pressures, temperatures, electrical ratings, or flow rates (e.g. "65°C", "3.8 L/min", "45-70 bar", "125% FLA", "3.5 seconds", "0.015 mm").
+2. NEVER round, reword, approximate, convert (e.g. do not convert °C to °F or bar to psi), or reformat any numbers, tolerances, pressures, temperatures, electrical ratings, or flow rates (e.g. "65°C", "94°C", "3.8 L/min", "45-70 bar", "6.5 bar", "18 bar", "125% FLA", "3.5 seconds", "0.015 mm", "24,000 RPM", "400V", "32A", "15 kW").
 3. If a number or unit's exact format is ambiguous, preserve it exactly as written in the source text.
-4. Do NOT invent or extrapolate any information, causes, error codes, part numbers, or corrective steps that are not present in the source text.
+4. Do NOT invent or extrapolate any information, causes, error codes, part numbers, or corrective steps that are not present in the source text. All error codes present in the structured output MUST exist in the source text.
 5. Every single error code and diagnostic symptom mentioned in the text must be represented.
 
 The structure MUST follow this exact format:
@@ -44,18 +49,18 @@ MACHINE: <Machine Name>
 MODEL: <Model Name>
 
 ERROR CODE: <Code or Symptom ID e.g. E101 or SYM-OVERHEAT>
-SECTION: <Descriptive Section Title>
+SECTION: <Descriptive Section Title in English>
 PAGE: <Page number if known, or 1>
-MEANING: <One or two sentences explaining the error/symptom>
+MEANING: <One or two sentences explaining the error/symptom in English>
 CAUSES:
-- <Cause 1>
-- <Cause 2>
+- <Cause 1 in English>
+- <Cause 2 in English>
 
-SECTION: <Troubleshooting Section Title>
+SECTION: <Troubleshooting Section Title in English>
 PAGE: <Page number if known, or 1>
 STEPS:
-1. <Action Step 1>
-2. <Action Step 2>
+1. <Action Step 1 in English>
+2. <Action Step 2 in English>
 
 ...Repeat for each error code or symptom block in the manual.
 Output ONLY the structured plain text with no markdown code fences, no extra preamble, and no commentary.
