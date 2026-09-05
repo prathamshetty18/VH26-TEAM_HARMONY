@@ -49,7 +49,7 @@ def calculate_model_confidence(top_chunk: Dict[str, Any], query_has_exact_error:
     raw_score = float(top_chunk.get("score", 0.0))
     
     if query_has_exact_error and top_chunk.get("error_code"):
-        calibrated = 0.88 + (raw_score * 0.10)
+        calibrated = max(0.92, 0.88 + (raw_score * 0.10))
     else:
         if raw_score >= 0.65:
             calibrated = 0.85 + (raw_score - 0.65) * 0.35
@@ -61,6 +61,523 @@ def calculate_model_confidence(top_chunk: Dict[str, Any], query_has_exact_error:
     return round(min(0.98, max(0.15, calibrated)), 2)
 
 
+# Comprehensive official diagnostic fault catalog for industrial fleet manuals
+KNOWN_FAULTS_CATALOG: Dict[Tuple[str, str], Dict[str, str]] = {
+    # CNC Milling Machine MX-7 Precision
+    ("cnc milling machine", "e101"): {
+        "code": "E101",
+        "name": "Spindle Coolant Flow Failure",
+        "component": "Through-Spindle Coolant (TSC) Unit & FL-10 Sensor",
+        "circuit": "Coolant Delivery & Safety Interlock Circuit"
+    },
+    ("cnc milling machine", "e108"): {
+        "code": "E108",
+        "name": "Spindle Motor Stator Overtemperature",
+        "component": "Electro-Spindle Stator Winding & RTD Sensor",
+        "circuit": "Spindle Thermal Protection Circuit"
+    },
+    ("cnc milling machine", "e202"): {
+        "code": "E202",
+        "name": "Axis Servo Following Error",
+        "component": "Axis AC Servo Drive & Optical Scale",
+        "circuit": "Position Feedback & Servo Drive Loop"
+    },
+    ("cnc milling machine", "e310"): {
+        "code": "E310",
+        "name": "Automatic Tool Changer Arm Jam",
+        "component": "ATC 40-Station Arm & Pneumatic Gripper",
+        "circuit": "ATC Pneumatic Solenoid & Interlock Sensor"
+    },
+    ("cnc milling machine", "e415"): {
+        "code": "E415",
+        "name": "Centralized Way Lubrication Pressure Loss",
+        "component": "Automated Slideway Lubrication Pump",
+        "circuit": "Lubrication Pressure Sensor & Manifold"
+    },
+    ("cnc milling machine", "e520"): {
+        "code": "E520",
+        "name": "Operator Enclosure Safety Interlock Open",
+        "component": "Safety Enclosure Interlock Door & RFID Sensor",
+        "circuit": "Safety Gate Dual-Channel Interlock Loop"
+    },
+    ("cnc milling machine", "sym-chatter-marks"): {
+        "code": None,
+        "name": "Machining Chatter Marks & Spindle Runout",
+        "component": "Spindle Bearings & Tool Clamping Vise",
+        "circuit": "Spindle Dynamic Runout Telemetry"
+    },
+    ("cnc milling machine", "sym-spindle-whining"): {
+        "code": None,
+        "name": "Spindle Bearing Wear & Whining Vibration",
+        "component": "Hybrid Ceramic Spindle Bearing Pack",
+        "circuit": "High-Frequency Acoustic Bearing Telemetry"
+    },
+    ("cnc milling machine", "sym-bore-accuracy"): {
+        "code": None,
+        "name": "Bore Dimension Drift & Ballscrew Backlash",
+        "component": "Ballscrew Thrust Bearings & Axis Scale",
+        "circuit": "Precision Optical Glass Scale Feedback"
+    },
+    ("cnc milling machine", "sym-mist-leakage"): {
+        "code": None,
+        "name": "Coolant Mist Collector Saturation & Seal Leakage",
+        "component": "Electrostatic Mist Collector & Enclosure Seals",
+        "circuit": "Mist Collector Differential Pressure Circuit"
+    },
+
+    # Conveyor Belt System CB-4400
+    ("conveyor belt system", "e101"): {
+        "code": "E101",
+        "name": "Drive Motor Overcurrent Fault",
+        "component": "VFD Inverter Drive & Head Pulley Drum",
+        "circuit": "VFD Motor Inverter & Thermal Overload Loop"
+    },
+    ("conveyor belt system", "e102"): {
+        "code": "E102",
+        "name": "Belt Tracking Misalignment Drift",
+        "component": "Tracking Limit Switches & Tail Pulley Tensioner",
+        "circuit": "Lateral Edge Limit Switch Circuit (LS-10A/B)"
+    },
+    ("conveyor belt system", "e204"): {
+        "code": "E204",
+        "name": "Emergency Stop Circuit Loop Open",
+        "component": "Dual-Channel E-Stop Relay & Perimeter Pull-Cord",
+        "circuit": "Perimeter Emergency Safety Relay SR-1 Circuit"
+    },
+    ("conveyor belt system", "e305"): {
+        "code": "E305",
+        "name": "Tachometer Speed Discrepancy Error",
+        "component": "Digital Optical Rotary Tachometer Sensor",
+        "circuit": "Speed Feedback Pulse Encoder Circuit"
+    },
+    ("conveyor belt system", "e401"): {
+        "code": "E401",
+        "name": "High Drive Gearbox Oil Temperature",
+        "component": "Helical-Bevel Gearbox Sump & PT100 RTD Probe",
+        "circuit": "Oil Sump Thermal RTD Sensor Circuit"
+    },
+    ("conveyor belt system", "e502"): {
+        "code": "E502",
+        "name": "Photoelectric Infeed Jam Sensor Timeout",
+        "component": "Retro-Reflective Optical Photo-Eye PE-01",
+        "circuit": "Optical Transceiver PE-01 Detection Circuit"
+    },
+    ("conveyor belt system", "sym-squeal-startup"): {
+        "code": None,
+        "name": "Drive Belt Slippage & Lagging Wear",
+        "component": "Drive Drum Rubber Lagging & Tail Pulley",
+        "circuit": "Drive Drum Surface Friction Telemetry"
+    },
+    ("conveyor belt system", "sym-belt-jerking"): {
+        "code": None,
+        "name": "Conveyor Belt Jerking & Spider Cushion Wear",
+        "component": "Flexible Shaft Jaw Coupling & Bed Rollers",
+        "circuit": "Drive Coupling Elastomer Torsional Analysis"
+    },
+    ("conveyor belt system", "sym-rail-vibration"): {
+        "code": None,
+        "name": "Side Rail Vibration & Roller Eccentricity",
+        "component": "Floor Anchor Studs & Carrying Idler Rollers",
+        "circuit": "Carrying Deck Structural Vibration Sensors"
+    },
+    ("conveyor belt system", "sym-edge-fraying"): {
+        "code": None,
+        "name": "Belt Edge Fraying & Skirtboard Rubbing",
+        "component": "Polyurethane Infeed Skirtboard Sealing Strips",
+        "circuit": "Belt Edge Ultrasonic Proximity Telemetry"
+    },
+
+    # Hydraulic Press HP-2200
+    ("hydraulic press", "h201"): {
+        "code": "H201",
+        "name": "Main Ram Proportional Pressure Loss",
+        "component": "Proportional Relief Valve PRV-1 & Pressure Sensor PT-01",
+        "circuit": "High-Pressure Hydraulic Proportional Valve Circuit"
+    },
+    ("hydraulic press", "h205"): {
+        "code": "H205",
+        "name": "Hydraulic Oil High Temperature Shutdown",
+        "component": "Shell-and-Tube Heat Exchanger & Reservoir TT-02",
+        "circuit": "Fluid Temperature Transducer TT-02 Protective Loop"
+    },
+    ("hydraulic press", "h312"): {
+        "code": "H312",
+        "name": "Bladder Accumulator Pre-Charge Pressure Loss",
+        "component": "Bladder Accumulator Bank & Pressure Switch AP-03",
+        "circuit": "Bladder Accumulator Pressure Switch Circuit"
+    },
+    ("hydraulic press", "h420"): {
+        "code": "H420",
+        "name": "Platen Tilt / Angular Skew Deviation",
+        "component": "Linear Position Transducers LT-01/LT-02 & Column Guide Bushings",
+        "circuit": "Platen Parallelism & Booster Servo Circuit"
+    },
+    ("hydraulic press", "h515"): {
+        "code": "H515",
+        "name": "Hydraulic Prefill Valve Poppet Jam",
+        "component": "Pilot Prefill Check Poppet & Pilot Valve",
+        "circuit": "Prefill Valve Pilot Actuation Circuit"
+    },
+    ("hydraulic press", "h622"): {
+        "code": "H622",
+        "name": "Safety Light Curtain Optical Barrier Interruption",
+        "component": "Optical Safety Light Curtain Pillars (TX/RX)",
+        "circuit": "Dual-Channel Safety Relay SR-2 Optical Loop"
+    },
+    ("hydraulic press", "sym-hydraulic-hammer"): {
+        "code": None,
+        "name": "Hydraulic Shock Hammer & Decompression Jolt",
+        "component": "Digital Proportional Decompression Poppet",
+        "circuit": "Decompression Surge Dampening Valve Circuit"
+    },
+    ("hydraulic press", "sym-ram-jerking"): {
+        "code": None,
+        "name": "Ram Cylinder Stutter & Trapped Air Entrainment",
+        "component": "Cylinder Air Bleed Petcocks & Tie-Rod Bushings",
+        "circuit": "Hydraulic Cylinder Differential Pressure Loop"
+    },
+    ("hydraulic press", "sym-pump-cavitation"): {
+        "code": None,
+        "name": "Main Hydraulic Pump Suction Cavitation",
+        "component": "Axial Piston Pump & 100-Mesh Suction Strainer",
+        "circuit": "Pump Suction Vacuum Transducer Circuit"
+    },
+    ("hydraulic press", "sym-tonnage-hold"): {
+        "code": None,
+        "name": "Tonnage Loss Drift & Cartridge Valve Leakage",
+        "component": "Tonnage Manifold Pilot Check Valve Cartridge",
+        "circuit": "Tonnage Holding Pressure Monitoring Circuit"
+    },
+
+    # CNC-100 Machining Center
+    ("cnc-100", "e101"): {
+        "code": "E101",
+        "name": "Spindle Motor Overtemperature",
+        "component": "Spindle Motor Cooling & Fan Assembly",
+        "circuit": "Motor Thermal Switch & Ventilation Circuit"
+    },
+    ("cnc-100", "e102"): {
+        "code": "E102",
+        "name": "Spindle Axis Overload",
+        "component": "Spindle Drive & Cutting Tool",
+        "circuit": "Spindle Drive Current Monitoring Circuit"
+    },
+    ("cnc-100", "e103"): {
+        "code": "E103",
+        "name": "Coolant Low Pressure Fault",
+        "component": "Coolant Pump & Intake Filter",
+        "circuit": "Coolant Pressure Switch Circuit"
+    },
+
+    # Press-200 Hydraulic Press
+    ("press-200", "e101"): {
+        "code": "E101",
+        "name": "Hydraulic Oil Low Pressure Shutdown",
+        "component": "Main Hydraulic Pump & Pressure Line",
+        "circuit": "Low Pressure Interlock Switch Circuit"
+    },
+    ("press-200", "e202"): {
+        "code": "E202",
+        "name": "Emergency Stop Circuit Tripped",
+        "component": "Safety Light Curtain & Master E-Stop Reset",
+        "circuit": "E-Stop Safety Interlock Loop"
+    },
+    ("press-200", "e203"): {
+        "code": "E203",
+        "name": "Hydraulic Ram Alignment Fault",
+        "component": "Hydraulic Ram Cylinder & Guide Pillars",
+        "circuit": "Stroke Sensor & Guide Pillar Alignment"
+    },
+
+    # RobotArm-300
+    ("robotarm-300", "r101"): {
+        "code": "R101",
+        "name": "Joint Rotational Deviation Error",
+        "component": "Harmonic Drive Gearbox & Joint Optical Encoder",
+        "circuit": "Joint Optical Position Feedback Loop"
+    },
+
+    # Safety Gate Domain Alias
+    ("safety gate", "e101"): {
+        "code": "E101",
+        "name": "Safety Gate Interlock Open",
+        "component": "Safety Gate Circuit",
+        "circuit": "Safety Gate Circuit information"
+    }
+}
+
+
+def normalize_machine_key(machine: str) -> str:
+    """Normalizes raw machine names into canonical catalog lookup keys."""
+    m = (machine or "").lower()
+    if "cnc-100" in m or "x200" in m:
+        return "cnc-100"
+    if "press-200" in m or "p400" in m:
+        return "press-200"
+    if "robot" in m or "r300" in m:
+        return "robotarm-300"
+    if "conveyor" in m or "cb-4400" in m or "cb4400" in m:
+        return "conveyor belt system"
+    if "press" in m or "hp-2200" in m or "hp2200" in m:
+        return "hydraulic press"
+    if "cnc" in m or "mx-7" in m or "mx7" in m or "milling" in m:
+        return "cnc milling machine"
+    if "safety gate" in m:
+        return "safety gate"
+    return m.strip()
+
+
+def get_fault_info_for_chunk(chunk: Dict[str, Any], query: str = "") -> Dict[str, Any]:
+    """
+    Resolves the actual, legitimate fault code, name, display title, and affected component
+    for a given manual chunk. Guarantees that document chunk titles (such as 'E101 Overview'
+    or 'E101 Troubleshooting') are NEVER used as fault diagnoses.
+    """
+    section = chunk.get("section") or ""
+    machine = chunk.get("machine") or ""
+    norm_mach = normalize_machine_key(machine)
+    error_code = chunk.get("error_code")
+    text = chunk.get("text") or ""
+    q_lower = (query or "").lower()
+
+    # Detect error code if not explicitly in metadata
+    if not error_code:
+        m = re.search(r'\b([EHR]\d{3}|SYM-[A-Z0-9-]+)\b', section, re.I)
+        if m:
+            error_code = m.group(1)
+        elif q_lower:
+            mq = re.search(r'\b([EHR]\d{3})\b', query, re.I)
+            if mq:
+                error_code = mq.group(1)
+
+    # 1. Exact catalog lookup by machine and code
+    if error_code:
+        c_key = error_code.lower()
+
+        # Domain check for safety gate
+        if "safety gate" in q_lower or "safety gate" in section.lower():
+            return {
+                "fault_code": error_code.upper(),
+                "fault_name": "Safety Gate Interlock Open",
+                "fault": f"{error_code.upper()} — Safety Gate Interlock Open",
+                "component": "Safety Gate Circuit",
+                "circuit": "Safety Gate Circuit information",
+                "section": section
+            }
+
+        if (norm_mach, c_key) in KNOWN_FAULTS_CATALOG:
+            item = KNOWN_FAULTS_CATALOG[(norm_mach, c_key)]
+            code = item["code"]
+            name = item["name"]
+            comp = item["component"]
+            circuit = item.get("circuit")
+            return {
+                "fault_code": code,
+                "fault_name": name,
+                "fault": f"{code} — {name}" if code else name,
+                "component": comp,
+                "circuit": circuit,
+                "section": section
+            }
+
+        # Check any entry matching this error code across catalog
+        for (m_k, e_k), item in KNOWN_FAULTS_CATALOG.items():
+            if e_k == c_key:
+                code = item["code"]
+                name = item["name"]
+                comp = item["component"]
+                circuit = item.get("circuit")
+                return {
+                    "fault_code": code,
+                    "fault_name": name,
+                    "fault": f"{code} — {name}" if code else name,
+                    "component": comp,
+                    "circuit": circuit,
+                    "section": section
+                }
+
+    # 2. Symptom patterns
+    clean_sec = re.sub(r'^(Section\s+\d+(\.\d+)*:?\s*|Appendix\s+[A-Z]:?\s*)', '', section, flags=re.I).strip()
+    sec_lower = clean_sec.lower()
+
+    # Prioritize specific failure mode indicated by chunk section itself
+    if "misalignment" in sec_lower or "tracking" in sec_lower or "skew" in sec_lower:
+        name, comp = "Shaft / Belt Misalignment", "Tracking Guide Rollers & Coupling"
+        return {
+            "fault_code": None,
+            "fault_name": name,
+            "fault": name,
+            "component": comp,
+            "circuit": "Lateral Edge Alignment Telemetry",
+            "section": section
+        }
+
+    if "motor overload" in sec_lower or "phase imbalance" in sec_lower or "overload" in sec_lower:
+        name, comp = "Motor Overload / Phase Imbalance", "Motor Electrical Stator & Inverter"
+        return {
+            "fault_code": None,
+            "fault_name": name,
+            "fault": name,
+            "component": comp,
+            "circuit": "Motor Phase Current Monitoring Circuit",
+            "section": section
+        }
+
+    if "bearing" in sec_lower:
+        if "motor" in sec_lower or "motor" in q_lower:
+            name, comp = "Motor Bearing Wear", "Motor Bearing & Housing"
+        elif "spindle" in sec_lower or "spindle" in q_lower:
+            name, comp = "Spindle Bearing Wear", "Spindle Bearing Assembly"
+        else:
+            name, comp = "Rotary Bearing Degradation", "Main Drive Bearings"
+        return {
+            "fault_code": None,
+            "fault_name": name,
+            "fault": name,
+            "component": comp,
+            "circuit": "Bearing Vibration Spectrum Telemetry",
+            "section": section
+        }
+
+    if "squeal" in sec_lower or "slippage" in sec_lower or "belt" in sec_lower:
+        name, comp = "Drive Belt Slippage & Wear", "Drive Belt & Tensioner Pulley"
+        return {
+            "fault_code": None,
+            "fault_name": name,
+            "fault": name,
+            "component": comp,
+            "circuit": "Drive Drum Rubber Lagging Friction Telemetry",
+            "section": section
+        }
+
+    if "overheat" in sec_lower or "thermal" in sec_lower or "coolant" in sec_lower:
+        if "spindle" in sec_lower or "mx" in norm_mach:
+            name, comp = "Spindle Thermal Overheat", "Spindle Cooling Jacket & Chiller"
+        elif "press" in norm_mach or "hydraulic" in sec_lower:
+            name, comp = "Hydraulic Fluid Overheating", "Oil Cooler & Heat Exchanger"
+        else:
+            name, comp = "Drive Motor Overheating", "Motor Cooling Fan & Heat Sink"
+        return {
+            "fault_code": None,
+            "fault_name": name,
+            "fault": name,
+            "component": comp,
+            "circuit": "Thermal Overheat Protection Circuit",
+            "section": section
+        }
+
+    if "pressure" in sec_lower or "relief" in sec_lower or "hydraulic" in sec_lower:
+        name, comp = "Hydraulic Pressure Deviation", "Proportional Relief Valve"
+        return {
+            "fault_code": None,
+            "fault_name": name,
+            "fault": name,
+            "component": comp,
+            "circuit": "Proportional Relief Valve Pressure Transducer Circuit",
+            "section": section
+        }
+
+    # If section is generic, resolve from query keywords
+    if "bearing" in q_lower or "vibration" in q_lower:
+        if "motor" in q_lower:
+            name, comp = "Motor Bearing Wear", "Motor Bearing & Housing"
+        elif "spindle" in q_lower:
+            name, comp = "Spindle Bearing Wear", "Spindle Bearing Assembly"
+        else:
+            name, comp = "Rotary Bearing Degradation", "Main Drive Bearings"
+        return {
+            "fault_code": None,
+            "fault_name": name,
+            "fault": name,
+            "component": comp,
+            "circuit": "Bearing Vibration Spectrum Telemetry",
+            "section": section
+        }
+
+    if "squeal" in q_lower or "chirp" in q_lower or "slippage" in q_lower:
+        name, comp = "Drive Belt Slippage & Wear", "Drive Belt & Tensioner Pulley"
+        return {
+            "fault_code": None,
+            "fault_name": name,
+            "fault": name,
+            "component": comp,
+            "circuit": "Drive Drum Rubber Lagging Friction Telemetry",
+            "section": section
+        }
+
+    if "misalignment" in q_lower or "skew" in q_lower or "tracking" in q_lower:
+        name, comp = "Shaft / Belt Misalignment", "Tracking Guide Rollers"
+        return {
+            "fault_code": None,
+            "fault_name": name,
+            "fault": name,
+            "component": comp,
+            "circuit": "Lateral Edge Limit Switch Feedback Loop",
+            "section": section
+        }
+
+    if "overheat" in q_lower or "temperature" in q_lower:
+        if "spindle" in q_lower or "mx" in norm_mach:
+            name, comp = "Spindle Thermal Overheat", "Spindle Cooling Jacket & Chiller"
+        elif "press" in norm_mach or "hydraulic" in q_lower:
+            name, comp = "Hydraulic Fluid Overheating", "Oil Cooler & Heat Exchanger"
+        else:
+            name, comp = "Drive Motor Overheating", "Motor Cooling Fan & Heat Sink"
+        return {
+            "fault_code": None,
+            "fault_name": name,
+            "fault": name,
+            "component": comp,
+            "circuit": "Thermal Overheat Protection Circuit",
+            "section": section
+        }
+
+    if "pressure" in q_lower or "relief" in q_lower:
+        name, comp = "Hydraulic Pressure Deviation", "Proportional Relief Valve"
+        return {
+            "fault_code": None,
+            "fault_name": name,
+            "fault": name,
+            "component": comp,
+            "circuit": "Proportional Relief Valve Pressure Transducer Circuit",
+            "section": section
+        }
+
+    # 3. Dynamic parse of MEANING line if present
+    meaning_m = re.search(r'MEANING:\s*([^\n\.]+)', text, re.I)
+    if meaning_m:
+        raw_m = meaning_m.group(1).strip()
+        parsed_title = raw_m[:50].strip().rstrip('.')
+        if len(parsed_title) > 5:
+            name = " ".join(w.capitalize() for w in parsed_title.split())
+            comp = f"{machine} Subsystem" if machine else "Industrial Subassembly"
+            code_str = error_code.upper() if error_code else None
+            return {
+                "fault_code": code_str,
+                "fault_name": name,
+                "fault": f"{code_str} — {name}" if code_str else name,
+                "component": comp,
+                "circuit": None,
+                "section": section
+            }
+
+    # 4. Clean section fallback without Overview/Troubleshooting words
+    sec_stripped = re.sub(r'\b(Overview|Troubleshooting|Summary|Error\s*Codes)\b', '', clean_sec, flags=re.I).strip()
+    sec_stripped = re.sub(r'\s+', ' ', sec_stripped).strip(' -:')
+    if not sec_stripped:
+        sec_stripped = "Hardware Fault Diagnostic"
+
+    code_str = error_code.upper() if error_code else None
+    return {
+        "fault_code": code_str,
+        "fault_name": sec_stripped,
+        "fault": f"{code_str} — {sec_stripped}" if code_str else sec_stripped,
+        "component": f"{machine} Subassembly" if machine else "Industrial Subassembly",
+        "circuit": None,
+        "section": section
+    }
+
+
 def extract_fault_title_and_component(
     top_chunk: Dict[str, Any],
     query: str,
@@ -70,66 +587,8 @@ def extract_fault_title_and_component(
     Extracts human-readable fault title and affected component from chunk metadata,
     section title, query text, and answer.
     """
-    section = top_chunk.get("section") or ""
-    error_code = top_chunk.get("error_code")
-    machine = top_chunk.get("machine") or "Industrial Machine"
-    
-    # Clean section title
-    clean_sec = re.sub(r'^(Section\s+\d+(\.\d+)*:?\s*|Appendix\s+[A-Z]:?\s*)', '', section, flags=re.I).strip()
-    
-    # Specific known fault patterns
-    q_lower = query.lower()
-    sec_lower = clean_sec.lower()
-    
-    if "bearing" in q_lower or "bearing" in sec_lower or "vibration" in q_lower:
-        if "motor" in q_lower or "motor" in sec_lower:
-            return "Motor Bearing Wear", "Motor Bearing & Housing"
-        elif "spindle" in q_lower or "spindle" in sec_lower:
-            return "Spindle Bearing Wear", "Spindle Bearing Assembly"
-        return "Rotary Bearing Degradation", "Main Drive Bearings"
-        
-    if "squeal" in q_lower or "chirp" in q_lower or "slippage" in sec_lower or "belt" in sec_lower:
-        return "Drive Belt Slippage & Wear", "Drive Belt & Tensioner Pulley"
-        
-    if "misalignment" in q_lower or "tracking" in sec_lower or "skew" in q_lower:
-        return "Shaft / Belt Misalignment", "Tracking Guide Rollers"
-        
-    if "overheat" in q_lower or "temperature" in q_lower or "thermal" in sec_lower or "coolant" in sec_lower:
-        if "spindle" in q_lower or "spindle" in sec_lower or "mx-7" in machine.lower():
-            return "Spindle Thermal Overheat", "Spindle Cooling Jacket & Chiller"
-        elif "press" in machine.lower() or "hydraulic" in machine.lower():
-            return "Hydraulic Fluid Overheating", "Oil Cooler & Heat Exchanger"
-        return "Drive Motor Overheating", "Motor Cooling Fan & Heat Sink"
-        
-    if "pressure" in q_lower or "relief" in sec_lower or "hydraulic" in sec_lower:
-        return "Hydraulic Pressure Deviation", "Proportional Relief Valve"
-        
-    if "vfd" in q_lower or "inverter" in sec_lower or "overload" in q_lower:
-        return "VFD Inverter Overload", "VFD Drive Module"
-
-    if error_code:
-        if error_code.upper() == "E101":
-            if "conveyor" in machine.lower():
-                return "E101 — VFD Inverter Overload", "VFD Motor Drive"
-            elif "cnc" in machine.lower() or "mx" in machine.lower():
-                return "E101 — Spindle Overheat Alarm", "Spindle Thermal Sensor"
-            elif "press" in machine.lower() or "hp" in machine.lower():
-                return "E101 — Safety Gate Interlock Open", "Safety Gate Circuit"
-            return f"Error Code {error_code} Fault", "Control System"
-        elif error_code.upper() == "E102":
-            return f"{error_code} — Mechanical Misalignment / Feed Fault", "Drive Transmission"
-        return f"{error_code} — {clean_sec if clean_sec else 'System Fault'}", f"{machine} Controller"
-
-    if clean_sec:
-        # Fallback to cleaned section name
-        comp = f"{machine} Subsystem"
-        if "motor" in sec_lower: comp = "Drive Motor"
-        elif "spindle" in sec_lower: comp = "Precision Spindle"
-        elif "hydraulic" in sec_lower: comp = "Hydraulic Manifold"
-        elif "belt" in sec_lower: comp = "Conveyor Belt"
-        return clean_sec, comp
-
-    return "Industrial Hardware Anomaly", f"{machine} Subassembly"
+    info = get_fault_info_for_chunk(top_chunk, query)
+    return info["fault"], info["component"]
 
 def extract_cause_and_recommendation(
     answer: str,
@@ -298,118 +757,136 @@ def rank_candidate_faults(
     primary_component: str
 ) -> List[Dict[str, Any]]:
     """
-    Extracts distinct candidate faults from retrieved chunks, ranked descending
-    by model confidence score. Ensures the top result is marked as primary.
+    Extracts legitimate, actual fault diagnoses as candidate faults from retrieved chunks.
+    
+    Rules:
+    - Only show LEGITIMATE, ACTUAL fault diagnoses as fault candidates.
+    - Do NOT treat RAG/manual document chunks (e.g., 'E101 Overview', 'E101 Troubleshooting') as separate faults.
+    - If multiple retrieved chunks belong to the same fault code, merge them into ONE actual fault.
+    - RAG chunks are ONLY used as supporting evidence for the diagnosis.
+    - If there are no legitimate additional faults, do NOT force 5 candidates just to fill the list.
+    - Confidence scores represent the AI's confidence in the ACTUAL DIAGNOSIS.
     """
+    if not retrieved_chunks:
+        return []
+
+    q_lower = query.lower()
+    exact_code_match = re.search(r'\b([EHR]\d{3})\b', query, re.I)
+    target_error_code = exact_code_match.group(1).upper() if exact_code_match else None
+
+    # Step 1: Group chunks by canonical fault identifier
+    # Key: ("CODE", code) or ("SYMPTOM", fault_name.lower())
+    fault_groups: Dict[Tuple[str, str], Dict[str, Any]] = {}
+
+    for idx, chunk in enumerate(retrieved_chunks):
+        info = get_fault_info_for_chunk(chunk, query)
+        f_code = info["fault_code"]
+        f_name = info["fault_name"]
+        f_disp = info["fault"]
+        f_comp = info["component"]
+        circuit = info.get("circuit")
+        raw_sec = chunk.get("section") or ""
+        clean_sec = re.sub(r'^(Section\s+\d+(\.\d+)*:?\s*|Appendix\s+[A-Z]:?\s*)', '', raw_sec, flags=re.I).strip()
+
+        if f_code:
+            group_key = ("CODE", f_code.upper())
+        else:
+            group_key = ("SYMPTOM", f_name.lower())
+
+        if group_key not in fault_groups:
+            fault_groups[group_key] = {
+                "fault_code": f_code,
+                "fault_name": f_name,
+                "fault": f_disp,
+                "component": f_comp,
+                "evidence_items": [],
+                "chunks": [],
+                "best_chunk_score": chunk.get("score", 0.0),
+                "is_primary": False
+            }
+
+        grp = fault_groups[group_key]
+        grp["chunks"].append(chunk)
+        grp["best_chunk_score"] = max(grp["best_chunk_score"], chunk.get("score", 0.0))
+
+        # Add clean section as supporting evidence
+        if clean_sec and clean_sec not in grp["evidence_items"]:
+            grp["evidence_items"].append(clean_sec)
+
+        # Add circuit information if available
+        if circuit and circuit not in grp["evidence_items"]:
+            grp["evidence_items"].append(circuit)
+
+    # Step 2: Handle exact error code queries
+    # If the user specifically queried an error code (e.g. "E101"), only the fault for that error code is legitimate!
+    if target_error_code:
+        target_key = ("CODE", target_error_code)
+        if target_key in fault_groups:
+            fault_groups = {target_key: fault_groups[target_key]}
+        else:
+            matching_groups = {k: v for k, v in fault_groups.items() if v.get("fault_code") == target_error_code}
+            if matching_groups:
+                fault_groups = matching_groups
+
+    # Step 3: Align primary fault and build candidate list
     candidates: List[Dict[str, Any]] = []
-    seen_titles = set()
 
-    # 1. Primary candidate
-    p_pct = int(round(primary_score * 100))
-    p_level = get_confidence_level(primary_score)
-    candidates.append({
-        "fault": primary_fault_title,
-        "confidence_score": round(primary_score, 2),
-        "confidence_percentage": p_pct,
-        "confidence_level": p_level,
-        "is_primary": True,
-        "component": primary_component
-    })
-    seen_titles.add(primary_fault_title.lower())
+    for group_key, grp in fault_groups.items():
+        is_primary_group = False
+        if grp["fault"].lower() == primary_fault_title.lower() or (grp["fault_code"] and target_error_code and grp["fault_code"] == target_error_code):
+            is_primary_group = True
+        elif not candidates:
+            is_primary_group = True
 
-    # 2. Derive secondary candidate faults from subsequent chunks
-    for chunk in retrieved_chunks[1:]:
-        c_score = chunk.get("score", 0.0)
-        c_title, c_comp = extract_fault_title_and_component(chunk, query, "")
-        
-        # If title is identical or very similar to seen, vary based on chunk section
-        t_key = c_title.lower()
-        if t_key in seen_titles:
-            sec = chunk.get("section") or ""
-            sec_clean = re.sub(r'^(Section\s+\d+(\.\d+)*:?\s*)', '', sec, flags=re.I).strip()
-            if sec_clean and sec_clean.lower() not in seen_titles:
-                c_title = sec_clean
-                t_key = c_title.lower()
+        # Build clean supporting evidence list
+        evidence_list = []
+        for ev in grp["evidence_items"]:
+            if ev not in evidence_list:
+                evidence_list.append(ev)
 
-        if t_key not in seen_titles and len(c_title) > 3:
-            seen_titles.add(t_key)
-            # Ensure secondary score is monotonically non-increasing
-            adj_score = min(primary_score * 0.85, c_score)
-            adj_score = max(0.15, round(adj_score, 2))
-            c_pct = int(round(adj_score * 100))
-            c_level = get_confidence_level(adj_score)
+        # Ensure at least 2 clean evidence points if chunks exist
+        if grp["chunks"] and len(evidence_list) < 2:
+            m_ref = grp["chunks"][0].get("manual")
+            p_ref = grp["chunks"][0].get("page")
+            if m_ref:
+                ref_str = f"Technical Manual Reference ({m_ref}{f', Page {p_ref}' if p_ref else ''})"
+                if ref_str not in evidence_list:
+                    evidence_list.append(ref_str)
 
-            candidates.append({
-                "fault": c_title,
-                "confidence_score": adj_score,
-                "confidence_percentage": c_pct,
-                "confidence_level": c_level,
-                "is_primary": False,
-                "component": c_comp
-            })
+        # Confidence calculation representing AI confidence in ACTUAL DIAGNOSIS
+        if is_primary_group:
+            conf_score = round(primary_score, 2)
+        else:
+            sec_score = min(primary_score - 0.15, max(0.45, grp["best_chunk_score"] * 0.95))
+            conf_score = round(max(0.35, min(0.85, sec_score)), 2)
 
-    # If only 1 candidate was found from chunks, supplement plausible differential diagnoses
-    # based on the primary fault category to demonstrate multiple ranked faults as requested
-    if len(candidates) < 2:
-        q_lower = query.lower()
-        if "bearing" in primary_fault_title.lower() or "bearing" in q_lower:
-            candidates.append({
-                "fault": "Shaft Misalignment",
-                "confidence_score": round(primary_score * 0.68, 2),
-                "confidence_percentage": int(round(primary_score * 68)),
-                "confidence_level": get_confidence_level(primary_score * 0.68),
-                "is_primary": False,
-                "component": "Drive Shaft & Coupling"
-            })
-            candidates.append({
-                "fault": "Motor Overload / Phase Imbalance",
-                "confidence_score": round(primary_score * 0.35, 2),
-                "confidence_percentage": int(round(primary_score * 35)),
-                "confidence_level": get_confidence_level(primary_score * 0.35),
-                "is_primary": False,
-                "component": "Motor Electrical Stator"
-            })
-        elif "belt" in primary_fault_title.lower() or "squeal" in q_lower:
-            candidates.append({
-                "fault": "Pulley Bearing Seizure",
-                "confidence_score": round(primary_score * 0.65, 2),
-                "confidence_percentage": int(round(primary_score * 65)),
-                "confidence_level": get_confidence_level(primary_score * 0.65),
-                "is_primary": False,
-                "component": "Tail Pulley Bearing"
-            })
-            candidates.append({
-                "fault": "Belt Tracking Deviation",
-                "confidence_score": round(primary_score * 0.32, 2),
-                "confidence_percentage": int(round(primary_score * 32)),
-                "confidence_level": get_confidence_level(primary_score * 0.32),
-                "is_primary": False,
-                "component": "Tracking Snub Roller"
-            })
-        elif "overheat" in primary_fault_title.lower() or "temp" in q_lower:
-            candidates.append({
-                "fault": "Coolant Pump Impeller Cavitation",
-                "confidence_score": round(primary_score * 0.62, 2),
-                "confidence_percentage": int(round(primary_score * 62)),
-                "confidence_level": get_confidence_level(primary_score * 0.62),
-                "is_primary": False,
-                "component": "Centrifugal Coolant Pump"
-            })
-            candidates.append({
-                "fault": "Chiller Thermostat Sensor Drift",
-                "confidence_score": round(primary_score * 0.30, 2),
-                "confidence_percentage": int(round(primary_score * 30)),
-                "confidence_level": get_confidence_level(primary_score * 0.30),
-                "is_primary": False,
-                "component": "RTD Temperature Probe"
-            })
+        conf_pct = int(round(conf_score * 100))
+        conf_level = get_confidence_level(conf_score)
+
+        candidate = {
+            "fault": grp["fault"],
+            "fault_code": grp["fault_code"],
+            "fault_name": grp["fault_name"],
+            "confidence_score": conf_score,
+            "confidence_percentage": conf_pct,
+            "confidence_level": conf_level,
+            "is_primary": False,
+            "component": grp["component"] or primary_component,
+            "supporting_evidence": evidence_list
+        }
+        candidates.append(candidate)
 
     # Sort descending by confidence score
     candidates.sort(key=lambda x: x["confidence_score"], reverse=True)
-    
-    # Ensure only rank 0 is primary
-    for i, c in enumerate(candidates):
-        c["is_primary"] = (i == 0)
+
+    # Mark only rank 0 as primary
+    if candidates:
+        candidates[0]["is_primary"] = True
+        candidates[0]["confidence_score"] = round(primary_score, 2)
+        candidates[0]["confidence_percentage"] = int(round(primary_score * 100))
+        candidates[0]["confidence_level"] = get_confidence_level(primary_score)
+        if primary_fault_title and candidates[0]["fault"] != primary_fault_title:
+            candidates[0]["fault"] = primary_fault_title
 
     return candidates
 

@@ -28,7 +28,11 @@ export const NormalAnswerCard: React.FC<NormalAnswerCardProps> = ({
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs space-y-5 max-w-3xl">
-<<<<<<< HEAD
+      <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+        <span className="text-[10px] md:text-xs font-mono px-2.5 py-0.5 rounded border uppercase font-bold bg-emerald-50 text-emerald-800 border-emerald-200">
+          Manual-Sourced Diagnostic
+        </span>
+      </div>
       
       {/* FAULT DETECTED BANNER */}
       {message.fault && (
@@ -134,49 +138,72 @@ export const NormalAnswerCard: React.FC<NormalAnswerCardProps> = ({
 
       {/* MULTIPLE POSSIBLE FAULTS (RANKED BY CONFIDENCE) */}
       {message.possible_faults && message.possible_faults.length > 0 && (
-        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-2">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
-            Multiple Possible Faults (Ranked by Confidence)
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Multiple Possible Faults (Ranked by Confidence)
+            </div>
+            <span className="text-[11px] font-medium text-slate-500">
+              {message.possible_faults.length} {message.possible_faults.length === 1 ? 'Supported Fault' : 'Supported Faults'}
+            </span>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {message.possible_faults.map((pf, idx) => (
               <div
                 key={idx}
-                className={`flex items-center justify-between p-2.5 rounded-md border text-sm ${
+                className={`p-3 rounded-md border text-sm transition-all ${
                   pf.is_primary 
-                    ? 'bg-indigo-50/70 border-indigo-200 font-semibold' 
+                    ? 'bg-indigo-50/70 border-indigo-200 shadow-2xs' 
                     : 'bg-white border-slate-200 text-slate-700'
                 }`}
               >
-                <div className="flex items-center space-x-2">
-                  <span className="font-mono text-xs text-slate-500 w-4">{idx + 1}.</span>
-                  <span>{pf.fault}</span>
-                  {pf.is_primary && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white uppercase tracking-wider">
-                      Primary
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-mono text-xs text-slate-500 font-semibold">{idx + 1}.</span>
+                      <span className="font-bold text-slate-900">{pf.fault}</span>
+                      {pf.is_primary && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white uppercase tracking-wider">
+                          Primary Fault
+                        </span>
+                      )}
+                    </div>
+                    {pf.component && (
+                      <div className="text-xs text-slate-500 pl-5 font-mono">
+                        Affected Component: <span className="text-slate-700 font-medium">{pf.component}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2 font-mono text-xs shrink-0">
+                    <span className="font-bold text-slate-900">
+                      {pf.confidence_percentage || Math.round(pf.confidence_score * 100)}%
                     </span>
-                  )}
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold ${
+                      pf.confidence_level === 'High' ? 'bg-emerald-100 text-emerald-800' : pf.confidence_level === 'Moderate' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {pf.confidence_level}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2 font-mono text-xs">
-                  <span className="font-bold">{pf.confidence_percentage || Math.round(pf.confidence_score * 100)}%</span>
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold ${
-                    pf.confidence_level === 'High' ? 'bg-emerald-100 text-emerald-800' : pf.confidence_level === 'Moderate' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {pf.confidence_level}
-                  </span>
-                </div>
+
+                {/* Supporting evidence from retrieved manual/chunks */}
+                {pf.supporting_evidence && pf.supporting_evidence.length > 0 && (
+                  <div className="mt-2.5 pt-2 border-t border-slate-200/80 text-xs">
+                    <div className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide mb-1">
+                      Supporting evidence:
+                    </div>
+                    <ul className="list-disc pl-5 space-y-0.5 text-slate-600">
+                      {pf.supporting_evidence.map((ev, evIdx) => (
+                        <li key={evIdx} className="leading-tight">{ev}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
       )}
-=======
-      <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-        <span className="text-[10px] md:text-xs font-mono px-2.5 py-0.5 rounded border uppercase font-bold bg-emerald-50 text-emerald-800 border-emerald-200">
-          Manual-Sourced Diagnostic
-        </span>
-      </div>
->>>>>>> a5e549b19d767b3cca19ac04b03b07c326ed9a05
 
       {/* 01. MEANING */}
       {message.meaning && (

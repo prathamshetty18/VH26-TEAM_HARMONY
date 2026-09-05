@@ -6,8 +6,49 @@
     "status_code": 200,
     "ambiguous": false,
     "options": [],
-    "sources": [],
-    "answer": "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+    "sources": [
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "E101 Troubleshooting",
+        "machine": "Conveyor Belt System",
+        "error_code": "E101",
+        "page": 2,
+        "snippet": "ERROR CODE: E101\nSECTION: E101 Troubleshooting\nPAGE: 2\nSTEPS:\n1. Lock out and tag out (LOTO) the main electrical disconnect switch at control panel CP-1.\n2. Manually inspect the entire length of the conveyor carrying deck and return run for foreign debris, jammed wood pallets, or plastic banding wedged under the belt.\n3. Loosen the dual take-up tension jack screws on the tail pulley and measure belt deflection tension using a sonic tensiometer (correct deflection is 25 mm under a 15 kg test point).\n4. Rotate the drive drum and adjacent snub rollers by hand to ensure free, unbinding rotation. Replace any idler rollers exhibiting stiff rotation, bearing play, or metal grinding.\n5. Check the VFD drive parameters via the digital keypad to verify parameter P-042 (motor thermal overload curve) matches motor nameplate amperage.\n6. Remove LOTO, reset the fault on the VFD interface keypad, and conduct an unloaded test run for 5 minutes while monitoring line current on the panel ammeter."
+      },
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "E101 Drive Motor Overcurrent Fault",
+        "machine": "Conveyor Belt System",
+        "error_code": "E101",
+        "page": 2,
+        "snippet": "SECTION: E101 Drive Motor Overcurrent Fault\nERROR CODE: E101\nPAGE: 2\nMEANING: The variable frequency drive (VFD) inverter detects that motor phase current draw has exceeded 125% of the continuous full-load amp (FLA) rating for more than 3.5 consecutive seconds, initiating an emergency deceleration stop to protect motor windings from thermal burnout.\nCAUSES:\n- Excessive conveyor belt tension creating abnormal mechanical resistance on the head drive drum\n- Mechanical seizure or bearing galling in one or more bed-carrying or return idler rollers\n- Foreign debris or broken packaging trapped between the slider bed and belt underside\n- Drive gearbox mechanical binding or lack of lubrication\n- Sudden product overloading beyond rated capacity"
+      },
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "E102 Troubleshooting",
+        "machine": "Conveyor Belt System",
+        "error_code": "E102",
+        "page": 2,
+        "snippet": "ERROR CODE: E102\nSECTION: E102 Troubleshooting\nPAGE: 2\nSTEPS:\n1. De-energize the conveyor drive and inspect the infeed chute deflectors to verify material is landing directly centered on the belt surface.\n2. Clean all caked dirt, adhesive residue, or debris buildup from the surfaces of the drive drum, tail pulley, and snub rollers using a wire brush and brass scraper.\n3. Inspect the take-up screw calibration marks on both sides of the tail section; ensure left and right take-up bearing blocks are positioned within 1.0 mm of each other.\n4. If the belt drifts to the right, tighten the right-side take-up bolt by 1/2 turn (or loosen the left-side take-up bolt by 1/2 turn).\n5. Start the conveyor in jog mode and observe tracking over three complete belt revolutions, making fine adjustments of 1/4 turn until the belt edge maintains a minimum 25 mm clearance from the frame side channels."
+      },
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "E102 Belt Tracking Misalignment Drift",
+        "machine": "Conveyor Belt System",
+        "error_code": "E102",
+        "page": 2,
+        "snippet": "SECTION: E102 Belt Tracking Misalignment Drift\nERROR CODE: E102\nPAGE: 2\nMEANING: The lateral belt edge limit switches (LS-10A or LS-10B) have actuated, indicating that the conveyor belt has wandered more than 45 millimeters off the center axis of the slider bed toward either the drive or non-drive side.\nCAUSES:\n- Uneven off-center product loading at the infeed chute\n- Unequal tension on the left and right tail pulley take-up adjustment screws\n- Material buildup or caked dust on the crowned tail pulley drum surface\n- Worn or twisted conveyor belt vulcanized splice"
+      },
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "E204 Troubleshooting",
+        "machine": "Conveyor Belt System",
+        "error_code": "E204",
+        "page": 3,
+        "snippet": "ERROR CODE: E204\nSECTION: E204 Troubleshooting\nPAGE: 3\nSTEPS:\n1. Walk the entire perimeter of the conveyor line and check all red E-stop buttons (ES-01 through ES-06) to confirm none are locked down in the depressed state.\n2. Inspect the emergency pull-wire cable along both sides of the conveyor; verify the cable has proper tension and that the manual reset levers on pull-cord switches SW-1 and SW-2 are cocked in the center running position.\n3. Open junction box JB-3 and verify terminal block connections TB-4-1 through TB-4-8 are firmly tightened to 1.2 Nm torque.\n4. Using a digital multimeter, measure loop resistance across terminals 11-12 and 21-22 of safety relay SR-1 (reading must be below 2.0 ohms with all switches closed).\n5. Press the illuminated blue \"Safety Circuit Reset\" button on the main operator station."
+      }
+    ],
+    "answer": "1. Error meaning: The variable frequency drive (VFD) inverter detects that motor phase current draw has exceeded 125% of the continuous full-load amp (FLA) rating for more than 3.5 consecutive seconds, initiating an emergency deceleration stop to protect motor windings from thermal burnout.\n\n2. Probable causes:\n- Excessive conveyor belt tension creating abnormal mechanical resistance on the head drive drum\n- Mechanical seizure or bearing galling in one or more bed-carrying or return idler rollers\n- Foreign debris or broken packaging trapped between the slider bed and belt underside\n- Drive gearbox mechanical binding or lack of lubrication\n- Sudden product overloading beyond rated capacity\n\n3. Step-by-step corrective action:\n1. Lock out and tag out (LOTO) the main electrical disconnect switch at control panel CP-1.\n2. Manually inspect the entire length of the conveyor carrying deck and return run for foreign debris, jammed wood pallets, or plastic banding wedged under the belt.\n3. Loosen the dual take-up tension jack screws on the tail pulley and measure belt deflection tension using a sonic tensiometer (correct deflection is 25 mm under a 15 kg test point).\n4. Rotate the drive drum and adjacent snub rollers by hand to ensure free, unbinding rotation. Replace any idler rollers exhibiting stiff rotation, bearing play, or metal grinding.\n5. Check the VFD drive parameters via the digital keypad to verify parameter P-042 (motor thermal overload curve) matches motor nameplate amperage.\n6. Remove LOTO, reset the fault on the VFD interface keypad, and conduct an unloaded test run for 5 minutes while monitoring line current on the panel ammeter.\n\n4. Sources:\n- conveyorcb4400.txt, Section: E101 Troubleshooting\n- conveyorcb4400.txt, Section: E101 Drive Motor Overcurrent Fault"
   },
   {
     "id": 2,
@@ -16,8 +57,49 @@
     "status_code": 200,
     "ambiguous": false,
     "options": [],
-    "sources": [],
-    "answer": "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+    "sources": [
+      {
+        "manual": "cncmx7.txt",
+        "section": "E101 Spindle Coolant Flow Failure",
+        "machine": "CNC Milling Machine",
+        "error_code": "E101",
+        "page": 2,
+        "snippet": "SECTION: E101 Spindle Coolant Flow Failure\nERROR CODE: E101\nPAGE: 2\nMEANING: The through-spindle coolant (TSC) inline electronic flow sensor FL-10 measures coolant delivery flow falling below the safety threshold of 3.8 liters per minute while the main milling spindle is actively energized above 1,000 RPM, stopping feed motion to prevent tool burnout and thermal damage to the spindle cartridge.\nCAUSES:\n- Clogged 25-micron inline high-pressure coolant filter cartridge\n- Failed, seized, or cavitating high-pressure coolant supply pump\n- Low coolant level in the main 300-liter filtration reservoir\n- Pinched, twisted, or severed high-pressure braided coolant delivery hose inside the Z-axis articulating energy drag chain\n- Closed manual isolation valve on the coolant delivery manifold"
+      },
+      {
+        "manual": "cncmx7.txt",
+        "section": "E101 Troubleshooting",
+        "machine": "CNC Milling Machine",
+        "error_code": "E101",
+        "page": 2,
+        "snippet": "ERROR CODE: E101\nSECTION: E101 Troubleshooting\nPAGE: 2\nSTEPS:\n1. Abort the active machining program, verify spindle rotation has completely stopped, and allow cutting zone coolant spray to settle.\n2. Check the coolant tank level sight gauge at the rear filtration station; ensure coolant level is well above the low-level line and top up with 8% water-soluble synthetic cutting emulsion if required.\n3. Inspect the high-pressure filter canister differential pressure indicator on the manifold; if the red pop-up indicator is raised, unscrew the canister housing, discard the contaminated 25-micron pleated cartridge, wipe the housing bowl clean, and install a fresh filter element (Part No. MX-FLT-025).\n4. Inspect the high-pressure coolant delivery lines running through the Z-axis drag chain; check for kinks, crushing, abrasions, or severe hose twisting. Straighten or replace damaged lines.\n5. Check the high-pressure coolant pump pressure gauge located on the pump regulator block (normal operating pressure must read between 45 and 70 bar during M08 activation). If the pump motor hums but fails to build pressure, bleed trapped air via the pump bleed nipple.\n6. Enter MDI mode on the CNC controller, enter command M08; to engage the coolant pump, and observe the digital flow display on the diagnostics screen to confirm flow rate exceeds 6.2 liters per minute before resuming machining."
+      },
+      {
+        "manual": "cncmx7.txt",
+        "section": "Common Symptoms",
+        "machine": "CNC Milling Machine",
+        "error_code": "SYM-BORE-ACCURACY",
+        "page": 6,
+        "snippet": "SECTION: Common Symptoms\nERROR CODE: SYM-BORE-ACCURACY\nPAGE: 6\nMEANING: Finished hole bores exhibit dimension inaccuracies, ovality, or circularity errors deviating from drawing tolerance specifications.\nCAUSES:\n- Thermal expansion of the ballscrews during uninterrupted machining operations\n- Worn ballscrew thrust bearings inducing axial backlash on the X or Y axes\n- Inaccurate tool offset geometry calibration"
+      },
+      {
+        "manual": "cncmx7.txt",
+        "section": "E108 Spindle Motor Stator Overtemperature",
+        "machine": "CNC Milling Machine",
+        "error_code": "E108",
+        "page": 2,
+        "snippet": "SECTION: E108 Spindle Motor Stator Overtemperature\nERROR CODE: E108\nPAGE: 2\nMEANING: The internal platinum RTD thermistor embedded inside the synchronous motorized spindle stator winding registers an operating temperature in excess of 115\u00b0C, triggering an immediate controlled spindle deceleration and axis motion freeze.\nCAUSES:\n- Extended heavy roughing toolpaths utilizing dull, chipped, or improperly coated carbide cutters\n- Thermal exchange failure or low glycol coolant level inside the closed-loop spindle chiller refrigeration circuit\n- Clogged dust filters on the electrical enclosure cooling unit\n- Ambient temperature in the tooling workshop exceeding 38\u00b0C"
+      },
+      {
+        "manual": "cncmx7.txt",
+        "section": "E108 Troubleshooting",
+        "machine": "CNC Milling Machine",
+        "error_code": "E108",
+        "page": 2,
+        "snippet": "ERROR CODE: E108\nSECTION: E108 Troubleshooting\nPAGE: 2\nSTEPS:\n1. Suspend the active machining cycle and allow the spindle to rotate freely at 500 RPM for 10 minutes without cutting load to allow chiller fluid to carry heat away from the spindle cartridge.\n2. Inspect the cutting edges of the active cutting tool using an optical tool scope; replace any chipped, cratered, or excessively worn indexable inserts.\n3. Check the external spindle refrigeration chiller unit; verify the closed-loop glycol reservoir is filled to the upper level line and confirm system loop pressure sits between 2.2 and 2.8 bar.\n4. Clean the air intake filter grilles and foam elements on the rear electrical control cabinet using compressed air and mild cleaner; remove accumulated machine shop swarf, grease, and dust blankets.\n5. Check chiller condenser coil; clean fins with a soft fin brush to restore heat exchange efficiency.\n6. Verify the spindle cooling liquid supply temperature on the chiller controller is set to 20\u00b0C +/- 0.5\u00b0C before resuming full-depth milling operations."
+      }
+    ],
+    "answer": "1. Error meaning: The through-spindle coolant (TSC) inline electronic flow sensor FL-10 measures coolant delivery flow falling below the safety threshold of 3.8 liters per minute while the main milling spindle is actively energized above 1,000 RPM, stopping feed motion to prevent tool burnout and thermal damage to the spindle cartridge.\n2. Probable causes:\n- Clogged 25-micron inline high-pressure coolant filter cartridge\n- Failed, seized, or cavitating high-pressure coolant supply pump\n- Low coolant level in the main 300-liter filtration reservoir\n- Pinched, twisted, or severed high-pressure braided coolant delivery hose inside the Z-axis articulating energy drag chain\n- Closed manual isolation valve on the coolant delivery manifold\n3. Step-by-step corrective action: \n- Abort the active machining program, verify spindle rotation has completely stopped, and allow cutting zone coolant spray to settle.\n- Check the coolant tank level sight gauge at the rear filtration station; ensure coolant level is well above the low-level line and top up with 8% water-soluble synthetic cutting emulsion if required.\n- Inspect the high-pressure filter canister differential pressure indicator on the manifold; if the red pop-up indicator is raised, unscrew the canister housing, discard the contaminated 25-micron pleated cartridge, wipe the housing bowl clean, and install a fresh filter element (Part No. MX-FLT-025).\n- Inspect the high-pressure coolant delivery lines running through the Z-axis drag chain; check for kinks, crushing, abrasions, or severe hose twisting. Straighten or replace damaged lines.\n- Check the high-pressure coolant pump pressure gauge located on the pump regulator block (normal operating pressure must read between 45 and 70 bar during M08 activation). If the pump motor hums but fails to build pressure, bleed trapped air via the pump bleed nipple.\n- Enter MDI mode on the CNC controller, enter command M08; to engage the coolant pump, and observe the digital flow display on the diagnostics screen to confirm flow rate exceeds 6.2 liters per minute before resuming machining.\n4. Sources: \n- cncmx7.txt, Section: E101 Spindle Coolant Flow Failure\n- cncmx7.txt, Section: E101 Troubleshooting"
   },
   {
     "id": 3,
@@ -26,8 +108,49 @@
     "status_code": 200,
     "ambiguous": false,
     "options": [],
-    "sources": [],
-    "answer": "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+    "sources": [
+      {
+        "manual": "presshp2200.txt",
+        "section": "H205 Troubleshooting",
+        "machine": "Hydraulic Press",
+        "error_code": "H205",
+        "page": 2,
+        "snippet": "ERROR CODE: H205\nSECTION: H205 Troubleshooting\nPAGE: 2\nSTEPS:\n1. Keep the hydraulic circulation auxiliary pump running in low-pressure idle mode to circulate fluid through the cooling circuit; do not actuate main pressing cylinders.\n2. Inspect the plant cooling tower water supply valve; verify cooling water inlet pressure is at least 3.5 bar and verify the supply water temperature is below 22\u00b0C.\n3. Inspect the cooling water duplex basket strainer; switch over to the clean basket, remove the clogged strainer basket, and wash out calcium scale, silt, and algae.\n4. Use a handheld FLIR infrared thermal camera to scan the main valve manifold block; identify any relief valves or bypass lines showing localized hot spots exceeding 75\u00b0C, indicating an internal continuous fluid bypass leak.\n5. Extract a fluid sample from reservoir sample tap ST-1 and evaluate fluid clarity and oxidation level; if fluid is darkened, smells acrid, or shows kinematic viscosity below 38 cSt at 40\u00b0C, perform a full oil change with fresh ISO VG 46 mineral hydraulic fluid."
+      },
+      {
+        "manual": "presshp2200.txt",
+        "section": "H205 Hydraulic Oil High Temperature Shutdown",
+        "machine": "Hydraulic Press",
+        "error_code": "H205",
+        "page": 2,
+        "snippet": "SECTION: H205 Hydraulic Oil High Temperature Shutdown\nERROR CODE: H205\nPAGE: 2\nMEANING: The resistance temperature transmitter TT-02 immersed in the main 1,500-liter oil reservoir registers a bulk hydraulic fluid temperature exceeding 65\u00b0C, triggering an automatic pump unload and cycle shutdown to prevent thermal breakdown of fluid anti-wear additives and seal failure.\nCAUSES:\n- Heavily fouled, scaled, or clogged tube bundle in the external shell-and-tube water-cooled heat exchanger\n- Plant cooling water supply shut off or water flow below 60 liters per minute\n- Internal high-pressure relief valve bypassing continuously at full pressure setting due to an electrical sequencing fault\n- Degraded ISO VG 46 hydraulic fluid undergoing severe shear thinning"
+      },
+      {
+        "manual": "presshp2200.txt",
+        "section": "H201 Troubleshooting",
+        "machine": "Hydraulic Press",
+        "error_code": "H201",
+        "page": 2,
+        "snippet": "ERROR CODE: H201\nSECTION: H201 Troubleshooting\nPAGE: 2\nSTEPS:\n1. Engage the mechanical platen safety latch blocks into position beneath the ram platen and depress the hydraulic system pressure de-energize pushbutton to bleed residual accumulator pressure down to 0 bar.\n2. Check the electrical resistance of the proportional relief valve PRV-1 solenoid coil using a calibrated multimeter (standard coil resistance must measure between 18.5 and 24.0 ohms). Replace coil if open circuit.\n3. Access the overhead prefill tank inspection port; remove and inspect the main poppet check valve seat for metallic debris, contamination, or scarred mating faces that prevent 100% positive sealing.\n4. Inspect the cylinder rod glands beneath the main press crown for external fluid weepage or pooling hydraulic oil on the platen top surface. If fluid leakage exceeds 15 drops per minute, replace the main multi-lip chevron seal packing assembly.\n5. Close the circuit, retract the safety latch blocks, and execute a dry pressure ramp test up to 150 bar in manual jog mode while logging transducer PT-01 voltage output on the diagnostics console."
+      },
+      {
+        "manual": "presshp2200.txt",
+        "section": "H420 Troubleshooting",
+        "machine": "Hydraulic Press",
+        "error_code": "H420",
+        "page": 3,
+        "snippet": "ERROR CODE: H420\nSECTION: H420 Troubleshooting\nPAGE: 3\nSTEPS:\n1. Immediately abort the pressing stroke and jog the main ram upward to top position in low-speed manual mode.\n2. Check the stamping die alignment on the press bed bolster plate; verify the center of tonnage of the tooling die is positioned within +/- 5 mm of the bed theoretical center mark.\n3. Clean and inspect the ground surfaces of the four hardened vertical tie-rod columns; check for dry abrasive galling, scoring, or bronze pickup.\n4. Check the automatic centralized grease lubricator supplying the column bushings; verify grease reservoir is full of NLGI Grade 2 lithium grease with extreme pressure (EP) additives and verify grease lines are pumping smoothly to all 8 column lube ports.\n5. Access the HMI controller calibration screen, select Platen Parallelism Zero Calibration, and perform a closed-loop electronic leveling trim to balance the proportional flow valve drive signals."
+      },
+      {
+        "manual": "presshp2200.txt",
+        "section": "H515 Troubleshooting",
+        "machine": "Hydraulic Press",
+        "error_code": "H515",
+        "page": 4,
+        "snippet": "ERROR CODE: H515\nSECTION: H515 Troubleshooting\nPAGE: 4\nSTEPS:\n1. Perform an immediate visual walkaround of the press pit, pump basement, and cylinder overhead platform to trace active hydraulic fluid pools or dripping lines.\n2. If an active fluid spray or hose failure is discovered, press the Emergency Stop immediately. Replace damaged high-pressure 4-wire spiral braided hose assemblies immediately.\n3. Inspect SAE 4-bolt split flange connections across the main manifold blocks; tighten loose flange cap screws to 120 Nm torque or replace extruded 90 Durometer polyurethane O-rings.\n4. Connect an offline mobile filter cart equipped with 10-micron water-absorbing filter elements to the reservoir quick-connect fill port.\n5. Pump fresh, pre-filtered ISO VG 46 anti-wear hydraulic oil into the tank until the level sight gauge reaches the 85% full mark (approximately 400 liters required from first alarm point).\n6. Reset the level fault alarm on the operator HMI panel."
+      }
+    ],
+    "answer": "1. Error meaning: The resistance temperature transmitter TT-02 immersed in the main 1,500-liter oil reservoir registers a bulk hydraulic fluid temperature exceeding 65\u00b0C, triggering an automatic pump unload and cycle shutdown to prevent thermal breakdown of fluid anti-wear additives and seal failure.\n\n2. Probable causes:\n- Heavily fouled, scaled, or clogged tube bundle in the external shell-and-tube water-cooled heat exchanger\n- Plant cooling water supply shut off or water flow below 60 liters per minute\n- Internal high-pressure relief valve bypassing continuously at full pressure setting due to an electrical sequencing fault\n- Degraded ISO VG 46 hydraulic fluid undergoing severe shear thinning\n\n3. Step-by-step corrective action:\n1. Keep the hydraulic circulation auxiliary pump running in low-pressure idle mode to circulate fluid through the cooling circuit; do not actuate main pressing cylinders.\n2. Inspect the plant cooling tower water supply valve; verify cooling water inlet pressure is at least 3.5 bar and verify the supply water temperature is below 22\u00b0C.\n3. Inspect the cooling water duplex basket strainer; switch over to the clean basket, remove the clogged strainer basket, and wash out calcium scale, silt, and algae.\n4. Use a handheld FLIR infrared thermal camera to scan the main valve manifold block; identify any relief valves or bypass lines showing localized hot spots exceeding 75\u00b0C, indicating an internal continuous fluid bypass leak.\n5. Extract a fluid sample from reservoir sample tap ST-1 and evaluate fluid clarity and oxidation level; if fluid is darkened, smells acrid, or shows kinematic viscosity below 38 cSt at 40\u00b0C, perform a full oil change with fresh ISO VG 46 mineral hydraulic fluid.\n\n4. Sources:\n- presshp2200.txt, Section: H205 Troubleshooting\n- presshp2200.txt, Section: H205 Hydraulic Oil High Temperature Shutdown"
   },
   {
     "id": 4,
@@ -36,8 +159,49 @@
     "status_code": 200,
     "ambiguous": false,
     "options": [],
-    "sources": [],
-    "answer": "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+    "sources": [
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "E101 Drive Motor Overcurrent Fault",
+        "machine": "Conveyor Belt System",
+        "error_code": "E101",
+        "page": 2,
+        "snippet": "SECTION: E101 Drive Motor Overcurrent Fault\nERROR CODE: E101\nPAGE: 2\nMEANING: The variable frequency drive (VFD) inverter detects that motor phase current draw has exceeded 125% of the continuous full-load amp (FLA) rating for more than 3.5 consecutive seconds, initiating an emergency deceleration stop to protect motor windings from thermal burnout.\nCAUSES:\n- Excessive conveyor belt tension creating abnormal mechanical resistance on the head drive drum\n- Mechanical seizure or bearing galling in one or more bed-carrying or return idler rollers\n- Foreign debris or broken packaging trapped between the slider bed and belt underside\n- Drive gearbox mechanical binding or lack of lubrication\n- Sudden product overloading beyond rated capacity"
+      },
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "E401 High Drive Gearbox Oil Temperature Overheating",
+        "machine": "Conveyor Belt System",
+        "error_code": "E401",
+        "page": 4,
+        "snippet": "SECTION: E401 High Drive Gearbox Oil Temperature Overheating\nERROR CODE: E401\nPAGE: 4\nMEANING: The PT100 RTD temperature probe installed in the helical-bevel gearbox oil sump measures a continuous lubricant temperature exceeding 92\u00b0C, risking viscosity loss and gear tooth spalling due to drive gearbox overheating.\nCAUSES:\n- Insufficient oil level due to damaged output shaft oil seal causing gearbox overheating\n- Contaminated or degraded synthetic gear lubricant\n- Sustained mechanical overload from operating conveyor above maximum rated tonnage causing excessive heating\n- Ambient temperature in the facility exceeding 45\u00b0C without auxiliary cooling"
+      },
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "Common Symptoms",
+        "machine": "Conveyor Belt System",
+        "error_code": "SYM-BELT-JERKING",
+        "page": 5,
+        "snippet": "SECTION: Common Symptoms\nERROR CODE: SYM-BELT-JERKING\nPAGE: 5\nMEANING: Conveyor belt exhibits irregular jerking motion, speed hesitation, or pulsing velocity under carried operational load.\nCAUSES:\n- Worn elastomeric spider insert inside the flexible shaft coupling connecting the motor and reducer\n- Intermittent binding of the bed slide rollers\n- Variable frequency drive (VFD) acceleration parameter configured too aggressively for the carried load inertia"
+      },
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "E102 Troubleshooting",
+        "machine": "Conveyor Belt System",
+        "error_code": "E102",
+        "page": 2,
+        "snippet": "ERROR CODE: E102\nSECTION: E102 Troubleshooting\nPAGE: 2\nSTEPS:\n1. De-energize the conveyor drive and inspect the infeed chute deflectors to verify material is landing directly centered on the belt surface.\n2. Clean all caked dirt, adhesive residue, or debris buildup from the surfaces of the drive drum, tail pulley, and snub rollers using a wire brush and brass scraper.\n3. Inspect the take-up screw calibration marks on both sides of the tail section; ensure left and right take-up bearing blocks are positioned within 1.0 mm of each other.\n4. If the belt drifts to the right, tighten the right-side take-up bolt by 1/2 turn (or loosen the left-side take-up bolt by 1/2 turn).\n5. Start the conveyor in jog mode and observe tracking over three complete belt revolutions, making fine adjustments of 1/4 turn until the belt edge maintains a minimum 25 mm clearance from the frame side channels."
+      },
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "E401 Troubleshooting Overheating",
+        "machine": "Conveyor Belt System",
+        "error_code": "E401",
+        "page": 4,
+        "snippet": "ERROR CODE: E401\nSECTION: E401 Troubleshooting Overheating\nPAGE: 4\nSTEPS:\n1. Stop the conveyor immediately and allow the gearbox to cool down to 40\u00b0C before touching or servicing.\n2. Check the oil level in the gearbox through the circular sight glass; oil level should sit exactly at the center red dot when the unit is stationary and level.\n3. Inspect the input and output shaft lip seals for leakage, weeping, or pooling oil on the mounting base plate. Replace worn viton oil seals if oil leaks are present.\n4. Inspect oil condition through the drain plug sample port. If the oil is discolored black, milky from moisture, or contains metallic particulate glitter, drain completely and flush the gear cavity.\n5. Refill the gearbox with 4.5 liters of fresh synthetic industrial gear oil meeting ISO VG 320 specifications (e.g., Mobilgear SHC 320)."
+      }
+    ],
+    "answer": "1. Error meaning: The PT100 RTD temperature probe installed in the helical-bevel gearbox oil sump measures a continuous lubricant temperature exceeding 92\u00b0C, risking viscosity loss and gear tooth spalling due to drive gearbox overheating.\n2. Probable causes: \n- Insufficient oil level due to damaged output shaft oil seal causing gearbox overheating\n- Contaminated or degraded synthetic gear lubricant\n- Sustained mechanical overload from operating conveyor above maximum rated tonnage causing excessive heating\n- Ambient temperature in the facility exceeding 45\u00b0C without auxiliary cooling\n3. Step-by-step corrective action: \n1. Stop the conveyor immediately and allow the gearbox to cool down to 40\u00b0C before touching or servicing.\n2. Check the oil level in the gearbox through the circular sight glass; oil level should sit exactly at the center red dot when the unit is stationary and level.\n3. Inspect the input and output shaft lip seals for leakage, weeping, or pooling oil on the mounting base plate. Replace worn viton oil seals if oil leaks are present.\n4. Inspect oil condition through the drain plug sample port. If the oil is discolored black, milky from moisture, or contains metallic particulate glitter, drain completely and flush the gear cavity.\n5. Refill the gearbox with 4.5 liters of fresh synthetic industrial gear oil meeting ISO VG 320 specifications (e.g., Mobilgear SHC 320).\n4. Sources: Manual `conveyorcb4400.txt`, Sections `E401 High Drive Gearbox Oil Temperature Overheating` and `E401 Troubleshooting Overheating`."
   },
   {
     "id": 5,
@@ -46,8 +210,49 @@
     "status_code": 200,
     "ambiguous": false,
     "options": [],
-    "sources": [],
-    "answer": "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+    "sources": [
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "Startup Squeal Troubleshooting",
+        "machine": "Conveyor Belt System",
+        "error_code": "SYM-SQUEAL-STARTUP",
+        "page": 5,
+        "snippet": "ERROR CODE: SYM-SQUEAL-STARTUP\nSECTION: Startup Squeal Troubleshooting\nPAGE: 5\nSTEPS:\n1. Verify the belt tension using the tail pulley take-up screws.\n2. Tighten each side equally by 2 full turns to eliminate initial startup slip.\n3. Inspect the rubber lagging on the drive drum for a shiny, glazed, or hardened appearance; if glazed, scuff the surface using coarse 40-grit emery cloth to restore traction.\n4. Apply a designated conveyor belt grip conditioning spray if operating in high-humidity conditions.\n5. Lubricate the snub roller pillow block bearings with two pumps of NLGI Grade 2 lithium complex grease through the grease zerk fittings."
+      },
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "Common Symptoms",
+        "machine": "Conveyor Belt System",
+        "error_code": "SYM-SQUEAL-STARTUP",
+        "page": 5,
+        "snippet": "SECTION: Common Symptoms\nERROR CODE: SYM-SQUEAL-STARTUP\nPAGE: 5\nMEANING: Glazed or worn rubber lagging on the primary drive drum, or insufficient belt tension allowing the drive drum to slip underneath the belt during initial motor acceleration, producing a loud squealing or chirping acoustic noise. It can also be caused by stiff, dry bearings in the snub roller adjacent to the head drum.\nCAUSES:\n- Glazed or worn rubber lagging on the primary drive drum\n- Insufficient belt tension allowing the drive drum to slip underneath the belt during initial motor acceleration\n- Stiff, dry bearings in the snub roller adjacent to the head drum"
+      },
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "Belt Jerking Troubleshooting",
+        "machine": "Conveyor Belt System",
+        "error_code": "SYM-BELT-JERKING",
+        "page": 5,
+        "snippet": "ERROR CODE: SYM-BELT-JERKING\nSECTION: Belt Jerking Troubleshooting\nPAGE: 5\nSTEPS:\n1. Isolate electrical power and remove the protective coupling guard.\n2. Inspect the polyurethane spider cushion inside the three-jaw coupling for missing lobes, cracking, or severe wear play; replace the insert if rotational backlash exceeds 3 mm.\n3. Rotate each slider bed roller by hand along the entire conveyor length to pinpoint frozen bearings; replace seized rollers immediately.\n4. Connect to the VFD and increase acceleration ramp parameter P-011 from 2.5 seconds to 4.5 seconds to smooth out motor torque delivery during acceleration transitions."
+      },
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "E102 Troubleshooting",
+        "machine": "Conveyor Belt System",
+        "error_code": "E102",
+        "page": 2,
+        "snippet": "ERROR CODE: E102\nSECTION: E102 Troubleshooting\nPAGE: 2\nSTEPS:\n1. De-energize the conveyor drive and inspect the infeed chute deflectors to verify material is landing directly centered on the belt surface.\n2. Clean all caked dirt, adhesive residue, or debris buildup from the surfaces of the drive drum, tail pulley, and snub rollers using a wire brush and brass scraper.\n3. Inspect the take-up screw calibration marks on both sides of the tail section; ensure left and right take-up bearing blocks are positioned within 1.0 mm of each other.\n4. If the belt drifts to the right, tighten the right-side take-up bolt by 1/2 turn (or loosen the left-side take-up bolt by 1/2 turn).\n5. Start the conveyor in jog mode and observe tracking over three complete belt revolutions, making fine adjustments of 1/4 turn until the belt edge maintains a minimum 25 mm clearance from the frame side channels."
+      },
+      {
+        "manual": "conveyorcb4400.txt",
+        "section": "E102 Belt Tracking Misalignment Drift",
+        "machine": "Conveyor Belt System",
+        "error_code": "E102",
+        "page": 2,
+        "snippet": "SECTION: E102 Belt Tracking Misalignment Drift\nERROR CODE: E102\nPAGE: 2\nMEANING: The lateral belt edge limit switches (LS-10A or LS-10B) have actuated, indicating that the conveyor belt has wandered more than 45 millimeters off the center axis of the slider bed toward either the drive or non-drive side.\nCAUSES:\n- Uneven off-center product loading at the infeed chute\n- Unequal tension on the left and right tail pulley take-up adjustment screws\n- Material buildup or caked dust on the crowned tail pulley drum surface\n- Worn or twisted conveyor belt vulcanized splice"
+      }
+    ],
+    "answer": "1. Error meaning: Glazed or worn rubber lagging on the primary drive drum, or insufficient belt tension allowing the drive drum to slip underneath the belt during initial motor acceleration, producing a loud squealing or chirping acoustic noise. It can also be caused by stiff, dry bearings in the snub roller adjacent to the head drum.\n2. Probable causes: \n- Glazed or worn rubber lagging on the primary drive drum\n- Insufficient belt tension allowing the drive drum to slip underneath the belt during initial motor acceleration\n- Stiff, dry bearings in the snub roller adjacent to the head drum\n3. Step-by-step corrective action: \n1. Verify the belt tension using the tail pulley take-up screws.\n2. Tighten each side equally by 2 full turns to eliminate initial startup slip.\n3. Inspect the rubber lagging on the drive drum for a shiny, glazed, or hardened appearance; if glazed, scuff the surface using coarse 40-grit emery cloth to restore traction.\n4. Apply a designated conveyor belt grip conditioning spray if operating in high-humidity conditions.\n5. Lubricate the snub roller pillow block bearings with two pumps of NLGI Grade 2 lithium complex grease through the grease zerk fittings.\n4. Sources: Manual `conveyorcb4400.txt`, Sections \"Startup Squeal Troubleshooting\" and \"Common Symptoms\"."
   },
   {
     "id": 6,
@@ -56,8 +261,49 @@
     "status_code": 200,
     "ambiguous": false,
     "options": [],
-    "sources": [],
-    "answer": "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+    "sources": [
+      {
+        "manual": "cncmx7.txt",
+        "section": "Common Symptoms",
+        "machine": "CNC Milling Machine",
+        "error_code": "SYM-CHATTER-MARKS",
+        "page": 5,
+        "snippet": "SECTION: Common Symptoms\nERROR CODE: SYM-CHATTER-MARKS\nPAGE: 5\nMEANING: Excessive cutting tool overhang causing bending deflection during side-milling passes, severe wear or micro-chipping along the tool cutting flutes, inadequate hydraulic vise clamping pressure allowing the workpiece to vibrate, or worn ceramic spindle bearings exhibiting axial and radial play, resulting in high-pitched chatter marks on finished milled surfaces.\nCAUSES:\n- Excessive cutting tool overhang causing bending deflection during side-milling passes\n- Severe wear or micro-chipping along the tool cutting flutes\n- Inadequate hydraulic vise clamping pressure allowing the workpiece to vibrate\n- Worn ceramic spindle bearings exhibiting axial and radial play"
+      },
+      {
+        "manual": "cncmx7.txt",
+        "section": "Chatter Marks Troubleshooting",
+        "machine": "CNC Milling Machine",
+        "error_code": "SYM-CHATTER-MARKS",
+        "page": 5,
+        "snippet": "ERROR CODE: SYM-CHATTER-MARKS\nSECTION: Chatter Marks Troubleshooting\nPAGE: 5\nSTEPS:\n1. Reduce tool stickout from the tool holder to the minimum practical length (never exceed a 3:1 length-to-diameter ratio for aggressive milling).\n2. Check workpiece holding fixtures; increase hydraulic vise clamping pressure to 25 bar and verify machined jaws support the workpiece base solidly.\n3. Test spindle nose runout using a 300 mm ground test arbor and a 0.001 mm dial indicator; total radial runout must not exceed 0.003 mm TIR.\n4. Adjust the spindle cutting speed (RPM) by plus or minus 12% to shift the machining frequency away from the workpiece resonant natural harmonic vibration pocket."
+      },
+      {
+        "manual": "cncmx7.txt",
+        "section": "Bore Accuracy Troubleshooting",
+        "machine": "CNC Milling Machine",
+        "error_code": "SYM-BORE-ACCURACY",
+        "page": 6,
+        "snippet": "ERROR CODE: SYM-BORE-ACCURACY\nSECTION: Bore Accuracy Troubleshooting\nPAGE: 6\nSTEPS:\n1. Ensure the 20-minute morning thermal warm-up macro has completed before starting tight-tolerance bore finishing.\n2. Run a circularity calibration check using a Renishaw QC20-W wireless ballbar system at 1,000 mm/min federate across the X-Y plane; examine the resulting polar plot for reversal spikes or ovality.\n3. If backlash reversal spikes exceed 0.006 mm, input calibrated backlash compensation values into CNC parameter table P-1851.\n4. Calibrate the touch-trigger tool presetter using the precision ground 20 mm reference calibration stylus to verify accurate tool radius compensation registers."
+      },
+      {
+        "manual": "cncmx7.txt",
+        "section": "Spindle Whining Troubleshooting",
+        "machine": "CNC Milling Machine",
+        "error_code": "SYM-SPINDLE-WHINING",
+        "page": 5,
+        "snippet": "ERROR CODE: SYM-SPINDLE-WHINING\nSECTION: Spindle Whining Troubleshooting\nPAGE: 5\nSTEPS:\n1. Immediately restrict spindle operating speed to a maximum of 4,000 RPM to prevent catastrophic bearing seizure.\n2. Remove the tool holder from the spindle and inspect the BT40 taper for fretting corrosion or copper-colored contact marks.\n3. Measure tool holder dynamic balance using a precision tool balancing bench; all tool holders operating above 10,000 RPM must meet ISO 1940-1 Grade G2.5 balance specifications.\n4. Run the automated 30-minute low-speed spindle warm-up cycle at 1,500 RPM while measuring bearing housing temperature using a thermal infrared thermometer; if temperature exceeds 48\u00b0C during unloaded rotation, the spindle cartridge assembly must be removed for factory refurbishment."
+      },
+      {
+        "manual": "cncmx7.txt",
+        "section": "E108 Spindle Motor Stator Overtemperature",
+        "machine": "CNC Milling Machine",
+        "error_code": "E108",
+        "page": 2,
+        "snippet": "SECTION: E108 Spindle Motor Stator Overtemperature\nERROR CODE: E108\nPAGE: 2\nMEANING: The internal platinum RTD thermistor embedded inside the synchronous motorized spindle stator winding registers an operating temperature in excess of 115\u00b0C, triggering an immediate controlled spindle deceleration and axis motion freeze.\nCAUSES:\n- Extended heavy roughing toolpaths utilizing dull, chipped, or improperly coated carbide cutters\n- Thermal exchange failure or low glycol coolant level inside the closed-loop spindle chiller refrigeration circuit\n- Clogged dust filters on the electrical enclosure cooling unit\n- Ambient temperature in the tooling workshop exceeding 38\u00b0C"
+      }
+    ],
+    "answer": "1. Error meaning: Excessive cutting tool overhang causing bending deflection during side-milling passes, severe wear or micro-chipping along the tool cutting flutes, inadequate hydraulic vise clamping pressure allowing the workpiece to vibrate, or worn ceramic spindle bearings exhibiting axial and radial play, resulting in high-pitched chatter marks on finished milled surfaces.\n\n2. Probable causes:\n- Excessive cutting tool overhang causing bending deflection during side-milling passes\n- Severe wear or micro-chipping along the tool cutting flutes\n- Inadequate hydraulic vise clamping pressure allowing the workpiece to vibrate\n- Worn ceramic spindle bearings exhibiting axial and radial play\n\n3. Step-by-step corrective action:\n1. Reduce tool stickout from the tool holder to the minimum practical length (never exceed a 3:1 length-to-diameter ratio for aggressive milling).\n2. Check workpiece holding fixtures; increase hydraulic vise clamping pressure to 25 bar and verify machined jaws support the workpiece base solidly.\n3. Test spindle nose runout using a 300 mm ground test arbor and a 0.001 mm dial indicator; total radial runout must not exceed 0.003 mm TIR.\n4. Adjust the spindle cutting speed (RPM) by plus or minus 12% to shift the machining frequency away from the workpiece resonant natural harmonic vibration pocket.\n\n4. Sources: \n- Manual: cncmx7.txt, Section: Common Symptoms\n- Manual: cncmx7.txt, Section: Chatter Marks Troubleshooting"
   },
   {
     "id": 7,
@@ -66,38 +312,130 @@
     "status_code": 200,
     "ambiguous": false,
     "options": [],
-    "sources": [],
-    "answer": "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+    "sources": [
+      {
+        "manual": "presshp2200.txt",
+        "section": "Common Symptoms",
+        "machine": "Hydraulic Press",
+        "error_code": "SYM-PUMP-CAVITATION",
+        "page": 6,
+        "snippet": "SECTION: Common Symptoms\nERROR CODE: SYM-PUMP-CAVITATION\nPAGE: 6\nMEANING: Main variable-displacement axial piston hydraulic pump emits an abnormal high-pitched cavitation whining acoustic noise during operation.\nCAUSES:\n- Restriction in the pump suction line caused by a heavily silted suction strainer inside the oil tank\n- High fluid viscosity due to cold reservoir oil below minimum operating temperature\n- Atmospheric air entering through a worn pump driveshaft seal"
+      },
+      {
+        "manual": "presshp2200.txt",
+        "section": "Pump Cavitation Troubleshooting",
+        "machine": "Hydraulic Press",
+        "error_code": "SYM-PUMP-CAVITATION",
+        "page": 6,
+        "snippet": "ERROR CODE: SYM-PUMP-CAVITATION\nSECTION: Pump Cavitation Troubleshooting\nPAGE: 6\nSTEPS:\n1. Immediately check reservoir fluid temperature gauge; if the oil is below 20\u00b0C, turn on the auxiliary electric immersion tank heaters and wait until the oil temperature reaches at least 32\u00b0C before running the main pumps under load.\n2. Check that the suction butterfly isolation valve is locked in the 100% full-open position.\n3. Drain the fluid level down to maintenance level and remove the 100-mesh wire cloth pump suction strainer from the bottom tank port; wash thoroughly in mineral spirits and blow dry with compressed air.\n4. Check the pump driveshaft lip seal for oil weeping or telltale suction air hissing sounds."
+      },
+      {
+        "manual": "presshp2200.txt",
+        "section": "Hydraulic Hammer Troubleshooting",
+        "machine": "Hydraulic Press",
+        "error_code": "SYM-HYDRAULIC-HAMMER",
+        "page": 5,
+        "snippet": "ERROR CODE: SYM-HYDRAULIC-HAMMER\nSECTION: Hydraulic Hammer Troubleshooting\nPAGE: 5\nSTEPS:\n1. Access the hydraulic valve amplifier card setup parameters via the diagnostic laptop interface.\n2. Increase the decompression ramp time constant from 180 milliseconds to 420 milliseconds to enforce a gradual, linear pressure bleed-down before the main poppet is allowed to crack open.\n3. Inspect the pilot decompression cartridge valve poppet seat for internal scoring or a fatigued pilot spring.\n4. Check all hydraulic pipe clamps on the overhead delivery lines; tighten loose clamp bracket bolts and replace any cracked or hardened polypropylene clamp body inserts with fresh vibration-damping elastomer sleeves."
+      },
+      {
+        "manual": "presshp2200.txt",
+        "section": "H201 Troubleshooting",
+        "machine": "Hydraulic Press",
+        "error_code": "H201",
+        "page": 2,
+        "snippet": "ERROR CODE: H201\nSECTION: H201 Troubleshooting\nPAGE: 2\nSTEPS:\n1. Engage the mechanical platen safety latch blocks into position beneath the ram platen and depress the hydraulic system pressure de-energize pushbutton to bleed residual accumulator pressure down to 0 bar.\n2. Check the electrical resistance of the proportional relief valve PRV-1 solenoid coil using a calibrated multimeter (standard coil resistance must measure between 18.5 and 24.0 ohms). Replace coil if open circuit.\n3. Access the overhead prefill tank inspection port; remove and inspect the main poppet check valve seat for metallic debris, contamination, or scarred mating faces that prevent 100% positive sealing.\n4. Inspect the cylinder rod glands beneath the main press crown for external fluid weepage or pooling hydraulic oil on the platen top surface. If fluid leakage exceeds 15 drops per minute, replace the main multi-lip chevron seal packing assembly.\n5. Close the circuit, retract the safety latch blocks, and execute a dry pressure ramp test up to 150 bar in manual jog mode while logging transducer PT-01 voltage output on the diagnostics console."
+      },
+      {
+        "manual": "presshp2200.txt",
+        "section": "H201 Main Ram Proportional Pressure Loss",
+        "machine": "Hydraulic Press",
+        "error_code": "H201",
+        "page": 2,
+        "snippet": "SECTION: H201 Main Ram Proportional Pressure Loss\nERROR CODE: H201\nPAGE: 2\nMEANING: Main hydraulic cylinder pressure transducer PT-01 detects that ram hydraulic pressure fails to achieve the commanded 280 bar tonnage within 4.0 seconds following the seating of the main prefill overhead poppet valve, preventing proper tonnage clamp.\nCAUSES:\n- Blown or thermally deteriorated chevron packing ring seals on the primary 650 mm ram piston\n- Sticking or mechanically contaminated proportional directional pressure relief valve PRV-1\n- Foreign metal swarf or particle wedged on the main overhead prefill valve poppet seat, allowing oil to bypass back into the gravity overhead tank\n- Internal barrel wall scoring inside the main cylinder"
+      }
+    ],
+    "answer": "1. Error meaning: Main variable-displacement axial piston hydraulic pump emits an abnormal high-pitched cavitation whining acoustic noise during operation.\n2. Probable causes:\n- Restriction in the pump suction line caused by a heavily silted suction strainer inside the oil tank\n- High fluid viscosity due to cold reservoir oil below minimum operating temperature\n- Atmospheric air entering through a worn pump driveshaft seal\n3. Step-by-step corrective action:\n1. Immediately check reservoir fluid temperature gauge; if the oil is below 20\u00b0C, turn on the auxiliary electric immersion tank heaters and wait until the oil temperature reaches at least 32\u00b0C before running the main pumps under load.\n2. Check that the suction butterfly isolation valve is locked in the 100% full-open position.\n3. Drain the fluid level down to maintenance level and remove the 100-mesh wire cloth pump suction strainer from the bottom tank port; wash thoroughly in mineral spirits and blow dry with compressed air.\n4. Check the pump driveshaft lip seal for oil weeping or telltale suction air hissing sounds.\n4. Sources: presshp2200.txt (Sections: Common Symptoms and Pump Cavitation Troubleshooting)"
   },
   {
     "id": 8,
     "query": "E101",
     "category": "3. Ambiguous",
     "status_code": 200,
-    "ambiguous": false,
-    "options": [],
+    "ambiguous": true,
+    "options": [
+      {
+        "machine": "Press-200",
+        "summary": "Hydraulic oil pressure low."
+      },
+      {
+        "machine": "CNC-100",
+        "summary": "Excessive motor temperature."
+      },
+      {
+        "machine": "CNC Milling Machine (MX-7 Precision)",
+        "summary": "The through-spindle coolant (TSC) inline electronic flow sensor FL-10 measures coolant delivery flow falling below the safety threshold of 3.8 liters per minute while the main milling spindle is actively energized above 1,000 RPM, stopping feed motion to prevent tool burnout and thermal damage to the spindle cartridge."
+      },
+      {
+        "machine": "Conveyor Belt System (CB-4400)",
+        "summary": "The variable frequency drive (VFD) inverter detects that motor phase current draw has exceeded 125% of the continuous full-load amp (FLA) rating for more than 3.5 consecutive seconds, initiating an emergency deceleration stop to protect motor windings from thermal burnout."
+      }
+    ],
     "sources": [],
-    "answer": "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+    "answer": "E101 means something different on each machine \u2014 which one are you asking about?"
   },
   {
     "id": 9,
     "query": "What does error E101 mean?",
     "category": "3. Ambiguous",
     "status_code": 200,
-    "ambiguous": false,
-    "options": [],
+    "ambiguous": true,
+    "options": [
+      {
+        "machine": "CNC-100",
+        "summary": "Excessive motor temperature."
+      },
+      {
+        "machine": "Press-200",
+        "summary": "Hydraulic oil pressure low."
+      },
+      {
+        "machine": "CNC Milling Machine (MX-7 Precision)",
+        "summary": "The through-spindle coolant (TSC) inline electronic flow sensor FL-10 measures coolant delivery flow falling below the safety threshold of 3.8 liters per minute while the main milling spindle is actively energized above 1,000 RPM, stopping feed motion to prevent tool burnout and thermal damage to the spindle cartridge."
+      },
+      {
+        "machine": "Conveyor Belt System (CB-4400)",
+        "summary": "The variable frequency drive (VFD) inverter detects that motor phase current draw has exceeded 125% of the continuous full-load amp (FLA) rating for more than 3.5 consecutive seconds, initiating an emergency deceleration stop to protect motor windings from thermal burnout."
+      }
+    ],
     "sources": [],
-    "answer": "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+    "answer": "E101 means something different on each machine \u2014 which one are you asking about?"
   },
   {
     "id": 10,
     "query": "How do I fix error E101?",
     "category": "3. Ambiguous",
     "status_code": 200,
-    "ambiguous": false,
-    "options": [],
+    "ambiguous": true,
+    "options": [
+      {
+        "machine": "CNC-100",
+        "summary": "Excessive motor temperature."
+      },
+      {
+        "machine": "Press-200",
+        "summary": "Hydraulic oil pressure low."
+      },
+      {
+        "machine": "CNC Milling Machine (MX-7 Precision)",
+        "summary": "The through-spindle coolant (TSC) inline electronic flow sensor FL-10 measures coolant delivery flow falling below the safety threshold of 3.8 liters per minute while the main milling spindle is actively energized above 1,000 RPM, stopping feed motion to prevent tool burnout and thermal damage to the spindle cartridge."
+      },
+      {
+        "machine": "Conveyor Belt System (CB-4400)",
+        "summary": "The variable frequency drive (VFD) inverter detects that motor phase current draw has exceeded 125% of the continuous full-load amp (FLA) rating for more than 3.5 consecutive seconds, initiating an emergency deceleration stop to protect motor windings from thermal burnout."
+      }
+    ],
     "sources": [],
-    "answer": "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+    "answer": "E101 means something different on each machine \u2014 which one are you asking about?"
   },
   {
     "id": 11,
@@ -107,7 +445,7 @@
     "ambiguous": false,
     "options": [],
     "sources": [],
-    "answer": "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+    "answer": "The manuals don't cover this. I won't guess at a fix."
   },
   {
     "id": 12,
@@ -117,7 +455,7 @@
     "ambiguous": false,
     "options": [],
     "sources": [],
-    "answer": "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+    "answer": "The manuals don't cover this. I won't guess at a fix."
   },
   {
     "id": 13,
@@ -127,6 +465,6 @@
     "ambiguous": false,
     "options": [],
     "sources": [],
-    "answer": "The available manuals do not provide sufficient information to answer this. I won't provide an unsupported answer."
+    "answer": "The manuals don't cover this. I won't guess at a fix."
   }
 ]

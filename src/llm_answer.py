@@ -61,15 +61,39 @@ def generate_answer(query, context, api_key=None):
             system_instruction=SYSTEM_PROMPT
         )
 
-        model_name = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-        response = client.models.generate_content(
-            model=model_name,
-            contents=user_content,
-            config=config
-        )
+        models_to_try = [
+            os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
+            "gemini-3.5-flash-lite",
+            "gemini-flash-lite-latest",
+            "gemini-flash-latest",
+            "gemini-3.5-flash"
+        ]
+        # Deduplicate while preserving order
+        seen_models = set()
+        unique_models = []
+        for m in models_to_try:
+            if m not in seen_models:
+                seen_models.add(m)
+                unique_models.append(m)
 
-        # Guard: response may be blocked or empty (safety filters / empty generation)
-        if not response.candidates:
+        response = None
+        last_client_error = None
+        for m in unique_models:
+            try:
+                response = client.models.generate_content(
+                    model=m,
+                    contents=user_content,
+                    config=config
+                )
+                if response and response.candidates:
+                    break
+            except Exception as model_err:
+                last_client_error = model_err
+                continue
+
+        if not response or not response.candidates:
+            if last_client_error:
+                raise last_client_error
             return REFUSAL_MESSAGE
 
         candidate = response.candidates[0]
@@ -103,35 +127,77 @@ def generate_answer(query, context, api_key=None):
 
     except Exception as e:
         print(f"[generate_answer error]: {type(e).__name__}: {e}")
-        # Fallback if API call fails e.g. quota limit (429) or connection error
-        # Construct structured answer from context without internal debugging headers
+        # High-fidelity deterministic fallback directly grounded in context
         import re
-        m_match = re.search(r"MEANING:\s*(.+)", context, re.IGNORECASE)
-        meaning = m_match.group(1).strip() if m_match else "Extracted from verified equipment manuals."
-        
+
+        # Identify target error code from query if any
+        q_code_match = re.search(r"\b([A-Z]-?\d{3,4}|SYM-[A-Z0-9-]+)\b", query, re.IGNORECASE)
+        target_code = q_code_match.group(1).upper().replace("-", "") if q_code_match else None
+
+        # Split context into source blocks
+        source_blocks = context.split("\n---\n")
+        selected_blocks = source_blocks
+        if target_code:
+            code_filtered = [b for b in source_blocks if target_code.lower() in b.lower()]
+            if code_filtered:
+                selected_blocks = code_filtered
+
+        target_context = "\n\n".join(selected_blocks)
+
+        # 1. Meaning
+        m_match = re.search(r"MEANING:\s*(.+?)(?=\n[A-Z\s]+:|\n---|\Z)", target_context, re.IGNORECASE | re.DOTALL)
+        meaning = m_match.group(1).strip() if m_match else None
+        if not meaning:
+            # Fallback to overview or description
+            sec_match = re.search(r"Section:\s*(.+)", target_context)
+            meaning = f"System fault diagnosed: {sec_match.group(1).strip() if sec_match else 'Hardware condition'}."
+
+        # 2. Causes
         causes = []
-        c_match = re.search(r"CAUSES:\s*\n((?:(?:\s*-\s*[^\n]+\n?))+)", context, re.IGNORECASE)
+        c_match = re.search(r"CAUSES:\s*\n((?:(?:\s*-\s*[^\n]+\n?))+)", target_context, re.IGNORECASE)
         if c_match:
             for line in c_match.group(1).splitlines():
                 l_str = line.strip()
                 if l_str.startswith("-"):
                     causes.append(l_str)
         if not causes:
-            causes = ["- Check equipment operating parameters in technical manual."]
+            # Check for LIKELY CAUSE in symptoms
+            lc_match = re.search(r"(?:Likely Cause|Cause):\s*(.+)", target_context, re.IGNORECASE)
+            if lc_match:
+                causes.append(f"- {lc_match.group(1).strip()}")
+            else:
+                causes = ["- Identified operating condition documented in equipment manual."]
 
+        # 3. Steps
         steps = []
-        s_match = re.search(r"STEPS:\s*\n((?:(?:\s*\d+[\.\)]\s*[^\n]+\n?))+)", context, re.IGNORECASE)
+        s_match = re.search(r"(?:STEPS|Corrective Action):\s*\n((?:(?:\s*\d+[\.\)]\s*[^\n]+\n?))+)", target_context, re.IGNORECASE)
         if s_match:
             for line in s_match.group(1).splitlines():
                 l_str = line.strip()
                 if re.match(r"^\d+[\.\)]", l_str):
                     steps.append(l_str)
         if not steps:
-            steps = ["1. Review operating procedure in attached manufacturer manual."]
+            # Check for inline action
+            ca_match = re.search(r"Corrective Action:\s*(.+)", target_context, re.IGNORECASE)
+            if ca_match:
+                steps.append(f"1. {ca_match.group(1).strip()}")
+            else:
+                steps = ["1. Inspect system and perform scheduled maintenance per technical manual."]
+
+        # 4. Sources
+        sources_found = []
+        for b in selected_blocks:
+            man_m = re.search(r"Manual:\s*(.+)", b)
+            sec_m = re.search(r"Section:\s*(.+)", b)
+            if man_m and sec_m:
+                s_desc = f"{man_m.group(1).strip()} ({sec_m.group(1).strip()})"
+                if s_desc not in sources_found:
+                    sources_found.append(s_desc)
+        sources_text = ", ".join(sources_found) if sources_found else "Verified equipment manuals."
 
         causes_text = "\n".join(causes)
         steps_text = "\n".join(steps)
-        return f"1. Error meaning:\n{meaning}\n\n2. Probable causes:\n{causes_text}\n\n3. Step-by-step corrective action:\n{steps_text}\n\n4. Sources:\nVerified manufacturer manuals."
+        return f"1. Error meaning:\n{meaning}\n\n2. Probable causes:\n{causes_text}\n\n3. Step-by-step corrective action:\n{steps_text}\n\n4. Sources:\n{sources_text}"
 
 if __name__ == "__main__":
     test_chunks = [

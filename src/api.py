@@ -74,11 +74,14 @@ class AmbiguityOption(BaseModel):
 
 class PossibleFault(BaseModel):
     fault: str
+    fault_code: Optional[str] = None
+    fault_name: Optional[str] = None
     confidence_score: float
     confidence_percentage: int
     confidence_level: str
     is_primary: bool = False
     component: Optional[str] = None
+    supporting_evidence: Optional[List[str]] = None
 
 class FaultEvidence(BaseModel):
     contributing_evidence: str
@@ -387,9 +390,9 @@ def handle_query(req: QueryRequest):
         opt_lines = "\n".join([f"- **{o['machine']}**: {o['summary']}" for o in options])
         err_code_name = parsed_q.get("error_code") or "That error code"
         answer_text = f"{err_code_name} means something different on each machine — which one are you asking about?"
-        # Save error context so follow-up selection can resolve cleanly
+        # Save error context so follow-up selection can resolve cleanly, clearing previous machine
         top_error = parsed_q.get("error_code")
-        memory_store.update_session(session_id, machine=None, error_code=top_error, last_answer=answer_text)
+        memory_store.update_session(session_id, machine=None, error_code=top_error, last_answer=answer_text, clear_machine=True)
         return QueryResponse(
             answer=answer_text,
             sources=[],

@@ -14,25 +14,42 @@ def retrieve(parsed_query, k=5):
     if error_code and error_code not in raw_query:
         search_text = f"{error_code} {raw_query}"
 
-    filter_metadata = None
-    if machine:
-        filter_metadata = {"machine": machine}
-        fetch_k = max(k, 15) if error_code else k
+    retrieved_chunks = []
+    
+    if machine and error_code:
+        # Fetch exact error code chunks for this machine first
+        code_chunks = search(query=search_text, k=max(k, 10), filter_metadata={"machine": machine, "error_code": error_code})
+        # Also fetch machine chunks to ensure broader context if needed
+        general_chunks = search(query=search_text, k=max(k, 10), filter_metadata={"machine": machine})
+        retrieved_chunks = code_chunks + general_chunks
+    elif machine:
+        retrieved_chunks = search(query=search_text, k=max(k, 15), filter_metadata={"machine": machine})
     elif error_code:
-        filter_metadata = {"error_code": error_code}
-        fetch_k = max(k, 10)
+        # Fetch across all machines for ambiguity evaluation
+        retrieved_chunks = search(query=search_text, k=25, filter_metadata={"error_code": error_code})
     else:
-        fetch_k = k
+        retrieved_chunks = search(query=search_text, k=k)
 
-    retrieved_chunks = search(query=search_text, k=fetch_k, filter_metadata=filter_metadata)
+    # Deduplicate by (manual, section) while preserving order
+    seen = set()
+    deduped = []
+    for c in retrieved_chunks:
+        key = (c.get("manual"), c.get("section"))
+        if key not in seen:
+            seen.add(key)
+            deduped.append(c)
 
     # Re-rank: If error_code is known, bring chunks matching error_code to the front
     if error_code:
-        matching_chunks = [c for c in retrieved_chunks if c.get("error_code") == error_code]
-        other_chunks = [c for c in retrieved_chunks if c.get("error_code") != error_code]
-        retrieved_chunks = matching_chunks + other_chunks
+        matching_chunks = [c for c in deduped if c.get("error_code") == error_code]
+        other_chunks = [c for c in deduped if c.get("error_code") != error_code]
+        deduped = matching_chunks + other_chunks
 
-    return retrieved_chunks[:k]
+    # For ambiguity detection, return all disambiguation candidates if machine is None
+    if not machine and error_code:
+        return deduped[:15]
+
+    return deduped[:k]
 
 if __name__ == "__main__":
     from src.query_understanding import parse_query

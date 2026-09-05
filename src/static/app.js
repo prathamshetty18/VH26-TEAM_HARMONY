@@ -420,26 +420,36 @@ function appendNormalCard(data, elapsedMs) {
       <div class="ranked-faults-box">
         <div class="ranked-faults-title">
           <span>Multiple Possible Faults (Ranked by Confidence)</span>
-          <span style="font-size: 0.725rem; color: #64748b; font-weight: 600;">${data.possible_faults.length} Differential Candidates</span>
+          <span style="font-size: 0.725rem; color: #64748b; font-weight: 600;">${data.possible_faults.length} ${data.possible_faults.length === 1 ? 'Supported Fault' : 'Supported Faults'}</span>
         </div>
         ${data.possible_faults.map((pf, idx) => `
-          <div class="ranked-fault-item ${pf.is_primary ? 'is-primary' : ''}">
-            <div class="ranked-fault-info">
-              <span class="ranked-fault-rank">${idx + 1}.</span>
-              <div>
-                <div class="ranked-fault-name">
-                  ${escapeHtml(pf.fault)}
-                  ${pf.is_primary ? '<span class="primary-badge" style="margin-left: 0.4rem;">PRIMARY FAULT</span>' : ''}
+          <div class="ranked-fault-item ${pf.is_primary ? 'is-primary' : ''}" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+              <div class="ranked-fault-info">
+                <span class="ranked-fault-rank">${idx + 1}.</span>
+                <div>
+                  <div class="ranked-fault-name">
+                    ${escapeHtml(pf.fault)}
+                    ${pf.is_primary ? '<span class="primary-badge" style="margin-left: 0.4rem;">PRIMARY FAULT</span>' : ''}
+                  </div>
+                  ${pf.component ? `<div class="ranked-fault-comp" style="margin-top: 0.2rem;">Affected Component: <strong style="color: #334155;">${escapeHtml(pf.component)}</strong></div>` : ''}
                 </div>
-                <div class="ranked-fault-comp">${escapeHtml(pf.component || '')}</div>
+              </div>
+              <div class="ranked-fault-metric">
+                <span class="ranked-fault-pct">${pf.confidence_percentage || Math.round(pf.confidence_score * 100)}%</span>
+                <span class="confidence-level-pill ${(pf.confidence_level || 'low').toLowerCase()}" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">
+                  ${escapeHtml(pf.confidence_level || 'Moderate')}
+                </span>
               </div>
             </div>
-            <div class="ranked-fault-metric">
-              <span class="ranked-fault-pct">${pf.confidence_percentage || Math.round(pf.confidence_score * 100)}%</span>
-              <span class="confidence-level-pill ${(pf.confidence_level || 'low').toLowerCase()}" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">
-                ${escapeHtml(pf.confidence_level || 'Moderate')}
-              </span>
-            </div>
+            ${pf.supporting_evidence && pf.supporting_evidence.length > 0 ? `
+              <div style="margin-top: 0.35rem; padding-top: 0.4rem; border-top: 1px dashed #cbd5e1; font-size: 0.75rem; color: #475569;">
+                <div style="font-weight: 600; font-size: 0.68rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.04em; margin-bottom: 0.25rem;">Supporting evidence:</div>
+                <ul style="margin: 0; padding-left: 1.25rem; line-height: 1.45; list-style-type: disc;">
+                  ${pf.supporting_evidence.map(ev => `<li style="margin-bottom: 0.15rem;">${escapeHtml(ev)}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
           </div>
         `).join('')}
       </div>
@@ -1453,22 +1463,36 @@ window.openFaultDetailsModal = function(faultId) {
       <div class="ranked-faults-box" style="margin: 1rem 0;">
         <div class="ranked-faults-title">
           <span>Ranked Differential Fault Hypotheses</span>
+          <span style="font-size: 0.725rem; color: #64748b; font-weight: 600;">${fault.possible_faults.length} ${fault.possible_faults.length === 1 ? 'Supported Fault' : 'Supported Faults'}</span>
         </div>
         ${fault.possible_faults.map((pf, i) => `
-          <div class="ranked-fault-item ${pf.is_primary ? 'is-primary' : ''}">
-            <div class="ranked-fault-info">
-              <span class="ranked-fault-rank">${i+1}.</span>
-              <div>
-                <span class="ranked-fault-name">${escapeHtml(pf.fault)}</span>
-                ${pf.is_primary ? '<span class="primary-badge" style="margin-left: 0.4rem;">PRIMARY</span>' : ''}
+          <div class="ranked-fault-item ${pf.is_primary ? 'is-primary' : ''}" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+              <div class="ranked-fault-info">
+                <span class="ranked-fault-rank">${i+1}.</span>
+                <div>
+                  <div class="ranked-fault-name">
+                    ${escapeHtml(pf.fault)}
+                    ${pf.is_primary ? '<span class="primary-badge" style="margin-left: 0.4rem;">PRIMARY</span>' : ''}
+                  </div>
+                  ${pf.component ? `<div class="ranked-fault-comp" style="margin-top: 0.2rem;">Affected Component: <strong style="color: #334155;">${escapeHtml(pf.component)}</strong></div>` : ''}
+                </div>
+              </div>
+              <div class="ranked-fault-metric">
+                <span class="ranked-fault-pct">${pf.confidence_percentage || Math.round((pf.confidence_score || 0)*100)}%</span>
+                <span class="confidence-level-pill ${(pf.confidence_level || 'low').toLowerCase()}" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">
+                  ${escapeHtml(pf.confidence_level || 'Moderate')}
+                </span>
               </div>
             </div>
-            <div class="ranked-fault-metric">
-              <span class="ranked-fault-pct">${pf.confidence_percentage || Math.round((pf.confidence_score || 0)*100)}%</span>
-              <span class="confidence-level-pill ${(pf.confidence_level || 'low').toLowerCase()}" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">
-                ${escapeHtml(pf.confidence_level || 'Moderate')}
-              </span>
-            </div>
+            ${pf.supporting_evidence && pf.supporting_evidence.length > 0 ? `
+              <div style="margin-top: 0.35rem; padding-top: 0.4rem; border-top: 1px dashed #cbd5e1; font-size: 0.75rem; color: #475569;">
+                <div style="font-weight: 600; font-size: 0.68rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.04em; margin-bottom: 0.25rem;">Supporting evidence:</div>
+                <ul style="margin: 0; padding-left: 1.25rem; line-height: 1.45; list-style-type: disc;">
+                  ${pf.supporting_evidence.map(ev => `<li style="margin-bottom: 0.15rem;">${escapeHtml(ev)}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
           </div>
         `).join('')}
       </div>

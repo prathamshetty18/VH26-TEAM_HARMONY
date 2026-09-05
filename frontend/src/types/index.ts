@@ -25,11 +25,14 @@ export interface AmbiguityOption {
 
 export interface PossibleFault {
   fault: string;
+  fault_code?: string;
+  fault_name?: string;
   confidence_score: number;
   confidence_percentage: number;
   confidence_level: string;
   is_primary: boolean;
   component?: string;
+  supporting_evidence?: string[];
 }
 
 export interface FaultEvidence {
