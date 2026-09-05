@@ -2,6 +2,9 @@ import type { Message, SessionMemoryState, Machine, BackendConfig, Citation, Amb
 import { INITIAL_MACHINES, processMockQuery, extractMachineAndError } from './mockEngine';
 
 const getInitialBaseUrl = (): string => {
+  if (import.meta.env.VITE_BACKEND_URL) {
+    return import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '');
+  }
   if (typeof window !== 'undefined') {
     if (window.location.port === '8000') {
       return window.location.origin;
