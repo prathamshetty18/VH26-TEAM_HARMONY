@@ -379,8 +379,13 @@ def parse_query_with_context(
                 parsed["machine"] = last_m
                 parsed["machine_source"] = "session_context"
                 if not parsed.get("error_code") and last_e:
-                    if re.search(r"\b(it|that|again|fix|troubleshoot|step|steps|cause|causes|action|actions|procedure|how|why|diagram|diagrams|schematic|schematics|image|images|picture|pictures|drawing|drawings|blueprint|blueprints|photo|photos|generate|generating|genrate|genrateing|render|rendering|illustration|illustrations|view|display|show|explain|solve|resolve|clear|reset|do|should|first|second|third|next|check|now|mean)\b", query.lower()):
-                        parsed["error_code"] = last_e
+                    has_explicit_symptom = bool(re.search(
+                        r"\b(led|blink|blinking|blinks|flash|flashing|flicker|flickering|pattern|smoke|leak|chatter|squeal|cavitation|whine|whining|vibrat|chirp)\w*",
+                        query.lower()
+                    ))
+                    if not has_explicit_symptom:
+                        if re.search(r"\b(it|that|again|fix|troubleshoot|step|steps|cause|causes|action|actions|procedure|how|why|diagram|diagrams|schematic|schematics|image|images|picture|pictures|drawing|drawings|blueprint|blueprints|photo|photos|generate|generating|genrate|genrateing|render|rendering|illustration|illustrations|view|display|show|explain|solve|resolve|clear|reset|do|should|first|second|third|next|check|now|mean)\b", query.lower()):
+                            parsed["error_code"] = last_e
                 return parsed
 
     parsed["machine_source"] = None

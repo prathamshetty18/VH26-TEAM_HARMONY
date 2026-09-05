@@ -642,12 +642,9 @@ def handle_query(req: QueryRequest):
     # Step 5: Safety / Relevance Control Check
     sufficient, safety_result = is_sufficient(retrieved_chunks, query=augmented_message, machine=parsed_q.get("machine"))
     if not sufficient:
-        # On safety refusal, preserve active machine & error context unless user explicitly introduced a new one
-        if parsed_q.get("machine_source") not in ("session_context", None):
-            memory_store.update_session(session_id, machine=parsed_q.get("machine"), error_code=parsed_q.get("error_code"), last_answer=safety_result)
-        else:
-            sess = memory_store.get_session(session_id)
-            sess["last_answer"] = safety_result
+        # On safety refusal, preserve active machine & error context (do not poison with rejected query)
+        sess = memory_store.get_session(session_id)
+        sess["last_answer"] = safety_result
         return QueryResponse(
             answer=safety_result, # Refusal message
             sources=[],
