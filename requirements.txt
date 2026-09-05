@@ -7,3 +7,6 @@ google-genai
 fastapi
 uvicorn
 sentence-transformers
+google-cloud-speech
+SpeechRecognition
+python-multipart

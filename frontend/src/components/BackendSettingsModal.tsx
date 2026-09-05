@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import type { BackendConfig } from '../types';
 import { X, Server } from 'lucide-react';
 
@@ -17,12 +17,13 @@ export const BackendSettingsModal: React.FC<BackendSettingsModalProps> = ({
 }) => {
   const [mode, setMode] = useState<'demo' | 'live'>(config.mode);
   const [baseUrl, setBaseUrl] = useState(config.baseUrl);
+  const [voiceEnabled, setVoiceEnabled] = useState<boolean>(config.voiceEnabled ?? true);
   const [testStatus, setTestStatus] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleSave = () => {
-    onSaveConfig({ mode, baseUrl });
+    onSaveConfig({ mode, baseUrl, voiceEnabled });
     onClose();
   };
 
@@ -122,6 +123,28 @@ export const BackendSettingsModal: React.FC<BackendSettingsModalProps> = ({
             {testStatus && (
               <p className="mt-1 text-[11px] text-slate-600 italic">{testStatus}</p>
             )}
+          </div>
+
+          <div className="pt-1">
+            <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded">
+              <div>
+                <div className="text-xs font-semibold text-slate-800">
+                  Voice Query / Speech-to-Text
+                </div>
+                <div className="text-[10px] text-slate-500 font-sans mt-0.5">
+                  Google Cloud Speech-to-Text (EN, ZH, JA, DE)
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={voiceEnabled}
+                  onChange={(e) => setVoiceEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-900"></div>
+              </label>
+            </div>
           </div>
 
           <div className="p-2.5 bg-slate-50 border border-slate-200 rounded text-[11px] text-slate-500 font-sans leading-relaxed">

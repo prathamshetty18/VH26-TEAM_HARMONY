@@ -14,13 +14,18 @@ export const NormalAnswerCard: React.FC<NormalAnswerCardProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [selectedDiagram, setSelectedDiagram] = useState<Diagram | null>(null);
+  const [showExplanation, setShowExplanation] = useState(false);
 
   const handleCopy = () => {
-    const textToCopy = `Meaning: ${message.meaning || ''}\n\nCauses:\n${(message.causes || []).map((c) => `- ${c}`).join('\n')}\n\nCorrective Steps:\n${(message.steps || []).map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nSources:\n${(message.citations || []).map((c) => `${c.manual}, p.${c.page}`).join('\n')}`;
+    const textToCopy = `Fault: ${message.fault || 'Hardware Fault'}\nConfidence: ${message.confidence_percentage || Math.round((message.confidence_score || 0)*100)}% (${message.confidence_level || 'Moderate'})\nMeaning: ${message.meaning || ''}\n\nCauses:\n${(message.causes || []).map((c) => `- ${c}`).join('\n')}\n\nCorrective Steps:\n${(message.steps || []).map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nSources:\n${(message.citations || []).map((c) => `${c.manual}, p.${c.page}`).join('\n')}`;
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const hasConfidence = message.confidence_score !== undefined && message.confidence_score !== null;
+  const pct = message.confidence_percentage !== undefined ? message.confidence_percentage : (hasConfidence ? Math.round((message.confidence_score || 0) * 100) : 0);
+  const lvl = message.confidence_level || (pct >= 90 ? 'High' : pct >= 70 ? 'Moderate' : 'Low');
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-xs space-y-5 max-w-3xl">
@@ -53,6 +58,176 @@ export const NormalAnswerCard: React.FC<NormalAnswerCardProps> = ({
           </div>
         )}
       </div>
+      {/* FAULT DETECTED BANNER */}
+      {message.fault && (
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-4 rounded-lg border border-indigo-900/50 shadow-sm">
+          <div className="flex items-center space-x-2 mb-1.5">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-red-500/20 text-red-300 border border-red-500/30">
+              <span className="w-2 h-2 rounded-full bg-red-500 mr-1.5 animate-pulse" />
+              FAULT DETECTED
+            </span>
+            {message.component && (
+              <span className="text-xs text-indigo-300 font-mono">
+                • {message.component}
+              </span>
+            )}
+          </div>
+          <h3 className="text-lg md:text-xl font-bold text-white tracking-tight">
+            {message.fault}
+          </h3>
+        </div>
+      )}
+
+      {/* AI CONFIDENCE ASSESSMENT */}
+      {hasConfidence && (
+        <div className="bg-slate-50/80 border border-slate-200 rounded-lg p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-0.5">
+                AI Confidence
+              </div>
+              <div className="flex items-baseline space-x-3">
+                <span className={`text-2xl md:text-3xl font-extrabold font-mono ${lvl === 'High' ? 'text-emerald-600' : lvl === 'Moderate' ? 'text-amber-600' : 'text-slate-600'}`}>
+                  {pct}%
+                </span>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${
+                  lvl === 'High' 
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                    : lvl === 'Moderate'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-slate-100 text-slate-700 border-slate-300'
+                }`}>
+                  Confidence Level: {lvl}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowExplanation(!showExplanation)}
+              className="inline-flex items-center space-x-1.5 text-xs font-semibold px-3 py-1.5 rounded-md bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 transition-colors shadow-2xs cursor-pointer"
+            >
+              <span>{showExplanation ? 'Hide Explanation' : 'View Explanation'}</span>
+            </button>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                lvl === 'High' ? 'bg-emerald-500' : lvl === 'Moderate' ? 'bg-amber-500' : 'bg-slate-500'
+              }`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+
+          <div className="flex justify-between text-xs text-slate-400 font-mono">
+            <span>&lt;70% Low</span>
+            <span>70–89% Moderate</span>
+            <span>90–100% High</span>
+          </div>
+
+          {/* Non-guarantee disclaimer */}
+          <div className="bg-white/80 border border-dashed border-slate-300 rounded p-2.5 text-xs text-slate-600 flex items-start space-x-2">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+            <p className="leading-normal">
+              <strong>Non-Guarantee Notice:</strong> The confidence score is presented as the AI model's predictive confidence and does not guarantee that the fault is physically present. Field verification is required.
+            </p>
+          </div>
+
+          {/* Explanation Drawer */}
+          {showExplanation && (
+            <div className="mt-3 pt-3 border-t border-slate-200 space-y-2 text-xs text-slate-700 animate-in fade-in duration-200">
+              <div className="font-bold text-indigo-950 uppercase tracking-wider">
+                Why the AI Assigned This Score:
+              </div>
+              <p className="bg-white p-2.5 rounded border border-indigo-100 text-slate-800 leading-relaxed">
+                {message.evidence?.reasoning || `The system detected a ${pct}% alignment with technical manual specifications and matching telemetry symptom patterns.`}
+              </p>
+              {message.evidence?.sensor_readings && (
+                <div>
+                  <div className="font-semibold text-slate-600 mb-1">Contributing Sensor Readings:</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 font-mono text-xs">
+                    {Object.entries(message.evidence.sensor_readings).map(([key, val]) => (
+                      <div key={key} className="bg-white p-2 rounded border border-slate-200">
+                        <span className="text-slate-500 uppercase tracking-tight block text-[10px]">{key.replace(/_/g, ' ')}</span>
+                        <span className="font-semibold text-slate-900">{String(val)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MULTIPLE POSSIBLE FAULTS (RANKED BY CONFIDENCE) */}
+      {message.possible_faults && message.possible_faults.length > 0 && (
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Multiple Possible Faults (Ranked by Confidence)
+            </div>
+            <span className="text-[11px] font-medium text-slate-500">
+              {message.possible_faults.length} {message.possible_faults.length === 1 ? 'Supported Fault' : 'Supported Faults'}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {message.possible_faults.map((pf, idx) => (
+              <div
+                key={idx}
+                className={`p-3 rounded-md border text-sm transition-all ${
+                  pf.is_primary 
+                    ? 'bg-indigo-50/70 border-indigo-200 shadow-2xs' 
+                    : 'bg-white border-slate-200 text-slate-700'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-mono text-xs text-slate-500 font-semibold">{idx + 1}.</span>
+                      <span className="font-bold text-slate-900">{pf.fault}</span>
+                      {pf.is_primary && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white uppercase tracking-wider">
+                          Primary Fault
+                        </span>
+                      )}
+                    </div>
+                    {pf.component && (
+                      <div className="text-xs text-slate-500 pl-5 font-mono">
+                        Affected Component: <span className="text-slate-700 font-medium">{pf.component}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2 font-mono text-xs shrink-0">
+                    <span className="font-bold text-slate-900">
+                      {pf.confidence_percentage || Math.round(pf.confidence_score * 100)}%
+                    </span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold ${
+                      pf.confidence_level === 'High' ? 'bg-emerald-100 text-emerald-800' : pf.confidence_level === 'Moderate' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {pf.confidence_level}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Supporting evidence from retrieved manual/chunks */}
+                {pf.supporting_evidence && pf.supporting_evidence.length > 0 && (
+                  <div className="mt-2.5 pt-2 border-t border-slate-200/80 text-xs">
+                    <div className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide mb-1">
+                      Supporting evidence:
+                    </div>
+                    <ul className="list-disc pl-5 space-y-0.5 text-slate-600">
+                      {pf.supporting_evidence.map((ev, evIdx) => (
+                        <li key={evIdx} className="leading-tight">{ev}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 01. MEANING */}
       {message.meaning && (
@@ -66,6 +241,7 @@ export const NormalAnswerCard: React.FC<NormalAnswerCardProps> = ({
           </p>
         </div>
       )}
+
 
       {/* 02. PROBABLE CAUSES */}
       {message.causes && message.causes.length > 0 && (

@@ -8,7 +8,9 @@ import {
   Settings, 
   Play, 
   Zap, 
-  Server
+  Server,
+  UploadCloud,
+  FileText
 } from 'lucide-react';
 import { MachineFilter } from './components/Sidebar/MachineFilter';
 import { SessionMemory } from './components/Sidebar/SessionMemory';
@@ -18,6 +20,8 @@ import { DemoScriptBar } from './components/Chat/DemoScriptBar';
 import { InputBar } from './components/Chat/InputBar';
 import { CitationModal } from './components/Chat/CitationModal';
 import { BackendSettingsModal } from './components/BackendSettingsModal';
+import { PdfViewer } from './components/Manuals/PdfViewer';
+import { PdfUploadModal } from './components/Manuals/PdfUploadModal';
 import type {
   Message,
   SessionMemoryState,
@@ -26,6 +30,7 @@ import type {
   AmbiguityOption,
   EventTrailItem,
   BackendConfig,
+  ManualItem,
 } from './types';
 import { diagnosticService } from './services/api';
 import { INITIAL_MACHINES } from './services/mockEngine';
@@ -77,14 +82,31 @@ export const App: React.FC = () => {
   const [benchmarks, setBenchmarks] = useState<any[]>([]);
 
   // Manuals state
-  const [manualsData, setManualsData] = useState<any[]>([]);
-  const [activeManual, setActiveManual] = useState<string>('cnc100.txt');
+  const [manualsData, setManualsData] = useState<ManualItem[]>([]);
+  const [activeManual, setActiveManual] = useState<string>('');
+  const [readerPage, setReaderPage] = useState<number>(1);
+  const [manualViewMode, setManualViewMode] = useState<'pdf' | 'text'>('pdf');
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
   const [systemStatus, setSystemStatus] = useState<any>(null);
 
   // Sync session state to sessionStorage
   useEffect(() => {
     sessionStorage.setItem('machineassist_session', JSON.stringify(session));
   }, [session]);
+
+  const refreshManuals = async () => {
+    try {
+      const manRes = await fetch(`${backendConfig.baseUrl}/api/manuals`);
+      if (manRes.ok) {
+        const mData = await manRes.json();
+        const list = mData.manuals || [];
+        setManualsData(list);
+        setActiveManual((prev) => (prev && list.some((m: ManualItem) => m.filename === prev) ? prev : (list[0]?.filename || '')));
+      }
+    } catch (err) {
+      console.warn('Could not load manuals', err);
+    }
+  };
 
   // Load backend health, machines, benchmarks, manuals, and system status
   useEffect(() => {
@@ -104,15 +126,7 @@ export const App: React.FC = () => {
         console.warn('Could not load benchmarks', err);
       }
 
-      try {
-        const manRes = await fetch(`${backendConfig.baseUrl}/api/manuals`);
-        if (manRes.ok) {
-          const mData = await manRes.json();
-          setManualsData(mData.manuals || []);
-        }
-      } catch (err) {
-        console.warn('Could not load manuals', err);
-      }
+      await refreshManuals();
 
       try {
         const sysRes = await fetch(`${backendConfig.baseUrl}/api/system-status`);
@@ -126,6 +140,25 @@ export const App: React.FC = () => {
     };
     loadData();
   }, [backendConfig]);
+
+  const handleOpenInPdfReader = (manualFilename: string, page: number) => {
+    const cleanTarget = manualFilename.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const found = manualsData.find((m) => {
+      const cleanF = m.filename.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const cleanM = m.machine.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return cleanF.includes(cleanTarget) || cleanTarget.includes(cleanF) || cleanM.includes(cleanTarget) || cleanTarget.includes(cleanM);
+    });
+
+    if (found) {
+      setActiveManual(found.filename);
+    } else if (manualsData.length > 0) {
+      setActiveManual(manualsData[0].filename);
+    }
+    setReaderPage(page || 1);
+    setManualViewMode('pdf');
+    setActiveTab('manuals');
+    document.getElementById('command-center')?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // Handle machine filter selection
   const handleSelectMachine = (machineId: string | null) => {
@@ -616,6 +649,8 @@ export const App: React.FC = () => {
                   disabled={isLoading}
                   scopedMachine={scopedMachine}
                   onClearScope={() => setScopedMachine(null)}
+                  voiceEnabled={backendConfig.voiceEnabled !== false}
+                  baseUrl={backendConfig.baseUrl}
                 />
               </main>
             </div>
@@ -694,31 +729,147 @@ export const App: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 3: MANUALS LIBRARY */}
+          {/* TAB 3: MANUALS LIBRARY & PDF READER */}
           {activeTab === 'manuals' && (
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-3">
-                <h3 className="text-base font-bold text-slate-900 mb-2">Available Factory Manuals</h3>
-                {manualsData.map((m) => (
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-lg p-6 flex flex-col space-y-5">
+              {/* Header with Title, Mode Switcher, and Upload CTA */}
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-lg font-bold text-slate-900">Technical Manuals & PDF Reader</h3>
+                    <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold">
+                      {manualsData.length + 1} Factory Documents
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Read original manufacturer PDF manuals, inspect multilingual documentation, and upload new equipment manuals.
+                  </p>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  {/* View Mode Toggle */}
+                  <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold">
+                    <button
+                      onClick={() => setManualViewMode('pdf')}
+                      className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center space-x-1.5 ${
+                        manualViewMode === 'pdf'
+                          ? 'bg-white text-indigo-600 shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />
+                      <span>PDF Reader</span>
+                    </button>
+                    <button
+                      onClick={() => setManualViewMode('text')}
+                      className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center space-x-1.5 ${
+                        manualViewMode === 'text'
+                          ? 'bg-white text-indigo-600 shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>RAG Chunks</span>
+                    </button>
+                  </div>
+
+                  {/* Upload Manual Button */}
                   <button
-                    key={m.filename}
-                    onClick={() => setActiveManual(m.filename)}
-                    className={`w-full text-left p-4 rounded-2xl border transition-all cursor-pointer ${
-                      activeManual === m.filename
-                        ? 'border-indigo-600 bg-indigo-50/50 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
-                    }`}
+                    onClick={() => setIsUploadModalOpen(true)}
+                    className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all cursor-pointer"
                   >
-                    <div className="font-bold text-sm text-slate-900">{m.title}</div>
-                    <div className="text-xs text-slate-500 mt-1">{m.filename} • {m.pages} Pages • {m.chunkCount} Chunks</div>
+                    <UploadCloud className="w-4 h-4" />
+                    <span>Upload Manual</span>
                   </button>
-                ))}
+                </div>
               </div>
 
-              <div className="md:col-span-2 bg-slate-50/80 rounded-2xl border border-slate-200 p-5 max-h-[550px] overflow-y-auto">
-                <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap leading-relaxed">
-                  {manualsData.find((m) => m.filename === activeManual)?.raw_text || 'Select a manual to view.'}
-                </pre>
+              {/* Main Content Layout: Sidebar + Viewer */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Manuals Sidebar */}
+                <div className="lg:col-span-4 space-y-2.5">
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400 px-1">
+                    Select Documentation
+                  </div>
+
+                  {manualsData.map((m) => {
+                    const isSelected = activeManual === m.filename;
+                    return (
+                      <button
+                        key={m.filename}
+                        onClick={() => {
+                          setActiveManual(m.filename);
+                          setReaderPage(1);
+                        }}
+                        className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-indigo-600 bg-indigo-50/60 shadow-xs ring-1 ring-indigo-500/20'
+                            : 'border-slate-200 hover:border-slate-300 bg-slate-50/40 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="font-bold text-sm text-slate-900 leading-snug">
+                            {m.title}
+                          </div>
+                          <div className="flex items-center space-x-1 shrink-0">
+                            {m.is_translated && (
+                              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
+                                Originally: {m.detected_language || m.source_language}
+                              </span>
+                            )}
+                            {m.has_pdf && (
+                              <span className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 text-[10px] font-bold font-mono uppercase">
+                                PDF
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3 text-xs text-slate-500 mt-2 font-mono">
+                          <span>{m.pages} Pages</span>
+                          <span>•</span>
+                          <span>{m.chunkCount} Vector Chunks</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Main Viewer Area */}
+                <div className="lg:col-span-8">
+                  {(() => {
+                    const selectedManual = manualsData.find((m) => m.filename === activeManual) || manualsData[0];
+                    if (!selectedManual) {
+                      return (
+                        <div className="p-12 text-center text-slate-400 border border-slate-200 rounded-2xl">
+                          No manual selected.
+                        </div>
+                      );
+                    }
+
+                    if (manualViewMode === 'pdf') {
+                      return (
+                        <PdfViewer
+                          manual={selectedManual}
+                          initialPage={readerPage}
+                          baseUrl={backendConfig.baseUrl}
+                          onSwitchToText={() => setManualViewMode('text')}
+                        />
+                      );
+                    }
+
+                    return (
+                      <div className="bg-slate-900 rounded-2xl border border-slate-800 p-5 max-h-[700px] overflow-y-auto shadow-inner">
+                        <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 text-xs text-slate-400">
+                          <span className="font-mono">{selectedManual.filename}</span>
+                          <span>{selectedManual.chunkCount} parsed sections</span>
+                        </div>
+                        <pre className="text-xs font-mono text-slate-200 whitespace-pre-wrap leading-relaxed selection:bg-indigo-500 selection:text-white">
+                          {selectedManual.raw_text || 'No raw text available.'}
+                        </pre>
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           )}
@@ -830,6 +981,7 @@ export const App: React.FC = () => {
       <CitationModal
         citation={selectedCitation}
         onClose={() => setSelectedCitation(null)}
+        onOpenInPdfReader={handleOpenInPdfReader}
       />
 
       <BackendSettingsModal
@@ -837,6 +989,13 @@ export const App: React.FC = () => {
         onClose={() => setIsSettingsOpen(false)}
         config={backendConfig}
         onSaveConfig={handleSaveConfig}
+      />
+
+      <PdfUploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        baseUrl={backendConfig.baseUrl}
+        onUploadSuccess={refreshManuals}
       />
     </div>
   );

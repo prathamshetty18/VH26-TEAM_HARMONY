@@ -100,7 +100,7 @@ export class DiagnosticService {
             session_id: sessionState.sessionId,
             machine_filter: scopedMachine || undefined,
           }),
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(30000), // Increased from 8000ms because LLM calls can take 10-15s
         });
 
         if (res.ok) {
@@ -246,8 +246,17 @@ export class DiagnosticService {
             diagrams: diagrams.length > 0 ? diagrams : undefined,
             detectedMachine: topMachine || undefined,
             machineSource: data.machine_source,
+            fault: data.fault,
+            component: data.component,
+            confidence_score: data.confidence_score,
+            confidence_level: data.confidence_level,
+            confidence_percentage: data.confidence_percentage,
+            cause: data.cause,
+            recommendation: data.recommendation,
+            possible_faults: data.possible_faults,
+            evidence: data.evidence,
+            disclaimer: data.disclaimer,
           };
-
           return {
             message: assistantMsg,
             newSession: {
@@ -258,13 +267,38 @@ export class DiagnosticService {
             },
             isLiveBackend: true,
           };
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          const errMsg = errData.detail || `Diagnostic backend error (${res.status})`;
+          return {
+            message: {
+              id: `msg_${Date.now()}`,
+              role: 'assistant',
+              cardType: 'refusal',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              refusalMessage: `Backend request failed: ${errMsg}`,
+            },
+            newSession: sessionState,
+            isLiveBackend: true,
+          };
         }
-      } catch (err) {
-        console.warn('Live API request failed or timed out. Falling back to local diagnostic engine.', err);
+      } catch (err: any) {
+        console.error('Live API request failed or timed out:', err);
+        return {
+          message: {
+            id: `msg_${Date.now()}`,
+            role: 'assistant',
+            cardType: 'refusal',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            refusalMessage: 'Unable to connect to the MachineAssist diagnostic backend at http://localhost:8000. Please ensure the backend server is running.',
+          },
+          newSession: sessionState,
+          isLiveBackend: false,
+        };
       }
     }
 
-    // Default or fallback to mock engine
+    // Explicit Simulation Mode (only if explicitly set to 'mock' in settings)
     const { message, newSession } = await processMockQuery(userQuery, sessionState, scopedMachine);
     return { message, newSession, isLiveBackend: false };
   }

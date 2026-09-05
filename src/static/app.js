@@ -214,23 +214,29 @@ async function fetchInitialData() {
   } catch (e) {
     console.warn('Could not fetch system status:', e);
   }
+
+  // 4. Fault History & Machine Health
+  fetchFaultHistory();
+  fetchMachineHealth();  // Voice Query UI
+  initVoiceUI();
 }
 
 // --------------------------------------------------------------------------
-// COPILOT / CHAT ENGINE
+// COPILOT CHAT EXECUTION & TELEMETRY
 // --------------------------------------------------------------------------
 
-async function submitQuery() {
+async function submitQuery(queryOverride) {
   const inputField = document.getElementById('query-input');
-  if (!inputField) return;
-
-  const rawQuery = inputField.value.trim();
+  const rawQuery = (typeof queryOverride === 'string' && queryOverride.trim())
+    ? queryOverride.trim()
+    : (inputField ? inputField.value.trim() : '');
   if (!rawQuery) return;
 
-  inputField.value = '';
+  if (inputField) inputField.value = '';
 
   // Append user bubble
   appendUserMessage(rawQuery);
+
 
   // Show Typing Indicator
   const typingIndicator = showTypingIndicator();
@@ -266,6 +272,11 @@ async function submitQuery() {
         appendRefusalCard(data, elapsed);
       } else {
         appendNormalCard(data, elapsed);
+        // Refresh fault history and machine health if a diagnosis occurred
+        if (data.confidence_score !== null && data.confidence_score !== undefined) {
+          fetchFaultHistory();
+          fetchMachineHealth();
+        }
       }
     } else {
       appendSystemErrorCard('Backend returned error ' + res.status);
@@ -281,6 +292,7 @@ async function submitQuery() {
     scrollArea.scrollTop = scrollArea.scrollHeight;
   }
 }
+
 
 function isRefusalAnswer(text) {
   if (!text) return false;
@@ -333,6 +345,7 @@ function appendNormalCard(data, elapsedMs) {
   if (!scrollArea) return;
 
   const rawAnswer = data.answer || '';
+  const uniqueId = `diag_${Date.now()}_${Math.floor(Math.random()*1000)}`;
   
   // Parse sections
   let meaning = rawAnswer;
@@ -365,7 +378,7 @@ function appendNormalCard(data, elapsedMs) {
   let citationsHtml = '';
   if (data.sources && data.sources.length > 0) {
     citationsHtml = `
-      <div class="citation-container">
+      <div class="citation-container" style="margin-top: 1.25rem;">
         <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Verified Sources:</span>
         ${data.sources.map((s, idx) => `
           <button class="citation-chip" onclick='openCitationModal(${JSON.stringify(s)})'>
@@ -377,33 +390,171 @@ function appendNormalCard(data, elapsedMs) {
     `;
   }
 
-  const cardHtml = `
-    <div class="card-response">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div class="card-header-badge badge-normal-ans">
-          <svg style="width: 14px; height: 14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-          <span>VERIFIED GROUNDED PROCEDURE</span>
+  // Check if AI Confidence is present
+  const hasConfidence = (data.confidence_score !== null && data.confidence_score !== undefined);
+  const pct = data.confidence_percentage !== undefined ? data.confidence_percentage : (hasConfidence ? Math.round(data.confidence_score * 100) : 0);
+  const lvl = data.confidence_level || (pct >= 90 ? 'High' : pct >= 70 ? 'Moderate' : 'Low');
+  const lvlClass = lvl.toLowerCase();
+
+  const faultName = data.fault || 'Hardware Anomaly Detected';
+  const compName = data.component || (data.sources && data.sources[0] ? data.sources[0].machine : 'Industrial Subsystem');
+  const causeText = data.cause || (causes.length > 0 ? causes[0] : 'Mechanical wear or thermal load saturation.');
+  const recText = data.recommendation || (steps.length > 0 ? steps[0] : 'Inspect component according to factory service guidelines.');
+
+  // Telemetry sensor readings for Explanation Drawer
+  let sensorGridHtml = '';
+  let reasoningText = (data.evidence && data.evidence.reasoning) || `The model assigned a ${pct}% confidence score based on direct semantic alignment with official manual specifications and telemetry patterns.`;
+  if (data.evidence && data.evidence.sensor_readings) {
+    sensorGridHtml = Object.entries(data.evidence.sensor_readings).map(([key, val]) => `
+      <div class="sensor-item">
+        <div class="sensor-label">${escapeHtml(key.replace(/_/g, ' '))}</div>
+        <div class="sensor-val">${escapeHtml(val)}</div>
+      </div>
+    `).join('');
+  }
+
+  // Multiple candidate faults HTML
+  let candidateFaultsHtml = '';
+  if (data.possible_faults && data.possible_faults.length > 0) {
+    candidateFaultsHtml = `
+      <div class="ranked-faults-box">
+        <div class="ranked-faults-title">
+          <span>Multiple Possible Faults (Ranked by Confidence)</span>
+          <span style="font-size: 0.725rem; color: #64748b; font-weight: 600;">${data.possible_faults.length} ${data.possible_faults.length === 1 ? 'Supported Fault' : 'Supported Faults'}</span>
         </div>
-        <span style="font-size: 0.725rem; font-family: var(--font-mono); color: #94a3b8;">${elapsedMs}ms • Grounded in Manuals</span>
+        ${data.possible_faults.map((pf, idx) => `
+          <div class="ranked-fault-item ${pf.is_primary ? 'is-primary' : ''}" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+              <div class="ranked-fault-info">
+                <span class="ranked-fault-rank">${idx + 1}.</span>
+                <div>
+                  <div class="ranked-fault-name">
+                    ${escapeHtml(pf.fault)}
+                    ${pf.is_primary ? '<span class="primary-badge" style="margin-left: 0.4rem;">PRIMARY FAULT</span>' : ''}
+                  </div>
+                  ${pf.component ? `<div class="ranked-fault-comp" style="margin-top: 0.2rem;">Affected Component: <strong style="color: #334155;">${escapeHtml(pf.component)}</strong></div>` : ''}
+                </div>
+              </div>
+              <div class="ranked-fault-metric">
+                <span class="ranked-fault-pct">${pf.confidence_percentage || Math.round(pf.confidence_score * 100)}%</span>
+                <span class="confidence-level-pill ${(pf.confidence_level || 'low').toLowerCase()}" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">
+                  ${escapeHtml(pf.confidence_level || 'Moderate')}
+                </span>
+              </div>
+            </div>
+            ${pf.supporting_evidence && pf.supporting_evidence.length > 0 ? `
+              <div style="margin-top: 0.35rem; padding-top: 0.4rem; border-top: 1px dashed #cbd5e1; font-size: 0.75rem; color: #475569;">
+                <div style="font-weight: 600; font-size: 0.68rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.04em; margin-bottom: 0.25rem;">Supporting evidence:</div>
+                <ul style="margin: 0; padding-left: 1.25rem; line-height: 1.45; list-style-type: disc;">
+                  ${pf.supporting_evidence.map(ev => `<li style="margin-bottom: 0.15rem;">${escapeHtml(ev)}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  const cardHtml = `
+    <div class="card-response" style="padding: 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div class="card-header-badge badge-normal-ans">
+          <svg style="width: 14px; height: 14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>AI DIAGNOSTIC EVALUATION</span>
+        </div>
+        <span style="font-size: 0.725rem; font-family: var(--font-mono); color: #94a3b8;">${elapsedMs}ms • Grounded Vector Model</span>
       </div>
 
-      <div class="card-content-section">
-        <div class="section-label">1. Meaning & Diagnosis</div>
-        <div class="section-body">${formatMarkdown(meaning)}</div>
+      <!-- FAULT DETECTED HEADER BANNER -->
+      <div class="fault-detected-banner">
+        <div class="fault-detected-tag">
+          <span class="pulse-red"></span>
+          <span>FAULT DETECTED</span>
+        </div>
+        <div class="fault-title-main">${escapeHtml(faultName)}</div>
+        <div class="fault-component-badge">
+          <svg style="width: 14px; height: 14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span>Affected Component: <strong>${escapeHtml(compName)}</strong></span>
+        </div>
       </div>
 
-      ${causes.length > 0 ? `
-        <div class="card-content-section">
-          <div class="section-label">2. Probable Causes</div>
-          <ul class="steps-list" style="list-style-type: disc;">
-            ${causes.map(c => `<li>${escapeHtml(c)}</li>`).join('')}
-          </ul>
+      <!-- AI CONFIDENCE SCORE CARD -->
+      ${hasConfidence ? `
+        <div class="confidence-box">
+          <div class="confidence-header-row">
+            <div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem;">AI Confidence Assessment</div>
+              <div class="confidence-metric-group">
+                <span class="confidence-pct-num ${lvlClass}">${pct}%</span>
+                <span class="confidence-level-pill ${lvlClass}">
+                  <span>Confidence Level:</span>
+                  <strong>${escapeHtml(lvl)} Confidence</strong>
+                </span>
+              </div>
+            </div>
+            <button class="btn-explanation-toggle" onclick="toggleExplanation('expl-${uniqueId}')">
+              <svg style="width: 14px; height: 14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>View Explanation</span>
+            </button>
+          </div>
+
+          <div class="confidence-bar-track">
+            <div class="confidence-bar-fill ${lvlClass}" style="width: ${pct}%;"></div>
+          </div>
+
+          <div class="confidence-scale-markers">
+            <span>&lt;70% Low Confidence</span>
+            <span>70–89% Moderate Confidence</span>
+            <span>90–100% High Confidence</span>
+          </div>
+
+          <!-- Non-guarantee mandatory disclaimer -->
+          <div class="non-guarantee-disclaimer">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <span><strong>Model Predictive Notice:</strong> This confidence score represents the AI model's predictive probability derived from factory manual documentation and telemetry pattern matching. It does NOT guarantee that the hardware fault is physically present.</span>
+          </div>
+
+          <!-- Explanation Drawer (Hidden by default) -->
+          <div class="explanation-box" id="expl-${uniqueId}">
+            <div class="explanation-head">
+              <svg style="width: 16px; height: 16px; color: #4f46e5;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+              <span>Why the AI Assigned This Confidence Score</span>
+            </div>
+            <div class="explanation-reasoning">
+              ${escapeHtml(reasoningText)}
+            </div>
+            ${sensorGridHtml ? `
+              <div style="font-size: 0.75rem; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 0.5rem;">Contributing Telemetry Readings & Sensor Evidence:</div>
+              <div class="sensor-grid">${sensorGridHtml}</div>
+            ` : ''}
+          </div>
         </div>
       ` : ''}
 
-      ${steps.length > 0 ? `
-        <div class="card-content-section">
-          <div class="section-label">3. Step-by-Step Corrective Action</div>
+      <!-- MULTIPLE POSSIBLE FAULTS (RANKED BY CONFIDENCE) -->
+      ${candidateFaultsHtml}
+
+      <!-- POSSIBLE CAUSE -->
+      <div class="card-content-section" style="margin-top: 1rem;">
+        <div class="section-label">Possible Cause</div>
+        <div class="section-body" style="font-size: 0.925rem; font-weight: 500; color: #1e293b; background: #f8fafc; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+          ${escapeHtml(causeText)}
+        </div>
+      </div>
+
+      <!-- RECOMMENDED ACTION -->
+      <div class="card-content-section" style="margin-top: 1rem;">
+        <div class="section-label">Recommended Action</div>
+        <div class="section-body" style="font-size: 0.925rem; font-weight: 500; color: #1e293b; background: #f0fdf4; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid #bbf7d0;">
+          ${escapeHtml(recText)}
+        </div>
+      </div>
+
+      <!-- STEP-BY-STEP CORRECTIVE ACTION (IF AVAILABLE) -->
+      ${steps.length > 1 ? `
+        <div class="card-content-section" style="margin-top: 1rem;">
+          <div class="section-label">Step-by-Step Field Procedure</div>
           <ol class="steps-list">
             ${steps.map((st, i) => `<li><strong>Step ${i+1}:</strong> ${escapeHtml(st)}</li>`).join('')}
           </ol>
@@ -444,6 +595,7 @@ function appendNormalCard(data, elapsedMs) {
   row.innerHTML = cardHtml;
   scrollArea.appendChild(row);
 }
+
 
 function appendAmbiguityCard(data, elapsedMs) {
   const scrollArea = document.getElementById('chat-scroll');
@@ -598,21 +750,45 @@ function updateMemoryUI() {
 // CITATION MODAL
 // --------------------------------------------------------------------------
 
+window.openPdfFromCitation = function(manualName, page = 1) {
+  document.getElementById('citation-modal')?.classList.remove('active');
+  if (typeof window.switchTab === 'function') {
+    window.switchTab('manuals');
+  }
+  
+  const manuals = (STATE.manualsData && STATE.manualsData.manuals) || [];
+  const cleanTarget = (manualName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const found = manuals.find(m => {
+    const cf = m.filename.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cm = (m.machine || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return cf.includes(cleanTarget) || cleanTarget.includes(cf) || cm.includes(cleanTarget) || cleanTarget.includes(cm);
+  }) || manuals[0];
+
+  if (found) {
+    window.setManualViewMode('pdf');
+    window.selectManualViewer(found.filename, page);
+  }
+};
+
 window.openCitationModal = function(source) {
   const modal = document.getElementById('citation-modal');
   const modalBody = document.getElementById('citation-modal-body');
   if (!modal || !modalBody) return;
 
+  const pageNum = source.page || 1;
   modalBody.innerHTML = `
     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
       <span class="badge-tag badge-indigo">${escapeHtml(source.machine || 'Machine')}</span>
-      <span style="font-size: 0.8rem; font-family: var(--font-mono); color: #64748b;">${escapeHtml(source.manual)}</span>
+      <span style="font-size: 0.8rem; font-family: var(--font-mono); color: #64748b;">${escapeHtml(source.manual)} • Page ${pageNum}</span>
     </div>
     <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem;">${escapeHtml(source.section)}</h3>
     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; font-size: 0.875rem; line-height: 1.6; color: #334155;">
       ${source.snippet ? escapeHtml(source.snippet) : 'Verified procedure extracted directly from the manufacturer technical manual.'}
     </div>
-    <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end;">
+    <div style="margin-top: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+      <button class="btn btn-primary" onclick="openPdfFromCitation('${escapeHtml(source.manual)}', ${pageNum})">
+        📄 Open in PDF Reader (Page ${pageNum}) →
+      </button>
       <button class="btn btn-secondary" onclick="document.getElementById('citation-modal').classList.remove('active')">Close Inspector</button>
     </div>
   `;
@@ -715,51 +891,505 @@ async function runFullBenchmark() {
 }
 
 // --------------------------------------------------------------------------
-// TOOL 3: MANUALS EXPLORER
+// TOOL 3: MANUALS EXPLORER & PDF READER
 // --------------------------------------------------------------------------
+
+let CURRENT_MANUAL_VIEW_MODE = 'pdf'; // 'pdf' or 'text'
+let CURRENT_MANUAL_PAGE = 1;
+STATE.activeManualLang = 'en';
+STATE.activeManualType = 'multilingual';
+STATE.multilingualManualCache = {};
 
 function renderManualsViewer() {
   const navContainer = document.getElementById('manuals-nav-list');
-  const viewer = document.getElementById('manual-text-display');
-  if (!navContainer || !viewer) return;
+  if (!navContainer) return;
 
-  const manuals = STATE.manualsData.manuals || [];
-  if (manuals.length === 0) return;
+  const manuals = (STATE.manualsData && STATE.manualsData.manuals) || [];
 
-  navContainer.innerHTML = manuals.map((m, idx) => `
-    <div class="manual-tab-item ${idx === 0 ? 'active' : ''}" onclick="selectManualViewer('${m.filename}')" id="manual-tab-${m.filename}">
-      <h5>${escapeHtml(m.title)}</h5>
+  let navHtml = `
+    <div class="manual-tab-item ${STATE.activeManualType === 'multilingual' ? 'active' : ''}" 
+         onclick="selectMultilingualManualViewer()" 
+         id="manual-tab-multilingual"
+         style="border-left: 4px solid #4f46e5; background: ${STATE.activeManualType === 'multilingual' ? '#eef2ff' : '#fafafa'};">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+        <span style="font-size: 1.1rem;">🌐</span>
+        <h5 style="color: #312e81; font-weight: 700; margin: 0;">Multilingual Instruction Manual</h5>
+      </div>
+      <p style="margin: 0; font-size: 0.75rem; color: #4338ca;">Model MX-7 Precision • English | 中文 | 日本語 | Deutsch</p>
+    </div>
+  `;
+
+  navHtml += manuals.map((m) => `
+    <div class="manual-tab-item ${STATE.activeManualType === m.filename ? 'active' : ''}" 
+         onclick="selectManualViewer('${m.filename}', 1)" 
+         id="manual-tab-${m.filename}">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <h5>${escapeHtml(m.title)}</h5>
+        ${m.has_pdf ? '<span class="badge-tag badge-indigo" style="font-size: 0.65rem; padding: 2px 6px;">PDF</span>' : ''}
+      </div>
       <p>${escapeHtml(m.filename)} • ${m.pages} Pages • ${m.chunkCount} Chunks</p>
     </div>
   `).join('');
 
-  // Default display first manual
-  selectManualViewer(manuals[0].filename);
+  navContainer.innerHTML = navHtml;
+
+  // Default display multilingual manual or first manual
+  if (STATE.activeManualType === 'multilingual') {
+    selectMultilingualManualViewer();
+  } else if (manuals.length > 0) {
+    const target = manuals.find(m => m.filename === STATE.activeManualType) ? STATE.activeManualType : manuals[0].filename;
+    selectManualViewer(target, 1);
+  }
 }
 
-window.selectManualViewer = function(filename) {
+window.selectMultilingualManualViewer = async function() {
+  STATE.activeManualType = 'multilingual';
+  document.querySelectorAll('.manual-tab-item').forEach(el => el.classList.remove('active'));
+  const activeTab = document.getElementById('manual-tab-multilingual');
+  if (activeTab) activeTab.classList.add('active');
+
+  await renderMultilingualManual(STATE.activeManualLang || 'en');
+};
+
+window.switchManualLanguage = async function(langCode) {
+  STATE.activeManualLang = langCode;
+  await renderMultilingualManual(langCode);
+};
+
+async function renderMultilingualManual(langCode) {
+  const viewer = document.getElementById('manual-text-display');
+  if (!viewer) return;
+
+  // Check cache or fetch from /api/manuals/multilingual
+  let manualData = STATE.multilingualManualCache[langCode];
+  if (!manualData) {
+    viewer.innerHTML = `<div style="text-align: center; padding: 3rem 0; color: #6366f1;">Loading ${langCode.toUpperCase()} machine manual...</div>`;
+    try {
+      const res = await fetch(`/api/manuals/multilingual?lang=${langCode}`);
+      if (res.ok) {
+        const json = await res.json();
+        manualData = json.manual;
+        STATE.multilingualManualCache[langCode] = manualData;
+      }
+    } catch (e) {
+      console.error('Failed to load multilingual manual:', e);
+    }
+  }
+
+  if (!manualData || !manualData.sections) {
+    viewer.innerHTML = `<div style="color: #ef4444; padding: 2rem;">Failed to load manual data for ${langCode}.</div>`;
+    return;
+  }
+
+  const s = manualData.sections;
+
+  viewer.innerHTML = `
+    <!-- TOP LANGUAGE SELECTOR BAR -->
+    <div class="manual-lang-header">
+      <div class="manual-lang-title-group">
+        <div class="manual-lang-icon-badge">🌐</div>
+        <div class="manual-lang-title-text">
+          <h4>${escapeHtml(manualData.machine_name)}</h4>
+          <p>Standard Operating & Maintenance Manual • Technical Instructions</p>
+        </div>
+      </div>
+      <div class="manual-lang-selector-group">
+        <button class="manual-lang-btn ${langCode === 'en' ? 'active' : ''}" onclick="switchManualLanguage('en')">
+          <span class="manual-lang-flag">EN</span> English
+        </button>
+        <button class="manual-lang-btn ${langCode === 'zh' ? 'active' : ''}" onclick="switchManualLanguage('zh')">
+          <span class="manual-lang-flag">ZH</span> 中文
+        </button>
+        <button class="manual-lang-btn ${langCode === 'ja' ? 'active' : ''}" onclick="switchManualLanguage('ja')">
+          <span class="manual-lang-flag">JA</span> 日本語
+        </button>
+        <button class="manual-lang-btn ${langCode === 'de' ? 'active' : ''}" onclick="switchManualLanguage('de')">
+          <span class="manual-lang-flag">DE</span> Deutsch
+        </button>
+      </div>
+    </div>
+
+    <!-- SECTION 1: MACHINE OVERVIEW -->
+    <div class="manual-section-card">
+      <div class="manual-sec-head">
+        <h3 class="manual-sec-title"><span>📘</span> ${escapeHtml(s.overview.title)}</h3>
+        <span class="manual-sec-badge">Section 1</span>
+      </div>
+      <div style="font-size: 0.95rem; color: #1e293b; margin-bottom: 0.75rem; font-weight: 600;">
+        ${escapeHtml(s.overview.machine_name)}
+      </div>
+      <p style="font-size: 0.875rem; color: #475569; line-height: 1.6; margin-bottom: 1rem;">
+        ${escapeHtml(s.overview.machine_purpose)}
+      </p>
+      <div style="margin-bottom: 1rem;">
+        <div style="font-size: 0.775rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 0.5rem;">Main Components:</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+          ${(s.overview.main_components || []).map(c => `<span class="badge-tag badge-indigo" style="font-size: 0.78rem;">${escapeHtml(c)}</span>`).join('')}
+        </div>
+      </div>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem; font-size: 0.85rem; color: #334155; line-height: 1.6;">
+        <strong>Operating Principle:</strong> ${escapeHtml(s.overview.basic_operating_principle)}
+      </div>
+    </div>
+
+    <!-- SECTION 2: SAFETY INSTRUCTIONS -->
+    <div class="manual-section-card">
+      <div class="manual-sec-head">
+        <h3 class="manual-sec-title"><span>🛡️</span> ${escapeHtml(s.safety.title)}</h3>
+        <span class="manual-sec-badge" style="background: #fee2e2; color: #b91c1c;">Mandatory Safety</span>
+      </div>
+      
+      <!-- Warnings Callout -->
+      <div style="background: #fef2f2; border-left: 4px solid #ef4444; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+        <div style="font-size: 0.8rem; font-weight: 800; color: #b91c1c; text-transform: uppercase; margin-bottom: 0.4rem;">Critical Hazards & Warnings</div>
+        <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.85rem; color: #991b1b; line-height: 1.6;">
+          ${(s.safety.warnings || []).map(w => `<li>${escapeHtml(w)}</li>`).join('')}
+        </ul>
+      </div>
+
+      <!-- Electrical Safety -->
+      <div style="background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+        <div style="font-size: 0.8rem; font-weight: 800; color: #b45309; text-transform: uppercase; margin-bottom: 0.4rem;">Electrical Safety (400V 3-Phase)</div>
+        <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.85rem; color: #92400e; line-height: 1.6;">
+          ${(s.safety.electrical_safety || []).map(es => `<li>${escapeHtml(es)}</li>`).join('')}
+        </ul>
+      </div>
+
+      <!-- General Safety Precautions -->
+      <div style="margin-bottom: 1rem;">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.5rem;">General Precautions:</div>
+        <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.85rem; color: #475569; line-height: 1.6;">
+          ${(s.safety.safety_precautions || []).map(sp => `<li>${escapeHtml(sp)}</li>`).join('')}
+        </ul>
+      </div>
+
+      <!-- Required PPE -->
+      <div>
+        <div style="font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 0.5rem;">Required Personal Protective Equipment (PPE):</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.5rem;">
+          ${(s.safety.required_protective_equipment || []).map(ppe => `
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.825rem; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+              <span style="color: #10b981;">✔</span> ${escapeHtml(ppe)}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: MACHINE COMPONENTS -->
+    <div class="manual-section-card">
+      <div class="manual-sec-head">
+        <h3 class="manual-sec-title"><span>⚙️</span> ${escapeHtml(s.components.title)}</h3>
+        <span class="manual-sec-badge">Section 3</span>
+      </div>
+      <div class="manual-comp-grid">
+        ${(s.components.components_list || []).map(comp => `
+          <div class="manual-comp-box">
+            <h5>${escapeHtml(comp.name)}</h5>
+            <div class="manual-comp-row"><strong>Function:</strong> ${escapeHtml(comp.function)}</div>
+            <div class="manual-comp-row"><strong style="color: #047857;">Normal:</strong> ${escapeHtml(comp.normal_condition)}</div>
+            <div class="manual-comp-row"><strong style="color: #b91c1c;">Common Faults:</strong> ${escapeHtml(comp.common_problems)}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- SECTION 4: OPERATING INSTRUCTIONS -->
+    <div class="manual-section-card">
+      <div class="manual-sec-head">
+        <h3 class="manual-sec-title"><span>🕹️</span> ${escapeHtml(s.operating.title)}</h3>
+        <span class="manual-sec-badge">Step-by-Step</span>
+      </div>
+
+      <!-- Starting -->
+      <div style="margin-bottom: 1.25rem;">
+        <h4 style="font-size: 0.925rem; color: #1e293b; margin-bottom: 0.5rem; font-weight: 700;">Starting the Machine</h4>
+        <div class="manual-steps-list">
+          ${(s.operating.steps.starting || []).map((step, idx) => `
+            <div class="manual-step-item">
+              <span class="manual-step-num">${idx + 1}</span>
+              <div>${escapeHtml(step)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Normal Operation -->
+      <div style="margin-bottom: 1.25rem;">
+        <h4 style="font-size: 0.925rem; color: #1e293b; margin-bottom: 0.5rem; font-weight: 700;">Normal Operation</h4>
+        <div class="manual-steps-list">
+          ${(s.operating.steps.normal_operation || []).map((step, idx) => `
+            <div class="manual-step-item">
+              <span class="manual-step-num">${idx + 1}</span>
+              <div>${escapeHtml(step)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Monitoring -->
+      <div style="margin-bottom: 1.25rem;">
+        <h4 style="font-size: 0.925rem; color: #1e293b; margin-bottom: 0.5rem; font-weight: 700;">Monitoring the Machine</h4>
+        <div class="manual-steps-list">
+          ${(s.operating.steps.monitoring || []).map((step, idx) => `
+            <div class="manual-step-item">
+              <span class="manual-step-num">${idx + 1}</span>
+              <div>${escapeHtml(step)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Stopping & Emergency Shutdown -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem;">
+          <h4 style="font-size: 0.9rem; color: #1e293b; margin-bottom: 0.5rem; font-weight: 700;">Stopping the Machine</h4>
+          <ol style="margin: 0; padding-left: 1.25rem; font-size: 0.825rem; color: #475569; line-height: 1.6;">
+            ${(s.operating.steps.stopping || []).map(st => `<li>${escapeHtml(st)}</li>`).join('')}
+          </ol>
+        </div>
+        <div style="background: #fff5f5; border: 1px solid #fecaca; border-radius: 10px; padding: 1rem;">
+          <h4 style="font-size: 0.9rem; color: #b91c1c; margin-bottom: 0.5rem; font-weight: 700;">Emergency Shutdown</h4>
+          <ol style="margin: 0; padding-left: 1.25rem; font-size: 0.825rem; color: #991b1b; line-height: 1.6;">
+            ${(s.operating.steps.emergency_shutdown || []).map(st => `<li>${escapeHtml(st)}</li>`).join('')}
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 5: ERROR AND FAULT INSTRUCTIONS -->
+    <div class="manual-section-card">
+      <div class="manual-sec-head">
+        <h3 class="manual-sec-title"><span>⚠️</span> ${escapeHtml(s.error_fault.title)}</h3>
+        <span class="manual-sec-badge" style="background: #fef3c7; color: #92400e;">Problem Resolution</span>
+      </div>
+      <div class="manual-fault-grid">
+        ${(s.error_fault.items || []).map(item => `
+          <div class="manual-fault-card">
+            <div class="manual-fault-prob">Problem: ${escapeHtml(item.problem)}</div>
+            <div class="manual-fault-flow">
+              <div class="manual-flow-step">
+                <strong>Possible Cause</strong>
+                <span>${escapeHtml(item.possible_cause)}</span>
+              </div>
+              <div class="manual-flow-step">
+                <strong>What to Check</strong>
+                <span>${escapeHtml(item.what_to_check)}</span>
+              </div>
+              <div class="manual-flow-step">
+                <strong>Recommended Action</strong>
+                <span style="color: #047857; font-weight: 600;">${escapeHtml(item.recommended_action)}</span>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- SECTION 6: MAINTENANCE INSTRUCTIONS -->
+    <div class="manual-section-card">
+      <div class="manual-sec-head">
+        <h3 class="manual-sec-title"><span>🔧</span> ${escapeHtml(s.maintenance.title)}</h3>
+        <span class="manual-sec-badge">PM Schedule</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem;">
+          <h5 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 0.85rem; font-weight: 700;">Regular Inspection</h5>
+          <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.8rem; color: #475569; line-height: 1.5;">
+            ${(s.maintenance.regular_inspection || []).map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+          </ul>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem;">
+          <h5 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 0.85rem; font-weight: 700;">Cleaning</h5>
+          <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.8rem; color: #475569; line-height: 1.5;">
+            ${(s.maintenance.cleaning || []).map(c => `<li>${escapeHtml(c)}</li>`).join('')}
+          </ul>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem;">
+          <h5 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 0.85rem; font-weight: 700;">Lubrication</h5>
+          <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.8rem; color: #475569; line-height: 1.5;">
+            ${(s.maintenance.lubrication || []).map(l => `<li>${escapeHtml(l)}</li>`).join('')}
+          </ul>
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem;">
+          <h5 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 0.85rem; font-weight: 700;">Replacements</h5>
+          <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.8rem; color: #475569; line-height: 1.5;">
+            ${(s.maintenance.replacement_instructions || []).map(rp => `<li>${escapeHtml(rp)}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+
+      <div style="font-size: 0.825rem; font-weight: 700; color: #334155; margin-bottom: 0.5rem;">Maintenance Intervals:</div>
+      <div class="manual-table-wrap">
+        <table class="manual-table">
+          <thead>
+            <tr>
+              <th style="width: 180px;">Interval</th>
+              <th>Task & Scope</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(s.maintenance.maintenance_intervals || []).map(mi => `
+              <tr>
+                <td style="font-weight: 700; color: #4f46e5;">${escapeHtml(mi.interval)}</td>
+                <td>${escapeHtml(mi.task)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECTION 7: TROUBLESHOOTING TABLE -->
+    <div class="manual-section-card">
+      <div class="manual-sec-head">
+        <h3 class="manual-sec-title"><span>🔍</span> ${escapeHtml(s.troubleshooting.title)}</h3>
+        <span class="manual-sec-badge" style="background: #ecfdf5; color: #047857;">Hardware Fault Matrix</span>
+      </div>
+      <div class="manual-table-wrap">
+        <table class="manual-table">
+          <thead>
+            <tr>
+              <th style="width: 180px;">Error / Hardware Fault</th>
+              <th style="width: 280px;">Possible Cause</th>
+              <th>Solution & Remediation</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(s.troubleshooting.table || []).map(row => `
+              <tr>
+                <td style="font-weight: 700; color: #0f172a;">${escapeHtml(row.error)}</td>
+                <td style="color: #64748b;">${escapeHtml(row.possible_cause)}</td>
+                <td class="manual-table-solution">${escapeHtml(row.solution)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECTION 8: EMERGENCY PROCEDURES -->
+    <div class="manual-section-card">
+      <div class="manual-sec-head">
+        <h3 class="manual-sec-title"><span>🚨</span> ${escapeHtml(s.emergency_procedures.title)}</h3>
+        <span class="manual-sec-badge" style="background: #fee2e2; color: #b91c1c;">Emergency Protocols</span>
+      </div>
+      ${(s.emergency_procedures.procedures || []).map(p => `
+        <div class="manual-emergency-item">
+          <h5>${escapeHtml(p.situation)}</h5>
+          <p>${escapeHtml(p.action)}</p>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- SECTION 9: TECHNICAL SPECIFICATIONS -->
+    <div class="manual-section-card">
+      <div class="manual-sec-head">
+        <h3 class="manual-sec-title"><span>📊</span> ${escapeHtml(s.specifications.title)}</h3>
+        <span class="manual-sec-badge">Preserved Units</span>
+      </div>
+      <div class="manual-specs-grid">
+        ${(s.specifications.specs || []).map(spec => `
+          <div class="manual-spec-item">
+            <div class="manual-spec-param">${escapeHtml(spec.parameter)}</div>
+            <div class="manual-spec-val">${escapeHtml(spec.value)}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+window.selectManualViewer = function(filename, page = 1) {
+  STATE.activeManualType = filename;
   document.querySelectorAll('.manual-tab-item').forEach(el => el.classList.remove('active'));
   const activeTab = document.getElementById(`manual-tab-${filename}`);
   if (activeTab) activeTab.classList.add('active');
 
-  const manuals = STATE.manualsData.manuals || [];
-  const selected = manuals.find(m => m.filename === filename);
+  const manuals = (STATE.manualsData && STATE.manualsData.manuals) || [];
+  const selected = manuals.find(m => m.filename === filename) || manuals[0];
   const viewer = document.getElementById('manual-text-display');
+  if (!selected || !viewer) return;
 
-  if (selected && viewer) {
-    viewer.innerHTML = `
-      <h2>${escapeHtml(selected.title)}</h2>
-      <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
-        <span class="badge-tag badge-indigo">${selected.filename}</span>
-        <span class="badge-tag badge-success">${selected.chunkCount} Ingested Chunks</span>
-        <span class="badge-tag" style="background: #f1f5f9; color: #475569;">Page 1 - ${selected.pages}</span>
-      </div>
-      <div style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.65; color: #334155; font-family: var(--font-sans);">
-${escapeHtml(selected.raw_text || '')}
-      </div>
-    `;
+  CURRENT_MANUAL_PAGE = page;
+  window.CURRENT_SELECTED_MANUAL = selected;
+
+  renderManualViewContent();
+};
+
+window.selectRawManualViewer = function(filename) {
+  selectManualViewer(filename, 1);
+};
+
+window.setManualViewMode = function(mode) {
+  CURRENT_MANUAL_VIEW_MODE = mode;
+  renderManualViewContent();
+};
+
+window.navigatePdfPage = function(delta) {
+  const selected = window.CURRENT_SELECTED_MANUAL;
+  if (!selected) return;
+  const newPage = CURRENT_MANUAL_PAGE + delta;
+  if (newPage >= 1 && newPage <= (selected.pages || 1)) {
+    CURRENT_MANUAL_PAGE = newPage;
+    renderManualViewContent();
   }
 };
+
+function renderManualViewContent() {
+  const viewer = document.getElementById('manual-text-display');
+  const selected = window.CURRENT_SELECTED_MANUAL;
+  if (!selected || !viewer) return;
+
+  const pdfUrl = selected.pdf_url || `/api/manuals/${selected.pdf_filename || selected.filename.replace('.txt', '.pdf')}/pdf`;
+
+  const headerHtml = `
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0;">
+      <div>
+        <h2 style="margin: 0; font-size: 1.25rem;">${escapeHtml(selected.title)}</h2>
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.35rem; align-items: center;">
+          <span class="badge-tag badge-indigo">${selected.filename}</span>
+          <span class="badge-tag badge-success">${selected.chunkCount} Grounded Chunks</span>
+          <span class="badge-tag" style="background: #f1f5f9; color: #475569;">${selected.pages} Pages</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <div style="background: #e2e8f0; padding: 3px; border-radius: 8px; display: flex; gap: 2px;">
+          <button class="btn ${CURRENT_MANUAL_VIEW_MODE === 'pdf' ? 'btn-primary' : 'btn-secondary'}" style="padding: 4px 10px; font-size: 0.75rem;" onclick="setManualViewMode('pdf')">
+            📄 PDF Reader
+          </button>
+          <button class="btn ${CURRENT_MANUAL_VIEW_MODE === 'text' ? 'btn-primary' : 'btn-secondary'}" style="padding: 4px 10px; font-size: 0.75rem;" onclick="setManualViewMode('text')">
+            📋 RAG Chunks
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (CURRENT_MANUAL_VIEW_MODE === 'pdf' && selected.has_pdf) {
+    viewer.innerHTML = `
+      ${headerHtml}
+      <div style="background: #0f172a; color: #f8fafc; padding: 0.5rem 1rem; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; background: #1e293b; color: #fff;" onclick="navigatePdfPage(-1)" ${CURRENT_MANUAL_PAGE <= 1 ? 'disabled style="opacity: 0.4;"' : ''}>◀ Prev</button>
+          <span>Page <strong>${CURRENT_MANUAL_PAGE}</strong> of ${selected.pages || 1}</span>
+          <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; background: #1e293b; color: #fff;" onclick="navigatePdfPage(1)" ${CURRENT_MANUAL_PAGE >= (selected.pages || 1) ? 'disabled style="opacity: 0.4;"' : ''}>Next ▶</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <a href="${pdfUrl}" target="_blank" class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; background: #1e293b; color: #fff; text-decoration: none;">↗ Open Tab</a>
+          <a href="${pdfUrl}?download=true" download="${selected.filename.replace('.txt', '.pdf')}" class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; background: #1e293b; color: #fff; text-decoration: none;">⬇ Download</a>
+        </div>
+      </div>
+      <iframe src="${pdfUrl}?v=2#page=${CURRENT_MANUAL_PAGE}" style="width: 100%; height: 580px; border: 1px solid #cbd5e1; border-top: none; border-radius: 0 0 12px 12px; background: #f8fafc;" title="${escapeHtml(selected.title)}"></iframe>
+    `;
+  } else {
+    viewer.innerHTML = `
+      ${headerHtml}
+      <pre style="background: #1e293b; color: #f8fafc; padding: 1.25rem; border-radius: 12px; font-family: var(--font-mono); font-size: 0.825rem; line-height: 1.6; max-height: 580px; overflow-y: auto;">${escapeHtml(selected.raw_text || '')}</pre>
+    `;
+  }
+}
 
 // --------------------------------------------------------------------------
 // TOOL 4: TELEMETRY
@@ -794,3 +1424,722 @@ function formatMarkdown(text) {
     .replace(/`([^`]+)`/g, '<code style="background: #f1f5f9; padding: 2px 5px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.85em;">$1</code>')
     .replace(/\n/g, '<br/>');
 }
+
+// --------------------------------------------------------------------------
+// AI CONFIDENCE & HARDWARE DIAGNOSTICS SUITE HANDLERS
+// --------------------------------------------------------------------------
+
+STATE.faultHistory = [];
+
+window.toggleExplanation = function(elemId) {
+  const box = document.getElementById(elemId);
+  if (!box) return;
+  const isShown = box.classList.toggle('active');
+  const btn = box.previousElementSibling ? box.previousElementSibling.querySelector('.btn-explanation-toggle') : null;
+  if (btn) {
+    btn.innerHTML = isShown ? `
+      <svg style="width: 14px; height: 14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+      <span>Hide Explanation</span>
+    ` : `
+      <svg style="width: 14px; height: 14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span>View Explanation</span>
+    `;
+  }
+};
+
+window.fetchFaultHistory = async function() {
+  try {
+    const res = await fetch('/api/fault-history');
+    if (res.ok) {
+      const data = await res.json();
+      STATE.faultHistory = data.faults || [];
+      renderFaultHistoryTable(STATE.faultHistory);
+    }
+  } catch (err) {
+    console.warn('Could not fetch fault history:', err);
+  }
+};
+
+function renderFaultHistoryTable(faults) {
+  const tbody = document.getElementById('fault-history-tbody');
+  if (!tbody) return;
+
+  if (!faults || faults.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 2rem;">No diagnostic fault events recorded in current session.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = faults.map(f => {
+    const pct = f.confidence_percentage !== undefined ? f.confidence_percentage : Math.round((f.confidence_score || 0) * 100);
+    const lvl = f.confidence_level || (pct >= 90 ? 'High' : pct >= 70 ? 'Moderate' : 'Low');
+    const lvlClass = lvl.toLowerCase();
+
+    return `
+      <tr>
+        <td style="font-family: var(--font-mono); font-size: 0.775rem; color: #64748b;">${escapeHtml(f.timestamp || 'Just now')}</td>
+        <td><span class="badge-tag badge-indigo" style="font-size: 0.75rem;">${escapeHtml(f.machine || 'General')}</span></td>
+        <td style="font-weight: 700; color: #0f172a;">${escapeHtml(f.fault || 'Hardware Fault')}</td>
+        <td style="font-family: var(--font-mono); font-size: 0.8rem; color: #475569;">${escapeHtml(f.component || 'Subsystem')}</td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-family: var(--font-mono); font-weight: 800; font-size: 0.9rem;">${pct}%</span>
+            <div style="width: 50px; height: 6px; background: #e2e8f0; border-radius: 9999px; overflow: hidden;">
+              <div class="confidence-bar-fill ${lvlClass}" style="width: ${pct}%;"></div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span class="confidence-level-pill ${lvlClass}" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">
+            ${escapeHtml(lvl)}
+          </span>
+        </td>
+        <td>
+          <button class="btn btn-secondary" onclick="openFaultDetailsModal('${f.id}')" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;">
+            Inspect
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.fetchMachineHealth = async function() {
+  try {
+    const res = await fetch('/api/machine-health');
+    if (res.ok) {
+      const data = await res.json();
+      renderMachineHealthCards(data.machines || []);
+    }
+  } catch (err) {
+    console.warn('Could not fetch machine health:', err);
+  }
+};
+
+function renderMachineHealthCards(machines) {
+  const container = document.getElementById('machine-health-container');
+  if (!container || !machines || machines.length === 0) return;
+
+  container.innerHTML = machines.map(m => {
+    const color = m.status_color || (m.health_score >= 90 ? 'emerald' : m.health_score >= 70 ? 'amber' : 'rose');
+    const hasFault = !!m.active_fault;
+
+    return `
+      <div class="health-card ${color}">
+        <div class="health-card-head">
+          <div class="health-machine-name">${escapeHtml(m.name || m.code)}</div>
+          <span class="health-score-badge ${color}">${m.health_score}% Health</span>
+        </div>
+        <div style="font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 0.35rem;">
+          ${escapeHtml(m.status)}
+        </div>
+        ${hasFault ? `
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem 0.75rem; margin: 0.5rem 0; font-size: 0.8rem;">
+            <div style="color: #64748b; font-size: 0.7rem; text-transform: uppercase; font-weight: 700;">Active Diagnosed Fault:</div>
+            <div style="font-weight: 700; color: #0f172a; margin-top: 0.1rem;">
+              ${escapeHtml(m.active_fault)}
+              <span class="confidence-level-pill ${(m.confidence_level || 'low').toLowerCase()}" style="font-size: 0.65rem; padding: 0.1rem 0.4rem; margin-left: 0.4rem;">
+                ${m.confidence_percentage || Math.round((m.confidence_score || 0)*100)}% ${escapeHtml(m.confidence_level || '')}
+              </span>
+            </div>
+          </div>
+        ` : ''}
+        <div style="font-size: 0.775rem; color: #94a3b8; font-family: var(--font-mono);">
+          ${escapeHtml(m.sensor_summary || 'Operating within normal telemetry parameters')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.openFaultDetailsModal = function(faultId) {
+  const fault = STATE.faultHistory.find(f => f.id === faultId) || (STATE.faultHistory[0] || null);
+  if (!fault) return;
+
+  const modal = document.getElementById('fault-details-modal');
+  const body = document.getElementById('fault-details-modal-body');
+  if (!modal || !body) return;
+
+  const pct = fault.confidence_percentage !== undefined ? fault.confidence_percentage : Math.round((fault.confidence_score || 0) * 100);
+  const lvl = fault.confidence_level || (pct >= 90 ? 'High' : pct >= 70 ? 'Moderate' : 'Low');
+  const lvlClass = lvl.toLowerCase();
+
+  let sensorHtml = '';
+  if (fault.evidence && fault.evidence.sensor_readings) {
+    sensorHtml = Object.entries(fault.evidence.sensor_readings).map(([k, v]) => `
+      <div class="sensor-item">
+        <div class="sensor-label">${escapeHtml(k.replace(/_/g, ' '))}</div>
+        <div class="sensor-val">${escapeHtml(v)}</div>
+      </div>
+    `).join('');
+  }
+
+  let candidatesHtml = '';
+  if (fault.possible_faults && fault.possible_faults.length > 0) {
+    candidatesHtml = `
+      <div class="ranked-faults-box" style="margin: 1rem 0;">
+        <div class="ranked-faults-title">
+          <span>Ranked Differential Fault Hypotheses</span>
+          <span style="font-size: 0.725rem; color: #64748b; font-weight: 600;">${fault.possible_faults.length} ${fault.possible_faults.length === 1 ? 'Supported Fault' : 'Supported Faults'}</span>
+        </div>
+        ${fault.possible_faults.map((pf, i) => `
+          <div class="ranked-fault-item ${pf.is_primary ? 'is-primary' : ''}" style="flex-direction: column; align-items: stretch; gap: 0.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+              <div class="ranked-fault-info">
+                <span class="ranked-fault-rank">${i+1}.</span>
+                <div>
+                  <div class="ranked-fault-name">
+                    ${escapeHtml(pf.fault)}
+                    ${pf.is_primary ? '<span class="primary-badge" style="margin-left: 0.4rem;">PRIMARY</span>' : ''}
+                  </div>
+                  ${pf.component ? `<div class="ranked-fault-comp" style="margin-top: 0.2rem;">Affected Component: <strong style="color: #334155;">${escapeHtml(pf.component)}</strong></div>` : ''}
+                </div>
+              </div>
+              <div class="ranked-fault-metric">
+                <span class="ranked-fault-pct">${pf.confidence_percentage || Math.round((pf.confidence_score || 0)*100)}%</span>
+                <span class="confidence-level-pill ${(pf.confidence_level || 'low').toLowerCase()}" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">
+                  ${escapeHtml(pf.confidence_level || 'Moderate')}
+                </span>
+              </div>
+            </div>
+            ${pf.supporting_evidence && pf.supporting_evidence.length > 0 ? `
+              <div style="margin-top: 0.35rem; padding-top: 0.4rem; border-top: 1px dashed #cbd5e1; font-size: 0.75rem; color: #475569;">
+                <div style="font-weight: 600; font-size: 0.68rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.04em; margin-bottom: 0.25rem;">Supporting evidence:</div>
+                <ul style="margin: 0; padding-left: 1.25rem; line-height: 1.45; list-style-type: disc;">
+                  ${pf.supporting_evidence.map(ev => `<li style="margin-bottom: 0.15rem;">${escapeHtml(ev)}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  body.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="badge-tag badge-indigo">${escapeHtml(fault.machine || 'Machine')}</span>
+        <span style="font-size: 0.75rem; font-family: var(--font-mono); color: #64748b;">${escapeHtml(fault.id || '')}</span>
+      </div>
+      <span style="font-size: 0.75rem; color: #94a3b8; font-family: var(--font-mono);">${escapeHtml(fault.timestamp || '')}</span>
+    </div>
+
+    <h2 style="font-size: 1.4rem; font-weight: 800; color: #0f172a; margin-bottom: 0.25rem;">${escapeHtml(fault.fault)}</h2>
+    <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.25rem;">
+      Component: <strong>${escapeHtml(fault.component || 'Subassembly')}</strong>
+    </div>
+
+    <!-- AI Confidence Box -->
+    <div class="confidence-box" style="margin-bottom: 1rem;">
+      <div class="confidence-header-row">
+        <div>
+          <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.2rem;">AI Predictive Confidence</div>
+          <div class="confidence-metric-group">
+            <span class="confidence-pct-num ${lvlClass}">${pct}%</span>
+            <span class="confidence-level-pill ${lvlClass}">
+              <span>Confidence Level:</span>
+              <strong>${escapeHtml(lvl)}</strong>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="confidence-bar-track">
+        <div class="confidence-bar-fill ${lvlClass}" style="width: ${pct}%;"></div>
+      </div>
+      <div class="confidence-scale-markers">
+        <span>0% Low</span>
+        <span>70% Moderate</span>
+        <span>90% High</span>
+      </div>
+      <div class="non-guarantee-disclaimer">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <span>The confidence score is presented as the AI model's predictive probability and does NOT guarantee that the fault is actually present.</span>
+      </div>
+    </div>
+
+    ${candidatesHtml}
+
+    <div style="margin-bottom: 1rem;">
+      <div style="font-size: 0.8rem; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 0.25rem;">Probable Cause:</div>
+      <div style="font-size: 0.9rem; color: #1e293b; background: #f8fafc; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+        ${escapeHtml(fault.cause || 'Mechanical degradation or load strain.')}
+      </div>
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+      <div style="font-size: 0.8rem; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 0.25rem;">Recommended Action:</div>
+      <div style="font-size: 0.9rem; color: #1e293b; background: #f0fdf4; padding: 0.75rem; border-radius: 8px; border: 1px solid #bbf7d0;">
+        ${escapeHtml(fault.recommendation || 'Inspect component clearances and lubricate.')}
+      </div>
+    </div>
+
+    ${sensorHtml ? `
+      <div style="margin-bottom: 1rem;">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 0.5rem;">Associated Telemetry Readings:</div>
+        <div class="sensor-grid">${sensorHtml}</div>
+      </div>
+    ` : ''}
+
+    <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+      <button class="btn btn-secondary" onclick="closeFaultDetailsModal()">Close Details</button>
+    </div>
+  `;
+
+  modal.classList.add('active');
+};
+
+window.closeFaultDetailsModal = function() {
+  const modal = document.getElementById('fault-details-modal');
+  if (modal) modal.classList.remove('active');
+};
+
+window.openDiagnosticReportModal = async function() {
+  const modal = document.getElementById('diagnostic-report-modal');
+  const body = document.getElementById('diagnostic-report-modal-body');
+  if (!modal || !body) return;
+
+  body.innerHTML = `<div style="text-align: center; padding: 2rem; color: #64748b;">Generating executive fleet diagnostic report...</div>`;
+  modal.classList.add('active');
+
+  try {
+    const res = await fetch('/api/diagnostic-report');
+    if (res.ok) {
+      const rep = await res.json();
+      const dist = rep.confidence_distribution || { high: 0, moderate: 0, low: 0 };
+      const total = rep.total_diagnoses || 0;
+
+      body.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
+          <div>
+            <span class="badge-tag badge-indigo">Executive Diagnostic Report</span>
+            <h2 style="font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-top: 0.25rem;">Plant Hardware Diagnostic Summary</h2>
+          </div>
+          <div style="text-align: right; font-size: 0.75rem; color: #64748b; font-family: var(--font-mono);">
+            <div>Report: ${rep.report_id}</div>
+            <div>Generated: ${rep.generated_at}</div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+          <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 1rem; text-align: center;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: #047857; font-family: var(--font-mono);">${dist.high}</div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: #065f46; text-transform: uppercase;">High Confidence (≥90%)</div>
+          </div>
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 1rem; text-align: center;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: #b45309; font-family: var(--font-mono);">${dist.moderate}</div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: #92400e; text-transform: uppercase;">Moderate (70-89%)</div>
+          </div>
+          <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 10px; padding: 1rem; text-align: center;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: #475569; font-family: var(--font-mono);">${dist.low}</div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: #334155; text-transform: uppercase;">Low (&lt;70%)</div>
+          </div>
+        </div>
+
+        <div style="font-size: 0.85rem; font-weight: 700; color: #334155; margin-bottom: 0.5rem; text-transform: uppercase;">Recent Fleet Diagnostic Incidents (${total} total):</div>
+        <div style="max-height: 220px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 1.25rem;">
+          <table style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+            <thead>
+              <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; text-align: left;">
+                <th style="padding: 0.5rem 0.75rem;">Time</th>
+                <th style="padding: 0.5rem 0.75rem;">Machine</th>
+                <th style="padding: 0.5rem 0.75rem;">Fault</th>
+                <th style="padding: 0.5rem 0.75rem;">Confidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(rep.recent_faults || []).map(f => `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 0.5rem 0.75rem; font-family: var(--font-mono); color: #64748b;">${escapeHtml(f.timestamp)}</td>
+                  <td style="padding: 0.5rem 0.75rem; font-weight: 600;">${escapeHtml(f.machine)}</td>
+                  <td style="padding: 0.5rem 0.75rem;">${escapeHtml(f.fault)}</td>
+                  <td style="padding: 0.5rem 0.75rem; font-family: var(--font-mono); font-weight: 700;">
+                    ${f.confidence_percentage || Math.round((f.confidence_score||0)*100)}% (${escapeHtml(f.confidence_level||'')})
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="non-guarantee-disclaimer">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <span><strong>Regulatory Compliance Notice:</strong> AI confidence scoring reflects pattern matching metrics against calibrated technical manuals and does not constitute a physical guarantee that the fault is present. Physical inspection by qualified maintenance engineers is mandatory prior to component replacement.</span>
+        </div>
+
+        <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button class="btn btn-secondary" onclick="closeDiagnosticReportModal()">Close Report</button>
+        </div>
+      `;
+    }
+  } catch (err) {
+    body.innerHTML = `<div style="color: #ef4444; padding: 1.5rem;">Failed to generate report: ${err.message}</div>`;
+  }
+};
+
+window.closeDiagnosticReportModal = function() {
+  const modal = document.getElementById('diagnostic-report-modal');
+  if (modal) modal.classList.remove('active');
+};
+
+// ==========================================================================
+function initVoiceUI() {
+  const voiceBtn = document.getElementById('voice-record-btn');
+  const voiceBtnLabel = document.getElementById('voice-btn-label');
+  const queryInput = document.getElementById('query-input');
+  const editBtn = document.getElementById('edit-query-btn');
+  const statusBanner = document.getElementById('voice-status-banner');
+  const statusText = document.getElementById('voice-status-text');
+  const dismissStatusBtn = document.getElementById('voice-dismiss-status');
+
+  let activeRecognition = null;
+  let isRecording = false;
+  let audioContext = null;
+  let mediaStream = null;
+  let scriptNode = null;
+  let analyser = null;
+  let pcmChunks = [];
+  let silenceTimer = null;
+  let speechDetected = false;
+
+  function showStatusError(msg) {
+    if (statusBanner && statusText) {
+      statusText.textContent = msg;
+      statusBanner.style.display = 'flex';
+    }
+  }
+
+  function hideStatusError() {
+    if (statusBanner) statusBanner.style.display = 'none';
+  }
+
+  if (dismissStatusBtn) {
+    dismissStatusBtn.addEventListener('click', hideStatusError);
+  }
+
+  function setIdleState() {
+    isRecording = false;
+    if (voiceBtn) {
+      voiceBtn.classList.remove('listening');
+      voiceBtn.disabled = false;
+    }
+    if (voiceBtnLabel) voiceBtnLabel.textContent = '🎤 Speak';
+    cleanupAudio();
+  }
+
+  function setListeningState() {
+    isRecording = true;
+    hideStatusError();
+    if (voiceBtn) {
+      voiceBtn.classList.add('listening');
+      voiceBtn.disabled = false;
+    }
+    if (voiceBtnLabel) voiceBtnLabel.textContent = '🔴 Listening...';
+  }
+
+  function setTranscribingState() {
+    if (voiceBtn) {
+      voiceBtn.classList.remove('listening');
+      voiceBtn.disabled = true;
+    }
+    if (voiceBtnLabel) voiceBtnLabel.textContent = '⏳ Transcribing...';
+  }
+
+  function cleanupAudio() {
+    if (silenceTimer) {
+      clearTimeout(silenceTimer);
+      silenceTimer = null;
+    }
+    if (scriptNode) {
+      try { scriptNode.disconnect(); } catch (e) {}
+      scriptNode = null;
+    }
+    if (analyser) {
+      try { analyser.disconnect(); } catch (e) {}
+      analyser = null;
+    }
+    if (mediaStream) {
+      try { mediaStream.getTracks().forEach(t => t.stop()); } catch (e) {}
+      mediaStream = null;
+    }
+    if (audioContext && audioContext.state !== 'closed') {
+      try { audioContext.close(); } catch (e) {}
+      audioContext = null;
+    }
+    pcmChunks = [];
+    speechDetected = false;
+  }
+
+  // --------------------------------------------------------------------------
+  // Method 1: Web Speech API (Native Google Speech-to-Text in Chrome/Edge)
+  // --------------------------------------------------------------------------
+  function startBrowserSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      return false;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      activeRecognition = recognition;
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.lang = 'en-US'; // Supports English; existing translation module translates if non-English
+
+      let hasResult = false;
+      let hasError = false;
+
+      recognition.onstart = () => {
+        setListeningState();
+      };
+
+      recognition.onresult = (event) => {
+        if (event.results && event.results.length > 0 && event.results[0].length > 0) {
+          const rawText = event.results[0][0].transcript.trim();
+          if (rawText) {
+            hasResult = true;
+            // DIRECT DISPLAY: Put the actual transcription directly into the input box!
+            if (queryInput) {
+              queryInput.value = rawText;
+              queryInput.focus();
+            }
+          }
+        }
+      };
+
+      recognition.onerror = (event) => {
+        hasError = true;
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          showStatusError('Microphone permission is required for voice input.');
+        } else if (event.error === 'no-speech') {
+          showStatusError('No speech detected. Please try again.');
+        } else {
+          showStatusError('Unable to transcribe audio. Please try again.');
+        }
+      };
+
+      recognition.onspeechend = () => {
+        // Automatically detected when user stopped speaking!
+        recognition.stop();
+      };
+
+      recognition.onend = () => {
+        activeRecognition = null;
+        setIdleState();
+        if (!hasResult && !hasError) {
+          showStatusError('No speech detected. Please try again.');
+        }
+      };
+
+      recognition.start();
+      return true;
+    } catch (err) {
+      console.warn('Native SpeechRecognition failed to initialize, falling back to AudioContext:', err);
+      return false;
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Method 2: AudioContext WAV Recorder with VAD Silence Detection + Google STT
+  // --------------------------------------------------------------------------
+  async function startWavRecording() {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showStatusError('Microphone permission is required for voice input.');
+        return;
+      }
+
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
+
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      audioContext = new AudioContextClass({ sampleRate: 16000 });
+      const source = audioContext.createMediaStreamSource(mediaStream);
+
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+
+      scriptNode = audioContext.createScriptProcessor(4096, 1, 1);
+      pcmChunks = [];
+      speechDetected = false;
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      scriptNode.onaudioprocess = (e) => {
+        if (!isRecording) return;
+        const channelData = e.inputBuffer.getChannelData(0);
+        pcmChunks.push(new Float32Array(channelData));
+
+        // Volume monitoring for automatic speech-end detection
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        const avg = sum / dataArray.length;
+
+        if (avg > 15) {
+          // User is speaking
+          speechDetected = true;
+          if (silenceTimer) {
+            clearTimeout(silenceTimer);
+            silenceTimer = null;
+          }
+        } else if (speechDetected && !silenceTimer) {
+          // User stopped speaking — trigger auto-stop after 1.6s of silence
+          silenceTimer = setTimeout(() => {
+            if (isRecording) {
+              stopRecordingAndTranscribe();
+            }
+          }, 1600);
+        }
+      };
+
+      source.connect(scriptNode);
+      scriptNode.connect(audioContext.destination);
+
+      setListeningState();
+    } catch (err) {
+      cleanupAudio();
+      setIdleState();
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        showStatusError('Microphone permission is required for voice input.');
+      } else {
+        showStatusError('Unable to transcribe audio. Please try again.');
+      }
+    }
+  }
+
+  function stopRecordingAndTranscribe() {
+    if (!isRecording) return;
+    setTranscribingState();
+
+    if (activeRecognition) {
+      try { activeRecognition.stop(); } catch (e) {}
+      activeRecognition = null;
+      return;
+    }
+
+    // AudioContext WAV Encoding
+    try {
+      let totalLength = 0;
+      for (let i = 0; i < pcmChunks.length; i++) totalLength += pcmChunks[i].length;
+
+      if (totalLength < 4000 || !speechDetected) {
+        setIdleState();
+        showStatusError('No speech detected. Please try again.');
+        return;
+      }
+
+      const merged = new Float32Array(totalLength);
+      let offset = 0;
+      for (let i = 0; i < pcmChunks.length; i++) {
+        merged.set(pcmChunks[i], offset);
+        offset += pcmChunks[i].length;
+      }
+
+      const wavBlob = encodeWAV(merged, 16000);
+      cleanupAudio();
+
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const base64Audio = reader.result;
+          const res = await fetch('/api/voice/transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ audio: base64Audio, format: 'audio/wav' }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.status === 'error') {
+            const msg = (data.error && data.error.includes('No speech'))
+              ? 'No speech detected. Please try again.'
+              : 'Unable to transcribe audio. Please try again.';
+            showStatusError(msg);
+            return;
+          }
+
+          if (data && data.transcription && data.transcription.trim()) {
+            const rawText = data.transcription.trim();
+            // DIRECT SPEECH-TO-TEXT: Output exact recognized words into input field!
+            if (queryInput) {
+              queryInput.value = rawText;
+              queryInput.focus();
+            }
+          } else {
+            showStatusError('No speech detected. Please try again.');
+          }
+        } catch (err) {
+          showStatusError('Unable to transcribe audio. Please try again.');
+        } finally {
+          setIdleState();
+        }
+      };
+      reader.readAsDataURL(wavBlob);
+    } catch (e) {
+      cleanupAudio();
+      setIdleState();
+      showStatusError('Unable to transcribe audio. Please try again.');
+    }
+  }
+
+  // 16-bit PCM WAV encoder
+  function encodeWAV(samples, sampleRate) {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+
+    function writeString(v, off, str) {
+      for (let i = 0; i < str.length; i++) v.setUint8(off + i, str.charCodeAt(i));
+    }
+
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, 1, true); // Mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(view, 36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+
+    let idx = 44;
+    for (let i = 0; i < samples.length; i++) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(idx, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      idx += 2;
+    }
+
+    return new Blob([view], { type: 'audio/wav' });
+  }
+
+  // Toggle button click handler
+  if (voiceBtn) {
+    voiceBtn.addEventListener('click', () => {
+      if (isRecording) {
+        stopRecordingAndTranscribe();
+      } else {
+        // Try Web Speech API first (Google live STT in Chrome/Edge), fall back to WAV recorder
+        const started = startBrowserSpeechRecognition();
+        if (!started) {
+          startWavRecording();
+        }
+      }
+    });
+  }
+
+  // Edit button click handler
+  if (editBtn) {
+    editBtn.addEventListener('click', () => {
+      if (queryInput) {
+        queryInput.focus();
+        const len = queryInput.value.length;
+        queryInput.setSelectionRange(len, len);
+      }
+    });
+  }
+}
+

@@ -253,7 +253,7 @@ def test_concurrency_stress():
     def worker(item):
         tag, q = item
         t0 = time.time()
-        r = requests.post(f"{BASE_URL}/query", json={"message": q, "session_id": f"concurrent_{tag}_{int(time.time()*1000)}"}, timeout=15)
+        r = requests.post(f"{BASE_URL}/query", json={"message": q, "session_id": f"concurrent_{tag}_{int(time.time()*1000)}"}, timeout=60)
         dt = time.time() - t0
         return tag, r.status_code, dt, r.json()
 

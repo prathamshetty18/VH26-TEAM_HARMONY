@@ -108,8 +108,7 @@ export async function processMockQuery(
     }
   }
 
-  const errorMatch = trimmed.match(/\b([EHR]\d{3}|SYM-[A-Z0-9-]+)\b/i);
-  const detectedError = errorMatch ? errorMatch[1].toUpperCase() : sessionState.lastError;
+
 
   // SCENARIO 4: Insufficient Information / Honest Refusal Check
   if (
@@ -400,7 +399,7 @@ export async function processMockQuery(
     };
   }
 
-  // Default fallback refusal for unhandled / random queries
+  // Default refusal for unsupported queries, foreign machines, unindexed codes, gibberish, or off-topic queries
   return {
     message: {
       id: msgId,
@@ -412,7 +411,6 @@ export async function processMockQuery(
     newSession: {
       ...sessionState,
       lastMachine: detectedMachine || sessionState.lastMachine,
-      lastError: detectedError || sessionState.lastError,
       updatedAt: timestamp,
     },
   };

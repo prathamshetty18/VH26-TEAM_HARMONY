@@ -1,13 +1,18 @@
 import React from 'react';
 import type { Citation } from '../../types';
-import { FileText, X, CheckCircle } from 'lucide-react';
+import { FileText, X, CheckCircle, BookOpen } from 'lucide-react';
 
 interface CitationModalProps {
   citation: Citation | null;
   onClose: () => void;
+  onOpenInPdfReader?: (manualFilename: string, page: number) => void;
 }
 
-export const CitationModal: React.FC<CitationModalProps> = ({ citation, onClose }) => {
+export const CitationModal: React.FC<CitationModalProps> = ({ 
+  citation, 
+  onClose,
+  onOpenInPdfReader 
+}) => {
   if (!citation) return null;
 
   return (
@@ -86,12 +91,26 @@ export const CitationModal: React.FC<CitationModalProps> = ({ citation, onClose 
           </div>
         </div>
 
-        <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+          <div>
+            {onOpenInPdfReader && (
+              <button
+                onClick={() => {
+                  onOpenInPdfReader(citation.manual, citation.page);
+                  onClose();
+                }}
+                className="flex items-center space-x-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs md:text-sm font-sans font-semibold transition-colors shadow-sm cursor-pointer"
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>Open in PDF Reader (Page {citation.page}) →</span>
+              </button>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded text-xs md:text-sm font-mono font-semibold transition-colors cursor-pointer"
           >
-            Close Document
+            Close
           </button>
         </div>
       </div>

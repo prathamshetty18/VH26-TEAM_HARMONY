@@ -11,12 +11,12 @@ client = TestClient(app)
 
 def run_demo_tests():
     print("==================================================")
-    print("RUNNING 4 DEMO TEST CASES FOR MACHINEASSIST")
+    print("RUNNING 5 DEMO TEST CASES FOR MACHINEASSIST")
     print("==================================================")
 
     # Demo 1: Exact error code on specified machine
-    print("\n--- DEMO 1: Exact Error Code (E101 on CNC-100) ---")
-    resp1 = client.post("/query", json={"message": "What does E101 mean on CNC-100?", "session_id": "test_s1"})
+    print("\n--- DEMO 1: Exact Error Code (E101 on CNC Milling Machine MX-7 Precision) ---")
+    resp1 = client.post("/query", json={"message": "What does error E101 mean on the CNC Milling Machine MX-7 Precision?", "session_id": "test_s1"})
     print("Status:", resp1.status_code)
     data1 = resp1.json()
     print("Ambiguous:", data1["ambiguous"])
@@ -24,8 +24,8 @@ def run_demo_tests():
     print("Answer Preview:\n", data1["answer"][:300], "...\n")
 
     # Demo 2: Natural language symptom query
-    print("--- DEMO 2: Natural Language Symptom ('Why does Press-200 show hydraulic oil pressure low?') ---")
-    resp2 = client.post("/query", json={"message": "Why does Press-200 show hydraulic oil pressure low?", "session_id": "test_s2"})
+    print("\n--- DEMO 2: Natural Language Symptom ('Why is the Hydraulic Press HP-2200 main pump making a loud cavitation whining sound?') ---")
+    resp2 = client.post("/query", json={"message": "Why is the Hydraulic Press HP-2200 main pump making a loud cavitation whining sound?", "session_id": "test_s2"})
     print("Status:", resp2.status_code)
     data2 = resp2.json()
     print("Ambiguous:", data2["ambiguous"])
@@ -33,8 +33,8 @@ def run_demo_tests():
     print("Answer Preview:\n", data2["answer"][:300], "...\n")
 
     # Demo 3: Cross-manual ambiguity (E101 without machine)
-    print("--- DEMO 3: Cross-Manual Ambiguity ('What does E101 mean?') ---")
-    resp3 = client.post("/query", json={"message": "What does E101 mean?", "session_id": "test_s3"})
+    print("--- DEMO 3: Cross-Manual Ambiguity ('What does error E101 mean?') ---")
+    resp3 = client.post("/query", json={"message": "What does error E101 mean?", "session_id": "test_s3"})
     print("Status:", resp3.status_code)
     data3 = resp3.json()
     print("Ambiguous:", data3["ambiguous"])
@@ -42,16 +42,16 @@ def run_demo_tests():
     print("Answer:", data3["answer"], "\n")
 
     # Demo 4: Insufficient Information / Refusal (Pre-filter Gate)
-    print("--- DEMO 4: Insufficient Information ('How do I replace spindle bearing on CNC-100?') ---")
-    resp4 = client.post("/query", json={"message": "How do I replace spindle bearing on CNC-100?", "session_id": "test_s4"})
+    print("--- DEMO 4: Insufficient Information ('How do I replace the spindle bearing on MX-7 Precision?') ---")
+    resp4 = client.post("/query", json={"message": "How do I replace the spindle bearing on the CNC Milling Machine MX-7 Precision?", "session_id": "test_s4"})
     print("Status:", resp4.status_code)
     data4 = resp4.json()
     print("Ambiguous:", data4["ambiguous"])
     print("Answer:", data4["answer"], "\n")
 
     # Demo 5: Second-Line LLM Safety Net (Pre-Filter Bypass Case)
-    print("--- DEMO 5: Second-Line LLM Self-Refusal ('electrical torque spec for E101') ---")
-    resp5 = client.post("/query", json={"message": "What is the exact electrical torque specification for resetting E101 motor on CNC-100?", "session_id": "test_s5"})
+    print("--- DEMO 5: Second-Line LLM Self-Refusal ('electrical torque spec for E101 on MX-7 Precision') ---")
+    resp5 = client.post("/query", json={"message": "What is the exact electrical torque specification for resetting the spindle motor on the CNC Milling Machine MX-7 Precision?", "session_id": "test_s5"})
     print("Status:", resp5.status_code)
     data5 = resp5.json()
     print("Ambiguous:", data5["ambiguous"])

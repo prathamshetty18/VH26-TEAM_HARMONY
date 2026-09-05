@@ -1,0 +1,236 @@
+================================================================================
+CNC-Fräsmaschine — Modell MX-7 Precision — [Deutsch]
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Maschinenübersicht (Machine Overview)
+--------------------------------------------------------------------------------
+Machine Name: CNC-Fräsmaschine — Modell MX-7 Precision (CNC Milling Machine — Model MX-7 Precision)
+Purpose: Hochpräzises 5-Achs-Vertikal-CNC-Bearbeitungszentrum für eng tolerierte Luft- und Raumfahrtkomponenten, medizinische Implantate und anspruchsvollen Präzisions-Werkzeug- und Formenbau.
+Main Components:
+  * Hochgeschwindigkeits-Elektrospindel (24,000 RPM)
+  * 5-Achs-Volldigital-AC-Servoantriebssystem (X, Y, Z, A, C)
+  * 40-fach Hochgeschwindigkeits-Werkzeugwechsler (ATC)
+  * Industrie-CNC-Bahnsteuerung & Bedienpult
+  * Hochdruck-Kühlmittelanlage für Innenkühlung (TSC) (70 bar)
+  * Zentrales automatisches Gleitbahn-Schmiersystem (18 bar)
+Operating Principle: Die Maschine synchronisiert 5 geschlossene Servoachsen mit Werkzeugdrehzahlen bis zu 24,000 RPM. Optische Glasmaßstäbe liefern kontinuierliche Lageistwerte an die CNC-Steuerung und ermöglichen automatisiertes Fräsen, Bohren und Konturieren mit einer Wiederholgenauigkeit von +/- 0.002 mm.
+
+--------------------------------------------------------------------------------
+2. Sicherheitsvorschriften (Safety Instructions)
+--------------------------------------------------------------------------------
+[Safety Precautions]
+  * Sicherstellen, dass die Sicherheitstürverriegelung während aktiver Bearbeitungszyklen stets fest verriegelt bleibt.
+  * Vor Drücken der Taste Zyklusstart (Cycle Start) überprüfen, ob das Werkstück sicher auf dem Frästisch aufgespannt ist.
+  * Hände und Kleidung während des Einschaltens und Einrichtens stets außerhalb des Werkzeugmagazins und Spindelbereichs halten.
+
+[Electrical Safety]
+  * Die Versorgungsspannung beträgt 400V AC (3-phasig). Nur qualifizierte Elektrofachkräfte dürfen den Hauptschaltschrank öffnen.
+  * Vor Wartungsarbeiten ist am Haupttrennschalter das Lockout/Tagout-Verfahren (LOTO) zwingend anzuwenden.
+  * Nach dem Abschalten mindestens 10 Minuten warten, bis die Hochspannungs-Zwischenkreiskondensatoren vollständig entladen sind.
+
+[Emergency Procedures]
+  * Bei unvorhergesehenen Betriebsstörungen sofort einen der roten Not-Halt-Schlagtaster (E-stop) betätigen.
+  * Bei Rauchentwicklung, Brandgeruch oder offenem Feuer Not-Halt drücken und den 400V Hauptschalter auf OFF stellen.
+
+[Warnings]
+  ! WARNUNG: Hochspannung (400V) im hinteren Steuerungsschaltschrank.
+  ! WARNUNG: Die Frässpindel rotiert mit bis zu 24,000 RPM. Umherfliegende Späne und Werkzeugbruch stellen erhebliche Projektilgefahren dar.
+  ! WARNUNG: Der automatische Werkzeugwechslerarm bewegt sich im Programmlauf schlagartig und ohne Vorwarnung.
+
+[Required Protective Equipment (PPE)]
+  + Schutzbrille mit Seitenschutz (ANSI Z87.1 / EN 166)
+  + Sicherheitsschuhe mit Stahlkappe und rutschfester Sohle (EN ISO 20345)
+  + Gehörschutz bei kontinuierlichen Zerspanungsgeräuschen über 85 dBA
+  + Schnittfeste Schutzhandschuhe beim Wechseln scharfer Fräswerkzeuge (Handschuhe bei rotierender Spindel STRENG VERBOTEN!)
+
+--------------------------------------------------------------------------------
+3. Maschinenkomponenten (Machine Components)
+--------------------------------------------------------------------------------
+Component: Hochgeschwindigkeits-Elektrospindel (High-Speed Electro-Spindle)
+  Function:           Direkter Drehantrieb für Fräswerkzeuge mit stufenloser Drehzahlregelung bis 24,000 RPM.
+  Normal Condition:   Ruhiger Lauf, Gehäusetemperatur unter 45°C (Grenzwert max. 94°C), Schwinggeschwindigkeit unter 0.8 mm/s.
+  Common Problems:    Lagerverschleiß, thermische Überlastung über 94°C, Unwucht, Werkzeugspannfehler.
+
+Component: Achsenservos und Linearführungen (X, Y, Z, A, C)
+  Function:           Setzt CNC-Sollwerte in translatorische Achsbewegungen und präzise rotatorische Winkelbewegungen um.
+  Normal Condition:   Ruckfreie Verfahrbewegung, Wiederholgenauigkeit +/- 0.002 mm, konstanter 18 bar Schmierfilm.
+  Common Problems:    Verschmutzung des optischen Glasmaßstabs, Kugelgewindetrieb-Umkehrspiel, Schleppfehler.
+
+Component: Automatischer Werkzeugwechsler (ATC)
+  Function:           Nimmt 40 Werkzeughalter auf und wechselt Werkzeuge innerhalb von 1.8 Sekunden automatisch ein.
+  Normal Condition:   Saubere Magazintaschen ohne Späne, Versorgungsdruck 6.5 bar, gleichmäßige 180°-Armschwenkung.
+  Common Problems:    Spanklemmung in der Greiferklaue, Ausfall des Spannabfragesensors, Druckluftabfall.
+
+Component: Innenkühlungs-Hochdruckaggregat (TSC)
+  Function:           Fördert Kühlschmierstoff unter Hochdruck direkt durch die Werkzeuginnenkanäle zur Spanabfuhr.
+  Normal Condition:   Systemdruck zwischen 45 bar und 70 bar, Durchflussmenge > 6.2 L/min, Filteranzeige grün.
+  Common Problems:    25-micron Filterelement verstopft, Pumpenkavitation, Riss im Hochdruckschlauch.
+
+Component: Zentrale Progressiv-Schmierpumpe (Lubrication Pump)
+  Function:           Dosierte Schmierstoffversorgung aller Linearführungen und Kugelgewindetriebe mit ISO VG 68 Bettbahnöl.
+  Normal Condition:   Druckpuls steigt alle 20 Minuten auf 18 bar an, Vorratsbehälter füllstandsgerecht über Min-Marke.
+  Common Problems:    Schmierstoffmangel, gerissene 4 mm Polyamid-Leitung, festsitzender Progressiv-Verteilerkolben.
+
+--------------------------------------------------------------------------------
+4. Bedienungsanleitung (Operating Instructions)
+--------------------------------------------------------------------------------
+[Starting]
+  1. Sicherstellen, dass der elektrische Haupttrennschalter eingeschaltet ist (400V).
+  2. CNC-Schlüsselschalter auf ON drehen und das Steuerungssystem vollständig hochfahren lassen.
+  3. Not-Halt-Taster durch Rechtsdrehung entriegeln (E-stop).
+  4. Die Taste 'Maschine Ein / Machine Ready' auf dem Bedienpult drücken.
+  5. Referenzpunktfahrt (HOME REF) auf allen 5 Achsen (X, Y, Z, A, C) ausführen.
+  6. Vor schweren Fräsbearbeitungen das automatische 15-minütige Spindelwarmlaufprogramm bei 4,000 RPM durchführen.
+
+[Normal Operation]
+  1. Verifiziertes CNC-Bearbeitungsprogramm über USB oder Netzwerk laden.
+  2. Werkzeugschneiden auf Beschädigung prüfen und Werkzeuglängen- sowie Radiuskorrekturen vermessen.
+  3. Rohteil aufspannen und sicherstellen, dass der hydraulische/pneumatische Spanndruck 25 bar beträgt.
+  4. Werkstücknullpunkt (WCS) mithilfe des optischen 3D-Messtasters antasten und abspeichern.
+  5. Prüfen, ob der Kühlschmierstoffbehälter mit 8% synthetischer Emulsion gefüllt ist.
+  6. Schutzkabinentür schließen und die grün leuchtende Taste 'ZYKLUSSTART' (CYCLE START) drücken.
+
+[Monitoring]
+  1. Spindellastanzeige im Auge behalten; die Nennlast muss während des Schnitts unter 80% bleiben.
+  2. Kühlmitteldurchfluss überwachen; Durchflussanzeige muss stabil über 6.2 L/min anzeigen.
+  3. Achsenschwingungsmonitore beobachten und auf Rattermarken oder abnormale Schnittgeräusche achten.
+  4. Spindeltemperatur auf der Telemetrieanzeige überwachen (Grenzwert strikt < 94°C einhalten).
+
+[Stopping]
+  1. Am Ende eines Schnittdurchgangs die Taste 'VORSCHUBHALT' (FEED HOLD) betätigen.
+  2. Im MDI-Modus den Befehl M05 eingeben, um die Spindeldrehung kontrolliert stillzusetzen.
+  3. Kühlmittelzufuhr mit M09 abschalten.
+  4. Achsen auf Be- und Entladeposition verfahren, Schutztür öffnen und Werkstück begutachten.
+
+[Emergency Shutdown]
+  1. Bei Gefahr sofort einen der roten Not-Halt-Schlagtaster (Emergency Stop) drücken.
+  2. Die Spindelenergie wird sofort getrennt, und die Nutzbremse stoppt die Spindel innerhalb von 1.5 Sekunden.
+  3. Die Achsantriebe werden unmittelbar positionsfest blockiert, um Werkzeugkollisionen zu verhindern.
+  4. Bei Rauchentwicklung, Funkenflug oder Brand sofort den 400V Hauptschalter abschalten.
+
+--------------------------------------------------------------------------------
+5. Fehler- und Störungsanweisungen (Error and Fault Instructions)
+--------------------------------------------------------------------------------
+Problem: Motor überhitzt (Spindeltemperatur erreicht 94°C oder höher)
+  --> Possible Cause:     Hohe Zerspanungslast, mangelhafte Belüftung des Kühlkreislaufs, zu geringer Kühlmittelstand im Chiller oder Lagerschaden.
+  --> What to Check:      Spindeltemperatur auf dem Telemetriedisplay ablesen, Druck am Chiller bei 2.5 bar prüfen, Schaltschranklüfter auf Verstopfung prüfen.
+  --> Recommended Action: Maschine sofort stoppen und Motor untersuchen. Spindel 15 Minuten bei 500 RPM lastfrei rotieren lassen, um Kühlmittel zirkulieren zu lassen.
+
+Problem: Starke Schwingungen der Frässpindel bei hoher Drehzahl
+  --> Possible Cause:     Dynamische Unwucht des Werkzeughalters, Auskraglänge über 3:1, verschlissenes Spindellager.
+  --> What to Check:      Wuchtgüte des Halters prüfen (ISO 1940-1 Güteklasse G2.5), Schneiden mit optischer Lupe inspizieren, Spindelrundlauf messen.
+  --> Recommended Action: Beschädigte Wendeschneidplatte austauschen. Werkzeughalter auswuchten; Betrieb über 10,000 RPM bis zur Behebung untersagen.
+
+Problem: Druckabfall der Innenkühlung unter 45 bar
+  --> Possible Cause:     Verschmutzter 25-micron Filter, zu niedriger Füllstand im KSS-Tank oder Lufteintrag in der Pumpe.
+  --> What to Check:      Rote Differenzdruckanzeige am Filtergehäuse prüfen, Füllstand am Schauglas kontrollieren.
+  --> Recommended Action: Verschmutzte Filterpatrone wechseln (Teile-Nr. MX-FLT-025), KSS nachfüllen, Entlüftungsventil an der Pumpe öffnen.
+
+Problem: Werkzeugwechslerarm spannt Werkzeug nicht ein
+  --> Possible Cause:     Pneumatischer Werkstattdruck unter 6.0 bar, Späne im Spindel-BT40-Innenkonus, Anzugsbolzen verschlissen.
+  --> What to Check:      Pneumatikdruckmanometer prüfen (Sollwert 6.5 bar), Spindelkegel auf Späneverschleppung prüfen.
+  --> Recommended Action: Spindelkegel mit kegeligem Filzwischer reinigen, Druckminderer auf 6.5 bar einstellen, beschädigten Anzugsbolzen ersetzen.
+
+--------------------------------------------------------------------------------
+6. Wartungsanweisungen (Maintenance Instructions)
+--------------------------------------------------------------------------------
+[Regular Inspection]
+  * Täglich: Ölstand im Zentralschmierbehälter kontrollieren (ISO VG 68 Bettbahnöl).
+  * Täglich: Pneumatischen Versorgungsdruck auf konstante 6.5 bar überprüfen.
+  * Täglich: Füllstand des Kühlschmierstofftanks prüfen und Emulsionskonzentration mittels Refraktometer auf 8% prüfen.
+
+[Cleaning]
+  * Nach jeder Arbeitsschicht Späne von Führungsabdeckungen, Kugelgewindetrieben und Türführungen entfernen.
+  * Spindelinnenkegel BT40 mit fusselfreiem Tuch und speziellem Spindelreiniger auswischen.
+  * Filtermatten der Schaltschranklüfter wöchentlich mit sauberer Druckluft ausblasen.
+
+[Lubrication]
+  * Zentralschmierbehälter stets mit partikelfreiem ISO VG 68 Führungsbahnöl befüllt halten.
+  * Kurvengetriebe des Werkzeugwechslers monatlich mit Hochgeschwindigkeitsspindelfett (Kluber NBU 15) schmieren.
+  * Gegengewichtsketten alle 500 Betriebsstunden mit Schmieröl benetzen.
+
+[Component Inspection]
+  * Glasmaßstäbe der Linearmesssysteme auf Öldunst und Dichtlippenzustand prüfen.
+  * Axialspiel der Frässpindel mit Feintaster messen (zulässiger Maximalwert < 0.003 mm).
+  * Not-Halt-Taster und Schutztür-Verriegelungsschalter regelmäßig auf sichere Zwangsöffnung testen.
+
+[Replacement Instructions]
+  * Hochdruck-Kühlmittelfilter: 25-micron Filterelement erneuern, sobald die rote Differenzdruckanzeige auslöst.
+  * Abstreiferlippen der Führungsabdeckungen: Beschädigte Polyurethan-Abstreifer jährlich erneuern.
+  * Spindelchiller-Kühlmedium: Glykol-Kühlgemisch im geschlossenen Kreislauf jährlich spülen und erneuern.
+
+[Maintenance Intervals]
+  - Täglich (8 Hours): Schmierölstand prüfen, Druckluft (6.5 bar) kontrollieren, Späne räumen, Spindelkegel säubern.
+  - Wöchentlich (50 Hours): Schaltschrankfilter reinigen, KSS-Konzentration (8%) messen, Not-Halt-Funktion prüfen.
+  - Monatlich (200 Hours): Werkzeugwechsler-Greiferklauen fetten, Sperrluftdruck für Maßstäbe (1.5 bar) prüfen.
+  - Halbjährlich (1,000 Hours): Kugelgewindetrieb-Umkehrspiel messen, Spannzangen-Einzugskraft ermitteln (> 10.5 kN).
+  - Jährlich (2,000 Hours): Chiller-Kühlgemisch wechseln, Abstreifer erneuern, Maschinengeometrie per Laser vermessen.
+
+--------------------------------------------------------------------------------
+7. Fehlersuchtabelle (Troubleshooting Table)
+--------------------------------------------------------------------------------
+Error / Fault: Motor überhitzt (Motor overheating)
+  Possible Cause: Übermäßige Schnittlast, Ausfall der Spindelkühlung, Umgebungstemperatur > 38°C oder Lagerschaden (Temperatur > 94°C).
+  Solution:       Vorschub reduzieren, Chiller-Kreislaufdruck bei 2.5 bar prüfen, Schaltschrankfilter reinigen, Motor abkühlen lassen.
+
+Error / Fault: Übermäßige Vibrationen (Excessive vibration)
+  Possible Cause: Unwucht im Werkzeughalter, Auskraglänge über 3:1, Spindellager verschlissen, Werkstückspannung unzureichend.
+  Solution:       Halter bei 24,000 RPM auf Wuchtgüte G2.5 wuchten, Auskragung verkürzen, Spanndruck 25 bar kontrollieren.
+
+Error / Fault: Abnormale Geräusche (Abnormal noise)
+  Possible Cause: Schmiermangel am Kugelgewindetrieb, trockene Zahnradpaarung, lose Abdeckbleche, ausgebrochene Schneidkante.
+  Solution:       Manuelle Zwangsschmierung auslösen (18 bar), Werkzeugschneide prüfen, Befestigungsschrauben nachziehen.
+
+Error / Fault: Spannungsprobleme (Voltage problems)
+  Possible Cause: Phasenunsymmetrie der 400V Netzeinspeisung > 3%, Überspannungsimpuls, durchgebrannte Hauptsicherung.
+  Solution:       Dreiphasen-Leiterspannungen an den Eingangsklemmen messen (380V - 420V Sollwert). Transformatorabgriff anpassen.
+
+Error / Fault: Stromprobleme (Current problems)
+  Possible Cause: Überstrom im Spindelmotorstator, Achsklemmen/mechanische Blockade, IGBT-Modul im Servoverstärker defekt.
+  Solution:       Motorleitungen trennen und Wicklungswiderstand messen (symmetrisch auf 0.1 ohm). Mechanische Blockade beseitigen.
+
+Error / Fault: Sensorausfall (Sensor failure)
+  Possible Cause: Betauung auf Glasmaßstab, Metallspäne vor induktivem Näherungsschalter, Bruch des 24V Sensorkabels.
+  Solution:       Maßstabsglas mit Isopropanol reinigen, Sensorfläche abblasen, 24V DC Versorgungsspannung prüfen.
+
+Error / Fault: Lagerschaden (Bearing failure)
+  Possible Cause: Verlust des Hochgeschwindigkeitsfettes, dynamische Fliehkraftüberlastung bei 24,000 RPM, Kühlmitteleintritt.
+  Solution:       Spindelschwingungspegel messen; überschreitet der Rundlauffehler 0.005 mm TIR, Spindelkeramiklagersatz erneuern.
+
+Error / Fault: Stromausfall (Power failure)
+  Possible Cause: Hauptleistungsschalter ausgelöst, 24V DC Schaltnetzteil überlastet, Sicherheitsrelais abgefallen.
+  Solution:       400V Hauptschalter wiedereinschalten, grüne Status-LED am 24V DC Netzteil prüfen, Sicherheitskreis durchmessen.
+
+Error / Fault: Kommunikationsfehler (Communication failure)
+  Possible Cause: EtherCAT Feldbuskabel lose, Knotenadressen-Konflikt am Antrieb, elektromagnetische Störstrahlung (EMI).
+  Solution:       Geschirmte RJ45-Stecker fest einstecken, Schirmungsmasseband prüfen, Drehschalter für Antriebsadresse kontrollieren.
+
+--------------------------------------------------------------------------------
+8. Notfallverfahren (Emergency Procedures)
+--------------------------------------------------------------------------------
+Situation: Kritischer Hardwareausfall (Critical hardware failure)
+  Action:    1. Sofort roten Not-Halt-Taster drücken. 2. Achsen nicht manuell bewegen. 3. Elektrischen Hauptschalter auf OFF schalten. 4. Maschine mit 'AUSSER BETRIEB - NICHT SCHALTEN' kennzeichnen und Instandhaltung informieren.
+
+Situation: Überhitzung (Spindel oder Kühlmittel > 94°C)
+  Action:    1. Zerspanungsvorschub sofort abbrechen. 2. Sofern kein Rauch sichtbar ist, Spindel 10 Minuten bei 500 RPM lastfrei drehen lassen, um Kühlmedium zu zirkulieren. 3. Steigt die Temperatur über 105°C, Not-Halt drücken. 4. Chillerpumpe und Füllstand prüfen.
+
+Situation: Elektrischer Fehler / Rauch / Funken (Electrical fault)
+  Action:    1. Umgehend Not-Halt-Taster betätigen. 2. Den 400V Hauptschalterhebel sofort auf OFF umlegen. 3. Bei Brandausbruch CO2- oder Pulverfeuerlöscher für elektrische Anlagen einsetzen. Niemals Wasser verwenden!
+
+Situation: Unerwarteter Maschinenstillstand (Unexpected machine shutdown)
+  Action:    1. Maschine nicht voreilig wieder einschalten. 2. Fehler-LEDs am Schaltschrank ablesen und angezeigte Störcodes notieren. 3. Versorgungsspannung prüfen. 4. Abdeckungen vor Neustart auf mechanisches Klemmen untersuchen.
+
+Situation: Not-Halt-Rückstellung und Wiederanlauf (Emergency stop reset sequence)
+  Action:    1. Sicherstellen, dass sich niemand im Gefahren- und Verfahrbereich aufhält. 2. Die Ursache des Not-Halts vollständig beseitigen. 3. Not-Halt-Taster durch Rechtsdrehung entriegeln. 4. Blaue Taste 'ALARM RESET' am Pult drücken. 5. Achsen neu referenzieren (HOME REF).
+
+--------------------------------------------------------------------------------
+9. Technische Spezifikationen (Technical Specifications)
+--------------------------------------------------------------------------------
+  Spannung (Voltage)                  : 400V AC +/- 10% (3-Phase, 50/60 Hz)
+  Strom (Current)                     : 32A continuous full load (45A peak inrush)
+  Leistung (Power)                    : 15 kW continuous S1 rating (22 kW S6-40%)
+  Drehzahl (RPM)                      : 100 - 24,000 RPM (Continuous variable speed)
+  Temperaturbereich (Temperature range) : Ambient: 18°C - 25°C | Chiller: 20°C +/- 0.5°C | Max Motor Limit: 94°C (Alarm at 115°C)
+  Druck (Pressure)                    : Shop Air: 6.5 bar | Central Lube: 18 bar | TSC Coolant: 45 bar - 70 bar
+  Betriebsbedingungen (Operating conditions) : Clean industrial workshop, 30% - 75% RH non-condensing, foundation vibration < 0.5 mm/s
