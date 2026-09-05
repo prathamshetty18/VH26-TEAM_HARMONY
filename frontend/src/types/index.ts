@@ -95,4 +95,28 @@ export interface EventTrailItem {
 export interface BackendConfig {
   mode: 'demo' | 'live';
   baseUrl: string;
+  voiceEnabled?: boolean;
+}
+
+export type VoiceState = 'ready' | 'listening' | 'processing' | 'complete' | 'error';
+
+export interface VoiceTranscriptionResult {
+  transcription: string;
+  detectedLanguage: string;
+  languageName: string;
+  englishText: string;
+  isTranslated: boolean;
+  confidence?: number;
+  error?: string;
+}
+
+export interface VoiceSample {
+  id: string;
+  language: string;
+  language_name: string;
+  sample_text: string;
+  english_text: string;
+  machine?: string;
+  is_translated: boolean;
+  description: string;
 }
