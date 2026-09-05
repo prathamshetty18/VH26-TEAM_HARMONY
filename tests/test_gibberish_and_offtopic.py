@@ -17,8 +17,8 @@ test_cases = [
     ("Known Machine + Fake Numeric Code", "What does error 999 mean on CNC-100?", "REFUSE"),
     ("Foreign Machine + Fake Code", "E999 on a laser cutter", "REFUSE"),
     ("Foreign Machine + Symptom", "hydraulic leak on forklift", "REFUSE"),
-    ("Known Code (Bare)", "A032", "ACCEPT"),
-    ("Known Code + Noise", "A032 asdkfjasdkfj", "ACCEPT"),
+    ("Known Code (Bare)", "E101", "ACCEPT"),
+    ("Known Code + Noise", "E101 asdkfjasdkfj", "ACCEPT"),
     ("Known Code + Known Machine", "What does E101 mean on CNC-100?", "ACCEPT"),
     ("Known Symptom", "The conveyor belt is squealing and chirping during morning startup.", "ACCEPT"),
     # Foreign Gibberish & Noise Suite (Categorized)
