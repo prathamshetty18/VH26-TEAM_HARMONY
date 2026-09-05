@@ -312,7 +312,7 @@ body {
    ========================================================================== */
 .hero-visual-wrapper {
   position: relative;
-  max-width: 980px;
+  max-width: 720px;
   margin: 0 auto;
   padding: 2.5rem 1.5rem;
 }
@@ -320,9 +320,9 @@ body {
 .floating-card-stage {
   position: relative;
   display: grid;
-  grid-template-columns: 240px 1fr 240px;
+  grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
-  align-items: center;
+  align-items: start;
 }
 
 .float-card {

@@ -373,7 +373,7 @@ export const App: React.FC = () => {
           </div>
 
           {/* Floating Hero Stage (Directly matching Wedge visual composition) */}
-          <div className="relative max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5 items-center text-left">
+          <div className="relative max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-start text-left">
             
             {/* Left Card Stack */}
             <div className="space-y-4">
@@ -391,59 +391,6 @@ export const App: React.FC = () => {
                 <div className="text-3xl font-extrabold text-slate-900 tracking-tight">60</div>
                 <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-1">Ingested Chunks</div>
                 <div className="text-xs text-emerald-600 font-semibold mt-1">● Clean Vector Store</div>
-              </div>
-            </div>
-
-            {/* Center Checklist Card */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-2xl shadow-indigo-500/10 hover:-translate-y-1 transition-transform">
-              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
-                <div className="flex items-center space-x-2 text-sm font-bold text-slate-900">
-                  <CheckCircle2 className="w-4 h-4 text-indigo-600" />
-                  <span>Diagnostic Health Checks</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">100% Passed</span>
-              </div>
-
-              <div className="space-y-3.5">
-                <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-800 mb-1">
-                    <span>Spindle Coolant Flow (FL-10)</span>
-                    <span className="text-indigo-600">100%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full w-full" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-800 mb-1">
-                    <span>E101 Cross-Machine Disambiguation</span>
-                    <span className="text-emerald-600">100%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full w-full" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-800 mb-1">
-                    <span>Safety Scope & Interlocks</span>
-                    <span className="text-cyan-600">100%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full w-full" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-800 mb-1">
-                    <span>Honest Refusal on Gap Symptoms</span>
-                    <span className="text-emerald-600">Active</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full w-full" />
-                  </div>
-                </div>
               </div>
             </div>
 
