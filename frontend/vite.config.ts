@@ -7,7 +7,6 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-<<<<<<< HEAD
       '/static': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
@@ -16,18 +15,11 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
-      '/query': {
-        target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
-      },
-      '/chat': {
-=======
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
       '/manuals': {
->>>>>>> fe36efd08fbd519ff99cd722f33a11287c9daa47
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
@@ -35,15 +27,15 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
-<<<<<<< HEAD
-      '/api': {
-=======
       '/query': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
+      '/chat': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
       '/health': {
->>>>>>> fe36efd08fbd519ff99cd722f33a11287c9daa47
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
@@ -51,13 +43,10 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
-<<<<<<< HEAD
-=======
       '/voice': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
->>>>>>> fe36efd08fbd519ff99cd722f33a11287c9daa47
     },
   },
 })
