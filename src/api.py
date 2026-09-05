@@ -3,6 +3,7 @@ import os
 import re
 import io
 import json
+import base64
 from typing import List, Optional, Dict, Any
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,6 +36,7 @@ from src.embed_store import (
     get_chroma_collection
 )
 from src.translation import translate_input, translateInput, _module_instance
+from src.speech import speech_service, VOICE_BENCHMARK_SAMPLES, SUPPORTED_VOICE_LANGUAGES
 from src.confidence import (
     get_confidence_level,
     calculate_model_confidence,
@@ -158,9 +160,30 @@ class ManualSummaryItem(BaseModel):
 class ManualsListResponse(BaseModel):
     manuals: List[ManualSummaryItem]
 
-# ---------------------------------------------------------------------------
-# Core Endpoints
-# ---------------------------------------------------------------------------
+class VoiceTranscribeRequest(BaseModel):
+    audio: Optional[str] = None  # Base64 encoded audio string
+    format: Optional[str] = "audio/webm"
+    language: Optional[str] = None  # Optional language hint (e.g. en, zh, ja, de)
+    sample_id: Optional[str] = None  # Optional ID of pre-configured voice sample
+
+class VoiceTranscribeResponse(BaseModel):
+    status: str
+    transcription: str
+    detectedLanguage: str
+    languageName: str
+    englishText: str
+    isTranslated: bool
+    confidence: Optional[float] = None
+    state: str = "complete"
+    error: Optional[str] = None
+
+class VoiceQueryRequest(BaseModel):
+    transcription: Optional[str] = None
+    edited_transcription: Optional[str] = None
+    audio: Optional[str] = None
+    format: Optional[str] = "audio/webm"
+    session_id: str = "default_session"
+    machine_filter: Optional[str] = None
 
 @app.get("/")
 def read_root(request: Request):
@@ -330,6 +353,123 @@ def api_translate(req: TranslateRequest):
     """
     input_text = req.text if req.text is not None else (req.message or "")
     return translate_input(input_text)
+
+@app.get("/api/voice/status")
+@app.get("/voice/status")
+def get_voice_status():
+    """Returns the operational status and supported languages for voice query."""
+    return {
+        "enabled": speech_service.is_available(),
+        "engine": "Google Cloud Speech-to-Text v1",
+        "supported_languages": SUPPORTED_VOICE_LANGUAGES,
+        "sample_count": len(VOICE_BENCHMARK_SAMPLES)
+    }
+
+@app.get("/api/voice/samples")
+@app.get("/voice/samples")
+def get_voice_samples():
+    """Returns preset multilingual voice benchmark samples for 1-click testing."""
+    return {
+        "samples": VOICE_BENCHMARK_SAMPLES,
+        "languages": ["English (en-US)", "Simplified Chinese (zh-CN)", "Japanese (ja-JP)", "German (de-DE)"]
+    }
+
+@app.post("/api/voice/transcribe", response_model=VoiceTranscribeResponse)
+@app.post("/voice/transcribe", response_model=VoiceTranscribeResponse)
+def api_voice_transcribe(req: VoiceTranscribeRequest):
+    """
+    Voice Input -> Speech-to-Text -> Language Detection -> Existing Translation Module -> English Text.
+    Supports audio base64 payload OR pre-configured benchmark sample_id.
+    """
+    # 1. Handle sample_id (for instant 1-click test suite or demo)
+    if req.sample_id:
+        match = next((s for s in VOICE_BENCHMARK_SAMPLES if s["id"] == req.sample_id), None)
+        if match:
+            return VoiceTranscribeResponse(
+                status="success",
+                transcription=match["sample_text"],
+                detectedLanguage=match["language"],
+                languageName=match["language_name"],
+                englishText=match["english_text"],
+                isTranslated=match["is_translated"],
+                confidence=0.99,
+                state="complete"
+            )
+
+    # 2. Handle audio base64
+    if not req.audio:
+        raise HTTPException(status_code=400, detail="Either 'audio' (base64 string) or 'sample_id' must be provided.")
+
+    try:
+        audio_data = req.audio
+        # Strip data URL prefix if present (e.g. data:audio/webm;base64,...)
+        if "," in audio_data:
+            audio_data = audio_data.split(",", 1)[1]
+        raw_bytes = base64.b64decode(audio_data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid base64 audio encoding: {e}")
+
+    result = speech_service.transcribe_audio(
+        raw_bytes,
+        mime_type=req.format or "audio/webm",
+        language_hint=req.language
+    )
+
+    if result.get("status") == "error":
+        return VoiceTranscribeResponse(
+            status="error",
+            transcription="",
+            detectedLanguage="en",
+            languageName="English",
+            englishText="",
+            isTranslated=False,
+            state="error",
+            error=result.get("error", "Speech recognition failed")
+        )
+
+    return VoiceTranscribeResponse(
+        status="success",
+        transcription=result["transcription"],
+        detectedLanguage=result["detectedLanguage"],
+        languageName=result["languageName"],
+        englishText=result["englishText"],
+        isTranslated=result["isTranslated"],
+        confidence=result.get("confidence", 0.95),
+        state="complete"
+    )
+
+@app.post("/api/voice/query", response_model=QueryResponse)
+@app.post("/voice/query", response_model=QueryResponse)
+def api_voice_query(req: VoiceQueryRequest):
+    """
+    Executes a complete voice query through the EXACT existing diagnosis pipeline.
+    Accepts confirmed/edited transcription text OR raw audio, translates non-English
+    speech via the existing translation module, and feeds the English query directly
+    into handle_query.
+    """
+    # 1. If edited or direct transcription is provided:
+    query_text = (req.edited_transcription or req.transcription or "").strip()
+
+    # 2. If only audio is provided:
+    if not query_text and req.audio:
+        try:
+            audio_data = req.audio.split(",", 1)[1] if "," in req.audio else req.audio
+            raw_bytes = base64.b64decode(audio_data)
+            trans_res = speech_service.transcribe_audio(raw_bytes, mime_type=req.format or "audio/webm")
+            query_text = trans_res.get("englishText") or trans_res.get("transcription") or ""
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to process voice audio: {e}")
+
+    if not query_text:
+        raise HTTPException(status_code=400, detail="No speech query text or audio provided.")
+
+    # Send directly to existing diagnostic pipeline
+    core_req = QueryRequest(
+        message=query_text,
+        session_id=req.session_id,
+        machine_filter=req.machine_filter
+    )
+    return handle_query(core_req)
 
 @app.post("/query", response_model=QueryResponse)
 @app.post("/chat", response_model=QueryResponse)

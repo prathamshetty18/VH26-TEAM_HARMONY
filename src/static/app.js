@@ -217,24 +217,26 @@ async function fetchInitialData() {
 
   // 4. Fault History & Machine Health
   fetchFaultHistory();
-  fetchMachineHealth();
+  fetchMachineHealth();  // Voice Query UI
+  initVoiceUI();
 }
 
 // --------------------------------------------------------------------------
-// COPILOT / CHAT ENGINE
+// COPILOT CHAT EXECUTION & TELEMETRY
 // --------------------------------------------------------------------------
 
-async function submitQuery() {
+async function submitQuery(queryOverride) {
   const inputField = document.getElementById('query-input');
-  if (!inputField) return;
-
-  const rawQuery = inputField.value.trim();
+  const rawQuery = (typeof queryOverride === 'string' && queryOverride.trim())
+    ? queryOverride.trim()
+    : (inputField ? inputField.value.trim() : '');
   if (!rawQuery) return;
 
-  inputField.value = '';
+  if (inputField) inputField.value = '';
 
   // Append user bubble
   appendUserMessage(rawQuery);
+
 
   // Show Typing Indicator
   const typingIndicator = showTypingIndicator();
@@ -1729,4 +1731,366 @@ window.closeDiagnosticReportModal = function() {
   const modal = document.getElementById('diagnostic-report-modal');
   if (modal) modal.classList.remove('active');
 };
+
+// ==========================================================================
+function initVoiceUI() {
+  const voiceBtn = document.getElementById('voice-record-btn');
+  const voiceBtnLabel = document.getElementById('voice-btn-label');
+  const queryInput = document.getElementById('query-input');
+  const editBtn = document.getElementById('edit-query-btn');
+  const statusBanner = document.getElementById('voice-status-banner');
+  const statusText = document.getElementById('voice-status-text');
+  const dismissStatusBtn = document.getElementById('voice-dismiss-status');
+
+  let activeRecognition = null;
+  let isRecording = false;
+  let audioContext = null;
+  let mediaStream = null;
+  let scriptNode = null;
+  let analyser = null;
+  let pcmChunks = [];
+  let silenceTimer = null;
+  let speechDetected = false;
+
+  function showStatusError(msg) {
+    if (statusBanner && statusText) {
+      statusText.textContent = msg;
+      statusBanner.style.display = 'flex';
+    }
+  }
+
+  function hideStatusError() {
+    if (statusBanner) statusBanner.style.display = 'none';
+  }
+
+  if (dismissStatusBtn) {
+    dismissStatusBtn.addEventListener('click', hideStatusError);
+  }
+
+  function setIdleState() {
+    isRecording = false;
+    if (voiceBtn) {
+      voiceBtn.classList.remove('listening');
+      voiceBtn.disabled = false;
+    }
+    if (voiceBtnLabel) voiceBtnLabel.textContent = '🎤 Speak';
+    cleanupAudio();
+  }
+
+  function setListeningState() {
+    isRecording = true;
+    hideStatusError();
+    if (voiceBtn) {
+      voiceBtn.classList.add('listening');
+      voiceBtn.disabled = false;
+    }
+    if (voiceBtnLabel) voiceBtnLabel.textContent = '🔴 Listening...';
+  }
+
+  function setTranscribingState() {
+    if (voiceBtn) {
+      voiceBtn.classList.remove('listening');
+      voiceBtn.disabled = true;
+    }
+    if (voiceBtnLabel) voiceBtnLabel.textContent = '⏳ Transcribing...';
+  }
+
+  function cleanupAudio() {
+    if (silenceTimer) {
+      clearTimeout(silenceTimer);
+      silenceTimer = null;
+    }
+    if (scriptNode) {
+      try { scriptNode.disconnect(); } catch (e) {}
+      scriptNode = null;
+    }
+    if (analyser) {
+      try { analyser.disconnect(); } catch (e) {}
+      analyser = null;
+    }
+    if (mediaStream) {
+      try { mediaStream.getTracks().forEach(t => t.stop()); } catch (e) {}
+      mediaStream = null;
+    }
+    if (audioContext && audioContext.state !== 'closed') {
+      try { audioContext.close(); } catch (e) {}
+      audioContext = null;
+    }
+    pcmChunks = [];
+    speechDetected = false;
+  }
+
+  // --------------------------------------------------------------------------
+  // Method 1: Web Speech API (Native Google Speech-to-Text in Chrome/Edge)
+  // --------------------------------------------------------------------------
+  function startBrowserSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      return false;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      activeRecognition = recognition;
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.lang = 'en-US'; // Supports English; existing translation module translates if non-English
+
+      let hasResult = false;
+      let hasError = false;
+
+      recognition.onstart = () => {
+        setListeningState();
+      };
+
+      recognition.onresult = (event) => {
+        if (event.results && event.results.length > 0 && event.results[0].length > 0) {
+          const rawText = event.results[0][0].transcript.trim();
+          if (rawText) {
+            hasResult = true;
+            // DIRECT DISPLAY: Put the actual transcription directly into the input box!
+            if (queryInput) {
+              queryInput.value = rawText;
+              queryInput.focus();
+            }
+          }
+        }
+      };
+
+      recognition.onerror = (event) => {
+        hasError = true;
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          showStatusError('Microphone permission is required for voice input.');
+        } else if (event.error === 'no-speech') {
+          showStatusError('No speech detected. Please try again.');
+        } else {
+          showStatusError('Unable to transcribe audio. Please try again.');
+        }
+      };
+
+      recognition.onspeechend = () => {
+        // Automatically detected when user stopped speaking!
+        recognition.stop();
+      };
+
+      recognition.onend = () => {
+        activeRecognition = null;
+        setIdleState();
+        if (!hasResult && !hasError) {
+          showStatusError('No speech detected. Please try again.');
+        }
+      };
+
+      recognition.start();
+      return true;
+    } catch (err) {
+      console.warn('Native SpeechRecognition failed to initialize, falling back to AudioContext:', err);
+      return false;
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Method 2: AudioContext WAV Recorder with VAD Silence Detection + Google STT
+  // --------------------------------------------------------------------------
+  async function startWavRecording() {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showStatusError('Microphone permission is required for voice input.');
+        return;
+      }
+
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
+
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      audioContext = new AudioContextClass({ sampleRate: 16000 });
+      const source = audioContext.createMediaStreamSource(mediaStream);
+
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+
+      scriptNode = audioContext.createScriptProcessor(4096, 1, 1);
+      pcmChunks = [];
+      speechDetected = false;
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      scriptNode.onaudioprocess = (e) => {
+        if (!isRecording) return;
+        const channelData = e.inputBuffer.getChannelData(0);
+        pcmChunks.push(new Float32Array(channelData));
+
+        // Volume monitoring for automatic speech-end detection
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        const avg = sum / dataArray.length;
+
+        if (avg > 15) {
+          // User is speaking
+          speechDetected = true;
+          if (silenceTimer) {
+            clearTimeout(silenceTimer);
+            silenceTimer = null;
+          }
+        } else if (speechDetected && !silenceTimer) {
+          // User stopped speaking — trigger auto-stop after 1.6s of silence
+          silenceTimer = setTimeout(() => {
+            if (isRecording) {
+              stopRecordingAndTranscribe();
+            }
+          }, 1600);
+        }
+      };
+
+      source.connect(scriptNode);
+      scriptNode.connect(audioContext.destination);
+
+      setListeningState();
+    } catch (err) {
+      cleanupAudio();
+      setIdleState();
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        showStatusError('Microphone permission is required for voice input.');
+      } else {
+        showStatusError('Unable to transcribe audio. Please try again.');
+      }
+    }
+  }
+
+  function stopRecordingAndTranscribe() {
+    if (!isRecording) return;
+    setTranscribingState();
+
+    if (activeRecognition) {
+      try { activeRecognition.stop(); } catch (e) {}
+      activeRecognition = null;
+      return;
+    }
+
+    // AudioContext WAV Encoding
+    try {
+      let totalLength = 0;
+      for (let i = 0; i < pcmChunks.length; i++) totalLength += pcmChunks[i].length;
+
+      if (totalLength < 4000 || !speechDetected) {
+        setIdleState();
+        showStatusError('No speech detected. Please try again.');
+        return;
+      }
+
+      const merged = new Float32Array(totalLength);
+      let offset = 0;
+      for (let i = 0; i < pcmChunks.length; i++) {
+        merged.set(pcmChunks[i], offset);
+        offset += pcmChunks[i].length;
+      }
+
+      const wavBlob = encodeWAV(merged, 16000);
+      cleanupAudio();
+
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const base64Audio = reader.result;
+          const res = await fetch('/api/voice/transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ audio: base64Audio, format: 'audio/wav' }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.status === 'error') {
+            const msg = (data.error && data.error.includes('No speech'))
+              ? 'No speech detected. Please try again.'
+              : 'Unable to transcribe audio. Please try again.';
+            showStatusError(msg);
+            return;
+          }
+
+          if (data && data.transcription && data.transcription.trim()) {
+            const rawText = data.transcription.trim();
+            // DIRECT SPEECH-TO-TEXT: Output exact recognized words into input field!
+            if (queryInput) {
+              queryInput.value = rawText;
+              queryInput.focus();
+            }
+          } else {
+            showStatusError('No speech detected. Please try again.');
+          }
+        } catch (err) {
+          showStatusError('Unable to transcribe audio. Please try again.');
+        } finally {
+          setIdleState();
+        }
+      };
+      reader.readAsDataURL(wavBlob);
+    } catch (e) {
+      cleanupAudio();
+      setIdleState();
+      showStatusError('Unable to transcribe audio. Please try again.');
+    }
+  }
+
+  // 16-bit PCM WAV encoder
+  function encodeWAV(samples, sampleRate) {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+
+    function writeString(v, off, str) {
+      for (let i = 0; i < str.length; i++) v.setUint8(off + i, str.charCodeAt(i));
+    }
+
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, 1, true); // Mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(view, 36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+
+    let idx = 44;
+    for (let i = 0; i < samples.length; i++) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(idx, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      idx += 2;
+    }
+
+    return new Blob([view], { type: 'audio/wav' });
+  }
+
+  // Toggle button click handler
+  if (voiceBtn) {
+    voiceBtn.addEventListener('click', () => {
+      if (isRecording) {
+        stopRecordingAndTranscribe();
+      } else {
+        // Try Web Speech API first (Google live STT in Chrome/Edge), fall back to WAV recorder
+        const started = startBrowserSpeechRecognition();
+        if (!started) {
+          startWavRecording();
+        }
+      }
+    });
+  }
+
+  // Edit button click handler
+  if (editBtn) {
+    editBtn.addEventListener('click', () => {
+      if (queryInput) {
+        queryInput.focus();
+        const len = queryInput.value.length;
+        queryInput.setSelectionRange(len, len);
+      }
+    });
+  }
+}
 

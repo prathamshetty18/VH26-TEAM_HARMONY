@@ -365,18 +365,33 @@
               </div>
             </div>
 
-            <!-- Input Bar -->
+            <!-- Voice Status / Error Banner -->
+            <div id="voice-status-banner" style="display: none; padding: 0.5rem 2rem; font-size: 0.8rem; background: #fef2f2; border-top: 1px solid #fecaca; color: #b91c1c; display: flex; align-items: center; justify-content: space-between;">
+              <span id="voice-status-text"></span>
+              <button id="voice-dismiss-status" style="background: none; border: none; color: #ef4444; font-weight: bold; cursor: pointer; font-size: 1rem;">×</button>
+            </div>
+
+            <!-- Direct Speech-to-Text Input Bar -->
             <div class="chat-input-wrapper">
+              <button class="voice-record-btn" id="voice-record-btn" type="button" title="Click to speak">
+                <span id="voice-btn-label">🎤 Speak</span>
+              </button>
+
               <input 
                 type="text" 
                 class="query-input-field" 
                 id="query-input" 
-                placeholder="Ask about an error code, symptom, or maintenance procedure (e.g. 'E101' or 'conveyor squeal')..."
+                placeholder="Describe fault or click Speak (e.g. 'The motor is overheating and producing abnormal vibration')..."
                 autocomplete="off"
               />
-              <button class="btn btn-primary" id="send-query-btn">
-                <span>Evaluate</span>
+
+              <button class="btn btn-primary" id="send-query-btn" title="Analyze fault with diagnostic pipeline">
+                <span>Analyze</span>
                 <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+              </button>
+
+              <button class="btn btn-secondary" id="edit-query-btn" type="button" style="padding: 0.85rem 1.25rem; font-weight: 600; cursor: pointer;" title="Edit query in input field">
+                <span>Edit</span>
               </button>
             </div>
           </div>

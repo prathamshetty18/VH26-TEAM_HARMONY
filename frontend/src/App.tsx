@@ -649,6 +649,8 @@ export const App: React.FC = () => {
                   disabled={isLoading}
                   scopedMachine={scopedMachine}
                   onClearScope={() => setScopedMachine(null)}
+                  voiceEnabled={backendConfig.voiceEnabled !== false}
+                  baseUrl={backendConfig.baseUrl}
                 />
               </main>
             </div>

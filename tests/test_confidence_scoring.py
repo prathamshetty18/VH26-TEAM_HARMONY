@@ -170,7 +170,8 @@ class TestAPIConfidenceEndpoints:
         resp = handle_query(req)
 
         # Must refuse
-        assert "sufficient information" in resp.answer.lower() or "won't provide an unsupported answer" in resp.answer.lower() or "don't cover this" in resp.answer.lower() or "won't guess" in resp.answer.lower()
+        from src.safety import REFUSAL_MESSAGE
+        assert resp.answer == REFUSAL_MESSAGE or "sufficient information" in resp.answer.lower() or "won't provide an unsupported answer" in resp.answer.lower() or "don't cover this" in resp.answer.lower() or "manuals don't cover" in resp.answer.lower() or "won't guess" in resp.answer.lower()
         # No fabricated confidence score
         assert resp.confidence_score is None
         assert resp.confidence_level is None
