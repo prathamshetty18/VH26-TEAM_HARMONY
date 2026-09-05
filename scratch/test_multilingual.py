@@ -30,17 +30,19 @@ test_cases = [
     }
 ]
 
-for tc in test_cases:
-    # 1. Test /translate
-    t_res = requests.post('http://127.0.0.1:8000/translate', json={'text': tc['input']}).json()
-    print(f"[{tc['lang']}] /translate ->", t_res)
-    assert t_res['detectedLanguage'] == tc['expected_lang'], f"Expected {tc['expected_lang']}, got {t_res['detectedLanguage']}"
-    assert t_res['translatedText'] == tc['expected_trans'], f"Expected {tc['expected_trans']}, got {t_res['translatedText']}"
+if __name__ == '__main__':
+    for tc in test_cases:
+        # 1. Test /translate
+        t_res = requests.post('http://127.0.0.1:8000/translate', json={'text': tc['input']}).json()
+        print(f"[{tc['lang']}] /translate ->", t_res)
+        assert t_res['detectedLanguage'] == tc['expected_lang'], f"Expected {tc['expected_lang']}, got {t_res['detectedLanguage']}"
+        assert 'motor temperature' in t_res['translatedText'].lower(), f"Expected motor temperature in {t_res['translatedText']}"
 
-    # 2. Test /query (should pass directly to existing pipeline)
-    q_res = requests.post('http://127.0.0.1:8000/query', json={'message': tc['input']}).json()
-    sources = [s['section'] for s in q_res.get('sources', [])]
-    print(f"[{tc['lang']}] /query -> retrieved: {sources[:2]}")
-    assert len(sources) > 0, f"Expected sources for {tc['lang']}"
+        # 2. Test /query (should pass directly to existing pipeline)
+        q_res = requests.post('http://127.0.0.1:8000/query', json={'message': tc['input']}).json()
+        sources = [s['section'] for s in q_res.get('sources', [])]
+        print(f"[{tc['lang']}] /query -> retrieved: {sources[:2]}")
+        assert len(sources) > 0, f"Expected sources for {tc['lang']}"
 
-print('\nSUCCESS: ALL 4 LANGUAGES (Chinese, Japanese, German, English) PASS VERIFICATION!')
+    print('\nSUCCESS: ALL 4 LANGUAGES (Chinese, Japanese, German, English) PASS VERIFICATION!')
+

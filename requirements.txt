@@ -9,3 +9,4 @@ uvicorn
 sentence-transformers
 google-cloud-speech
 SpeechRecognition
+python-multipart
