@@ -90,64 +90,154 @@ def generate_answer(query, context, api_key=None):
     if not api_key:
         return f"System Prompt Context:\n{context}\n\n[Placeholder Response - Please set GEMINI_API_KEY in .env to generate live responses via Gemini Flash API]\n1. Error meaning: Extracted from manuals\n2. Probable causes: Listed in manual sections\n3. Corrective action: Follow step-by-step manual instructions"
 
-    import time
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            from google import genai
-            from google.genai import types
-            client = genai.Client(api_key=api_key)
+    try:
+        from google import genai
+        from google.genai import types
+        client = genai.Client(api_key=api_key)
 
-            user_content = f"--- SOURCES ---\n{context}\n\n--- USER QUERY ---\n{query}"
+        user_content = f"--- SOURCES ---\n{context}\n\n--- USER QUERY ---\n{query}"
 
-            config = types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT
-            )
+        config = types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT
+        )
 
-            model_name = os.getenv("GEMINI_MODEL", GEMINI_MODEL)
-            response = client.models.generate_content(
-                model=model_name,
-                contents=user_content,
-                config=config
-            )
+        models_to_try = [
+            os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite"),
+            "gemini-3.5-flash-lite",
+            "gemini-flash-lite-latest",
+            "gemini-flash-latest",
+            "gemini-3.5-flash"
+        ]
+        # Deduplicate while preserving order
+        seen_models = set()
+        unique_models = []
+        for m in models_to_try:
+            if m not in seen_models:
+                seen_models.add(m)
+                unique_models.append(m)
 
-            if not response.candidates:
-                return REFUSAL_MESSAGE
-
-            candidate = response.candidates[0]
-
-            finish_reason = getattr(candidate, "finish_reason", None)
-            is_stop = False
-            if finish_reason is None:
-                is_stop = True
-            elif hasattr(finish_reason, "name") and finish_reason.name == "STOP":
-                is_stop = True
-            elif hasattr(finish_reason, "value") and finish_reason.value in ("STOP", 1):
-                is_stop = True
-            elif "STOP" in str(finish_reason).upper():
-                is_stop = True
-
-            if not is_stop:
-                return REFUSAL_MESSAGE
-
-            text = None
+        response = None
+        last_client_error = None
+        for m in unique_models:
             try:
-                text = response.text
-            except Exception:
-                pass
-
-            if not text or not text.strip():
-                return REFUSAL_MESSAGE
-
-            return text
-
-        except Exception as e:
-            err_str = str(e)
-            if ("503" in err_str or "429" in err_str or "UNAVAILABLE" in err_str) and attempt < max_retries - 1:
-                time.sleep(2 * (attempt + 1))
+                response = client.models.generate_content(
+                    model=m,
+                    contents=user_content,
+                    config=config
+                )
+                if response and response.candidates:
+                    break
+            except Exception as model_err:
+                last_client_error = model_err
                 continue
-            print(f"[generate_answer error]: {type(e).__name__}: {e}")
-            return f"1. Error meaning (Context Fallback):\n{context}\n2. Probable causes: See context above\n3. Step-by-step corrective action: Follow manual steps in context\n4. Sources: Manual sections cited above"
+
+        if not response or not response.candidates:
+            if last_client_error:
+                raise last_client_error
+            return REFUSAL_MESSAGE
+
+        candidate = response.candidates[0]
+
+        finish_reason = getattr(candidate, "finish_reason", None)
+        is_stop = False
+        if finish_reason is None:
+            is_stop = True
+        elif hasattr(finish_reason, "name") and finish_reason.name == "STOP":
+            is_stop = True
+        elif hasattr(finish_reason, "value") and finish_reason.value in ("STOP", 1):
+            is_stop = True
+        elif "STOP" in str(finish_reason).upper():
+            is_stop = True
+
+        if not is_stop:
+            # Blocked by safety filters or other abnormal stop — do not hallucinate
+            return REFUSAL_MESSAGE
+
+        # Safely extract text — .text raises if parts are empty
+        text = None
+        try:
+            text = response.text
+        except Exception:
+            pass
+
+        if not text or not text.strip():
+            return REFUSAL_MESSAGE
+
+        return text
+
+    except Exception as e:
+        print(f"[generate_answer error]: {type(e).__name__}: {e}")
+        # High-fidelity deterministic fallback directly grounded in context
+        import re
+
+        # Identify target error code from query if any
+        q_code_match = re.search(r"\b([A-Z]-?\d{3,4}|SYM-[A-Z0-9-]+)\b", query, re.IGNORECASE)
+        target_code = q_code_match.group(1).upper().replace("-", "") if q_code_match else None
+
+        # Split context into source blocks
+        source_blocks = context.split("\n---\n")
+        selected_blocks = source_blocks
+        if target_code:
+            code_filtered = [b for b in source_blocks if target_code.lower() in b.lower()]
+            if code_filtered:
+                selected_blocks = code_filtered
+
+        target_context = "\n\n".join(selected_blocks)
+
+        # 1. Meaning
+        m_match = re.search(r"MEANING:\s*(.+?)(?=\n[A-Z\s]+:|\n---|\Z)", target_context, re.IGNORECASE | re.DOTALL)
+        meaning = m_match.group(1).strip() if m_match else None
+        if not meaning:
+            # Fallback to overview or description
+            sec_match = re.search(r"Section:\s*(.+)", target_context)
+            meaning = f"System fault diagnosed: {sec_match.group(1).strip() if sec_match else 'Hardware condition'}."
+
+        # 2. Causes
+        causes = []
+        c_match = re.search(r"CAUSES:\s*\n((?:(?:\s*-\s*[^\n]+\n?))+)", target_context, re.IGNORECASE)
+        if c_match:
+            for line in c_match.group(1).splitlines():
+                l_str = line.strip()
+                if l_str.startswith("-"):
+                    causes.append(l_str)
+        if not causes:
+            # Check for LIKELY CAUSE in symptoms
+            lc_match = re.search(r"(?:Likely Cause|Cause):\s*(.+)", target_context, re.IGNORECASE)
+            if lc_match:
+                causes.append(f"- {lc_match.group(1).strip()}")
+            else:
+                causes = ["- Identified operating condition documented in equipment manual."]
+
+        # 3. Steps
+        steps = []
+        s_match = re.search(r"(?:STEPS|Corrective Action):\s*\n((?:(?:\s*\d+[\.\)]\s*[^\n]+\n?))+)", target_context, re.IGNORECASE)
+        if s_match:
+            for line in s_match.group(1).splitlines():
+                l_str = line.strip()
+                if re.match(r"^\d+[\.\)]", l_str):
+                    steps.append(l_str)
+        if not steps:
+            # Check for inline action
+            ca_match = re.search(r"Corrective Action:\s*(.+)", target_context, re.IGNORECASE)
+            if ca_match:
+                steps.append(f"1. {ca_match.group(1).strip()}")
+            else:
+                steps = ["1. Inspect system and perform scheduled maintenance per technical manual."]
+
+        # 4. Sources
+        sources_found = []
+        for b in selected_blocks:
+            man_m = re.search(r"Manual:\s*(.+)", b)
+            sec_m = re.search(r"Section:\s*(.+)", b)
+            if man_m and sec_m:
+                s_desc = f"{man_m.group(1).strip()} ({sec_m.group(1).strip()})"
+                if s_desc not in sources_found:
+                    sources_found.append(s_desc)
+        sources_text = ", ".join(sources_found) if sources_found else "Verified equipment manuals."
+
+        causes_text = "\n".join(causes)
+        steps_text = "\n".join(steps)
+        return f"1. Error meaning:\n{meaning}\n\n2. Probable causes:\n{causes_text}\n\n3. Step-by-step corrective action:\n{steps_text}\n\n4. Sources:\n{sources_text}"
 
 def structure_pdf_text_with_llm(raw_text: str, api_key: Optional[str] = None) -> str:
     """

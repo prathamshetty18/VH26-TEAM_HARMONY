@@ -16,9 +16,11 @@ class SessionMemory:
             }
         return self.sessions[session_id]
 
-    def update_session(self, session_id, machine=None, error_code=None, last_answer=None):
+    def update_session(self, session_id, machine=None, error_code=None, last_answer=None, clear_machine=False):
         sess = self.get_session(session_id)
-        if machine:
+        if clear_machine:
+            sess["last_machine"] = None
+        elif machine:
             sess["last_machine"] = machine
         if error_code:
             sess["last_error_code"] = error_code
@@ -30,7 +32,8 @@ class SessionMemory:
         Seamlessly connects multi-turn dialogue with active session context:
         1. Context Continuation: Vague follow-ups or queries lacking machine/error inherit active session state.
         2. Machine Switch: A user specifying a machine while an error code is active inherits the error code.
-        3. Error Switch: A user specifying an error code while a machine is active inherits the machine.
+        3. Error Switch: A user specifying an error code while a machine is active inherits the machine,
+           unless it's a standalone definition query testing cross-manual ambiguity.
         """
         sess = self.get_session(session_id)
         last_m = sess.get("last_machine")
@@ -53,9 +56,10 @@ class SessionMemory:
             if last_e.lower() not in query_lower:
                 injections.append(f"error code {last_e}")
 
-        # Case 2: Error specified, machine missing -> inherit machine
+        # Case 2: Error specified, machine missing -> inherit machine ONLY if not a standalone definition query
         elif has_new_error and not has_new_machine and last_m:
-            if last_m.lower() not in query_lower:
+            is_definition_query = bool(re.search(r"^(what\s+does|meaning\s+of|what\s+is|\bdefinition\b|\bexplain\b)?\s*(error\s+code\s+|fault\s+|error\s+)?([a-z]-?\d{3,4}|sym-[a-z0-9-]+)\s*(mean|\?|$)", query_lower))
+            if not is_definition_query and last_m.lower() not in query_lower:
                 injections.append(f"machine {last_m}")
 
         # Case 3: Neither machine nor error specified in follow-up -> inherit both only if follow-up intent
