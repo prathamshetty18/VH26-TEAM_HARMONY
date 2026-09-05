@@ -837,8 +837,8 @@ def confirm_manual(req: ManualConfirmRequest):
         is_translated=req.is_translated
     )
 
-@app.get("/api/manuals/{filename_or_machine}/pdf")
-@app.get("/manuals/{filename_or_machine}/pdf")
+@app.api_route("/api/manuals/{filename_or_machine}/pdf", methods=["GET", "HEAD"])
+@app.api_route("/manuals/{filename_or_machine}/pdf", methods=["GET", "HEAD"])
 def get_manual_pdf(filename_or_machine: str, download: bool = False):
     """Streams PDF version of technical manual for in-browser PDF reader."""
     if not os.path.exists(MANUALS_DIR):
@@ -879,7 +879,10 @@ def get_manual_pdf(filename_or_machine: str, download: bool = False):
     if download:
         headers = {
             "Content-Disposition": f'attachment; filename="{target_filename}"',
-            "Content-Type": "application/pdf"
+            "Content-Type": "application/pdf",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
         }
         return FileResponse(
             found_path,
@@ -890,16 +893,21 @@ def get_manual_pdf(filename_or_machine: str, download: bool = False):
         )
     else:
         headers = {
-            "Content-Disposition": "inline",
+            "Content-Disposition": f'inline; filename="{target_filename}"',
             "Content-Type": "application/pdf",
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache",
-            "Expires": "0"
+            "Cache-Control": "public, max-age=3600",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Content-Security-Policy": "frame-ancestors *",
+            "X-Frame-Options": "ALLOWALL",
+            "X-Content-Type-Options": "nosniff"
         }
         return FileResponse(
             found_path,
             media_type="application/pdf",
             content_disposition_type="inline",
+            filename=target_filename,
             headers=headers
         )
 

@@ -872,7 +872,7 @@ async function runFullBenchmark() {
 let CURRENT_MANUAL_VIEW_MODE = 'pdf'; // 'pdf' or 'text'
 let CURRENT_MANUAL_PAGE = 1;
 STATE.activeManualLang = 'en';
-STATE.activeManualType = 'multilingual';
+STATE.activeManualType = null;
 STATE.multilingualManualCache = {};
 
 function renderManualsViewer() {
@@ -880,21 +880,13 @@ function renderManualsViewer() {
   if (!navContainer) return;
 
   const manuals = (STATE.manualsData && STATE.manualsData.manuals) || [];
+  if (manuals.length === 0) return;
 
-  let navHtml = `
-    <div class="manual-tab-item ${STATE.activeManualType === 'multilingual' ? 'active' : ''}" 
-         onclick="selectMultilingualManualViewer()" 
-         id="manual-tab-multilingual"
-         style="border-left: 4px solid #4f46e5; background: ${STATE.activeManualType === 'multilingual' ? '#eef2ff' : '#fafafa'};">
-      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-        <span style="font-size: 1.1rem;">🌐</span>
-        <h5 style="color: #312e81; font-weight: 700; margin: 0;">Multilingual Instruction Manual</h5>
-      </div>
-      <p style="margin: 0; font-size: 0.75rem; color: #4338ca;">Model MX-7 Precision • English | 中文 | 日本語 | Deutsch</p>
-    </div>
-  `;
+  if (!STATE.activeManualType || !manuals.some(m => m.filename === STATE.activeManualType)) {
+    STATE.activeManualType = manuals[0].filename;
+  }
 
-  navHtml += manuals.map((m) => `
+  let navHtml = manuals.map((m) => `
     <div class="manual-tab-item ${STATE.activeManualType === m.filename ? 'active' : ''}" 
          onclick="selectManualViewer('${m.filename}', 1)" 
          id="manual-tab-${m.filename}">
@@ -908,13 +900,8 @@ function renderManualsViewer() {
 
   navContainer.innerHTML = navHtml;
 
-  // Default display multilingual manual or first manual
-  if (STATE.activeManualType === 'multilingual') {
-    selectMultilingualManualViewer();
-  } else if (manuals.length > 0) {
-    const target = manuals.find(m => m.filename === STATE.activeManualType) ? STATE.activeManualType : manuals[0].filename;
-    selectManualViewer(target, 1);
-  }
+  const target = manuals.find(m => m.filename === STATE.activeManualType) ? STATE.activeManualType : manuals[0].filename;
+  selectManualViewer(target, CURRENT_MANUAL_PAGE || 1);
 }
 
 window.selectMultilingualManualViewer = async function() {
@@ -1355,8 +1342,14 @@ function renderManualViewContent() {
           <a href="${pdfUrl}" target="_blank" class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; background: #1e293b; color: #fff; text-decoration: none;">↗ Open Tab</a>
           <a href="${pdfUrl}?download=true" download="${selected.filename.replace('.txt', '.pdf')}" class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; background: #1e293b; color: #fff; text-decoration: none;">⬇ Download</a>
         </div>
-      </div>
-      <iframe src="${pdfUrl}?v=2#page=${CURRENT_MANUAL_PAGE}" style="width: 100%; height: 580px; border: 1px solid #cbd5e1; border-top: none; border-radius: 0 0 12px 12px; background: #f8fafc;" title="${escapeHtml(selected.title)}"></iframe>
+      <object data="${pdfUrl}#page=${CURRENT_MANUAL_PAGE}&toolbar=1&navpanes=0" type="application/pdf" style="width: 100%; height: 580px; border: 1px solid #cbd5e1; border-top: none; border-radius: 0 0 12px 12px; background: #f8fafc;">
+        <iframe src="${pdfUrl}#page=${CURRENT_MANUAL_PAGE}&toolbar=1&navpanes=0" style="width: 100%; height: 580px; border: none;" title="${escapeHtml(selected.title)}">
+          <div style="padding: 2rem; text-align: center; color: #64748b;">
+            <p style="margin-bottom: 1rem;">Unable to display PDF directly in your browser.</p>
+            <a href="${pdfUrl}" target="_blank" class="btn btn-primary" style="display: inline-block; padding: 0.5rem 1rem;">Open PDF Manual in New Tab ↗</a>
+          </div>
+        </iframe>
+      </object>
     `;
   } else {
     viewer.innerHTML = `
